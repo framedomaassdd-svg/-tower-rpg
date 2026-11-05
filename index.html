@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10121c"><title>หอคอยไร้ขอบเขต — Tower RPG</title>
+<style>
+:root{color-scheme:dark;--bg:#10121c;--panel:#1a202e;--line:#394155;--text:#eee8da;--muted:#a5afbc;--gold:#e0bd78;--green:#94c5a9;--red:#e3a0a0}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at top,#26304a 0,#10121c 62%);font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:var(--text)}.shell{max-width:1050px;margin:auto;padding:16px 14px 60px}.brand{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:14px}.brand h1{font-family:Georgia,serif;margin:0;font-size:clamp(22px,4vw,32px);letter-spacing:.025em}.eyebrow{color:var(--gold);font-size:11px;letter-spacing:.14em}.sub{font-size:12px;color:var(--muted)}.top-actions{display:flex;gap:7px;flex-wrap:wrap}button{font:inherit;cursor:pointer;color:var(--text);border:1px solid #596176;background:#303a4e;padding:11px 15px;border-radius:10px;min-height:43px;touch-action:manipulation}button:active{transform:translateY(1px)}button:hover{border-color:var(--gold)}button:disabled{opacity:.45;cursor:default}.primary{background:linear-gradient(135deg,#a77d4d,#735336);border-color:#d9b875;color:#fffaf1;font-weight:700}.ghost{background:#1d2333}.danger{border-color:#804e52;background:#3c262d}.main{display:grid;grid-template-columns:minmax(0,1fr) 255px;gap:12px}.paper,.side{border:1px solid #404456;background:linear-gradient(145deg,rgba(33,39,57,.97),rgba(19,24,37,.97));border-radius:16px;box-shadow:0 16px 48px #0004;overflow:hidden}.scene-art{height:clamp(220px,40vw,338px);position:relative;background:radial-gradient(ellipse at 50% 85%,#a47b56 0%,#41515e 40%,#15182b 85%);overflow:hidden;border-bottom:1px solid #4b4c5d}.scene-art svg{width:100%;height:100%;display:block}.scene-art:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 60%,#171d2c 100%)}.scene-label{position:absolute;left:15px;bottom:12px;z-index:2;font-size:12px;color:#f1d6ab;text-shadow:0 2px 4px black}.story{padding:19px clamp(14px,3vw,28px) 22px}.scene-title{font-size:22px;font-weight:800;margin:0 0 12px;color:#f3debb}.prose{white-space:pre-line;line-height:1.9;font-size:15px;color:#e6e1d7;min-height:100px}.choice-grid{display:grid;gap:9px;margin-top:20px}.choice-grid button{text-align:left;width:100%;padding:14px 16px;line-height:1.5}.choice-grid button small{display:block;color:#bdc1c8;font-weight:400;margin-top:4px}.side{padding:15px;align-self:start}.side h3{margin:0 0 9px;font-size:14px;color:var(--gold)}.muted{font-size:12px;color:var(--muted)}.tagrow{display:flex;flex-wrap:wrap;gap:6px}.tag{border:1px solid #4d5869;background:#253043;padding:5px 8px;border-radius:999px;font-size:11px}.section{padding-top:13px;margin-top:13px;border-top:1px solid #373f4e}.value{font-size:19px;font-weight:750;color:#f4dfb2}.notice{background:#252d3c;border-left:3px solid #b79259;padding:10px 12px;border-radius:5px;font-size:13px;line-height:1.6;margin:14px 0}.history{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:9px;font-size:11px;color:#bbc3cf}.history div{border-bottom:1px solid #333b49;padding-bottom:7px}.battle-view{display:none}.battle-view.on{display:block}.battle-stage{height:clamp(235px,43vw,350px);position:relative;background:#121827}.battle-stage canvas{width:100%;height:100%;display:block;image-rendering:pixelated}.battle-ui{padding:12px 16px;background:#20283b;border-top:1px solid #45526b;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.bars{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:11px 16px;background:#151b2a}.bar-name{display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px}.bar-bg{height:9px;background:#3c2632;border:1px solid #695464;border-radius:99px;overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,#799d78,#9acf9f);transition:width .4s}.battle-log{font-size:13px;color:#f1d6a2;line-height:1.6;min-height:40px;flex:1}.results{padding:16px}.meter{color:#d2bf8c}.hidden{display:none!important}@media(max-width:740px){.main{grid-template-columns:1fr}.side{order:-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}.side .section{margin:0;padding:0;border:0}.side .history{max-height:95px}.brand h1{font-size:22px}.shell{padding:12px 10px 42px}.prose{font-size:14px}.scene-art{height:236px}}@media(max-width:360px){.side{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="shell"><header class="brand"><div><div class="eyebrow">V0.8 · EMERGENT EVENTS & CONSEQUENCES · TOWER RPG</div><h1>หอคอยไร้ขอบเขต</h1><div class="sub">การอัญเชิญ · กิลด์ · เงื่อนไขลับ · การต่อสู้อัตโนมัติ</div></div><div class="top-actions"><button class="ghost" id="saveBtn">บันทึก</button><button class="ghost" id="loadBtn">เล่นต่อ</button><button class="danger" id="newBtn">เริ่มใหม่</button></div></header>
+<div class="main"><section class="paper"><div id="storyView"><div class="scene-art" id="sceneArt"><svg viewBox="0 0 850 350" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sk" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#151e38"/><stop offset=".75" stop-color="#53616b"/><stop offset="1" stop-color="#8c7464"/></linearGradient><linearGradient id="tower" x1="0" x2="1"><stop stop-color="#1c2531"/><stop offset=".5" stop-color="#4b5667"/><stop offset="1" stop-color="#222c3c"/></linearGradient></defs><rect width="850" height="350" fill="url(#sk)"/><path d="M0 214 L190 153 L325 201 L495 141 L700 201 L850 130 V350 H0" fill="#344357"/><path d="M0 267 L150 224 L305 249 L514 216 L700 255 L850 222 V350 H0" fill="#3f4a54"/><path d="M348 0 L504 0 L504 278 L348 278 Z" fill="url(#tower)"/><path d="M331 37 L521 37 L503 58 L348 58Z M340 112 L512 112 L509 128 L343 128Z M340 188 L512 188 L509 202 L343 202Z" fill="#727788"/><g fill="#d7ae72" opacity=".72"><rect x="384" y="76" width="11" height="28"/><rect x="461" y="76" width="11" height="28"/><rect x="385" y="146" width="11" height="31"/><rect x="460" y="146" width="11" height="31"/></g><path d="M401 279 V241 Q425 205 450 241 V279Z" fill="#171d29"/><g fill="#242b38"><path d="M0 312 l40 -50 52 50zm80 3 52 -67 53 67zm103 0 43 -60 59 60zm395 0 41 -61 60 61zm100 0 45 -74 60 74z"/></g><path d="M0 304 Q190 279 365 302 T850 296 V350 H0" fill="#766654"/><g fill="#e2c990" opacity=".75"><circle cx="180" cy="60" r="2"/><circle cx="600" cy="48" r="2"/><circle cx="680" cy="92" r="1"/><circle cx="260" cy="109" r="1"/></g></svg><div class="scene-label" id="sceneLabel">วันแห่งการอัญเชิญ</div></div><div class="story"><h2 class="scene-title" id="sceneTitle">หอคอยที่ไม่มีใครเรียกหา</h2><div class="prose" id="prose"></div><div id="notice"></div><div class="choice-grid" id="choices"></div></div></div><div class="battle-view" id="battleView"><div class="battle-stage"><canvas id="arena" width="800" height="350"></canvas></div><div class="bars"><div><div class="bar-name"><span id="heroName">ผู้ถูกอัญเชิญ</span><span id="heroHp"></span></div><div class="bar-bg"><div class="bar-fill" id="heroFill"></div></div></div><div><div class="bar-name"><span id="enemyName">ศัตรู</span><span id="enemyHp"></span></div><div class="bar-bg"><div class="bar-fill" id="enemyFill"></div></div></div></div><div class="battle-ui"><div class="battle-log" id="battleLog">กำลังเผชิญหน้า...</div><button id="battleSpeed">ความเร็ว ×1</button></div></div></section><aside class="side"><div><h3>บันทึกผู้ถูกอัญเชิญ</h3><div id="profile" class="muted">ยังไม่มีตัวละคร</div></div><div class="section"><h3>สัมภาระและทรัพย์สิน</h3><div id="resources" class="muted">—</div></div><div class="section"><h3>สถานะล่าสุดจากศิลา</h3><div id="stoneData" class="muted">ยังไม่เคยตรวจวัด</div></div><div class="section"><h3>เหตุการณ์ที่ผ่านมา</h3><div class="history" id="history"></div></div></aside></div></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), SAVE='tower_rpg_choice_v8',PREV_SAVE='tower_rpg_choice_v3',OLD_SAVE='tower_rpg_choice_v2',FIRST_SAVE='tower_rpg_choice_v1';
+const OCC=[
+ {name:'พยาบาล',ability:'ปฐมพยาบาล',key:'medic',bonus:[0,2,0],effect:'รักษาบาดแผลได้ดี'},
+ {name:'ช่างก่อสร้าง',ability:'ชำนาญเครื่องมือ',key:'builder',bonus:[2,0,0],effect:'รับจ้างได้เงินมากขึ้น'},
+ {name:'นักกีฬา',ability:'ร่างกายนักกีฬา',key:'athlete',bonus:[2,0,3],effect:'หลบหลีกและโจมตีเร็ว'},
+ {name:'พนักงานส่งอาหาร',ability:'จำเส้นทาง',key:'courier',bonus:[0,0,2],effect:'สำรวจและหลบหนีได้ดี'},
+ {name:'นักวิจัย',ability:'สังเกตและวิเคราะห์',key:'researcher',bonus:[0,3,0],effect:'พบสมบัติได้ง่ายขึ้น'},
+ {name:'เชฟ',ability:'ทำอาหารอร่อยขึ้น 40%',key:'cook',bonus:[0,1,0],effect:'ทำอาหารได้ค่าจ้างเพิ่ม'},
+ {name:'พนักงานสำนักงาน',ability:'จัดระเบียบข้อมูล',key:'clerk',bonus:[0,2,0],effect:'รับจ้างเอกสารได้เงินเพิ่ม'},
+ {name:'ยามรักษาความปลอดภัย',ability:'ระวังภัย',key:'guard',bonus:[2,0,1],effect:'ลดความเสี่ยงการบาดเจ็บ'}
+];
+const SPECIES=[
+ {name:'หนูเขี้ยวเหล็ก',str:4,int:2,agi:7,hp:20,crystals:1,color:'#aaa58e',faction:'สัตว์ร้าย'},
+ {name:'ก็อบลินลาดตระเวน',str:6,int:4,agi:6,hp:29,crystals:2,color:'#78b581',faction:'ก็อบลิน'},
+ {name:'สุนัขเงา',str:7,int:4,agi:10,hp:32,crystals:3,color:'#9a91b7',faction:'สัตว์ร้าย'},
+ {name:'ผู้พิทักษ์หิน',str:11,int:3,agi:3,hp:57,crystals:5,color:'#c1a18d',faction:'ผู้พิทักษ์'},
+ {name:'อสูรหอคอย',str:16,int:9,agi:8,hp:105,crystals:13,color:'#b86d69',faction:'บอส',boss:true}
+];
+// V0.7: Every skill is a usable action with real mana cost and cooldown in actor turns.
+const SKILL_DEFS={
+ 'ประกายดาบ':{type:'damage',mana:3,cooldown:2,power:1.25,stat:'str',desc:'ฟันด้วยพลังเวท เสริมความเสียหายจากกำลัง'},
+ 'ลูกไฟ':{type:'damage',mana:5,cooldown:3,power:1.7,stat:'int',desc:'โจมตีด้วยเวทไฟ ใช้ปัญญาคำนวณความเสียหาย'},
+ 'เยียวยา':{type:'heal',mana:5,cooldown:4,power:1.4,stat:'int',desc:'รักษาตนเองอัตโนมัติเมื่อบาดเจ็บหนัก'},
+ 'ม่านพลัง':{type:'shield',mana:4,cooldown:4,power:1.1,stat:'int',desc:'ลดความเสียหายจากการโจมตีครั้งถัดไป'},
+ 'ก้าวเงา':{type:'evade',mana:3,cooldown:3,power:1,stat:'agi',desc:'เพิ่มโอกาสหลบโจมตีชั่วคราว'},
+ 'คมดาบพายุ':{type:'damage',mana:6,cooldown:4,power:1.75,stat:'agi',desc:'โจมตีรวดเร็วด้วยความคล่องตัว'}
+};
+const SKILL_NAMES=Object.keys(SKILL_DEFS);
+function ensurePower(p){if(!p)return; p.skills ||= [];p.skillMastery ||= {};p.skillUse ||= {};p.mana ??=0;p.maxMana ??=0;for(const name of p.skills)if(SKILL_DEFS[name]){p.skillMastery[name] ||= 1;p.skillUse[name] ||= 0}}
+function unlockSkill(p,name){ensurePower(p);if(!SKILL_DEFS[name])return false;if(p.skills.includes(name))return false;p.skills.push(name);p.skillMastery[name]=1;p.skillUse[name]=0;return true}
+function forgeBlueprint(){const p=state.player;if(!state.blueprints.length){log('ไม่มีพิมพ์เขียวสำหรับผลิตอุปกรณ์');return false}if(state.crystals<4||state.gold<16){log('ต้องมีผลึก 4 ชิ้น และเงิน 16 เหรียญสำหรับค่าช่าง');return false}state.blueprints.shift();state.crystals-=4;state.gold-=16;let name=R(2)?'ดาบผลึกเวท':'เกราะผลึกเวท';state.items.push(name);log('ช่างตีเหล็กสร้าง '+name+' สำเร็จจากพิมพ์เขียว');return true}
+function useSkillInBattle(p,e){ensurePower(p);if(!battle)return null;battle.skillCooldowns ||= {};battle.shield ||=0;battle.evadeBoost ||=0;
+ let available=p.skills.filter(n=>SKILL_DEFS[n]&&p.mana>=SKILL_DEFS[n].mana&&!(battle.skillCooldowns[n]>0));
+ available.sort((a,b)=>{let score=n=>{let d=SKILL_DEFS[n],hurt=1-p.health/Math.max(1,p.maxHealth);return d.type==='heal'?(hurt>.4?70+hurt*45:-30):d.type==='shield'?(battle.shield>0?-60:35+hurt*25):d.type==='evade'?(battle.evadeBoost>0?-60:28+hurt*20):30+d.power*12};return score(b)-score(a)});
+ let chosen=available.find(n=>{let d=SKILL_DEFS[n];if(d.type==='heal'&&p.health>p.maxHealth*.62)return false;if(d.type==='shield'&&battle.shield>0)return false;if(d.type==='evade'&&battle.evadeBoost>0)return false;return true});
+ if(!chosen)return null;let d=SKILL_DEFS[chosen],mastery=p.skillMastery[chosen]||1;
+ p.mana-=d.mana;battle.skillCooldowns[chosen]=d.cooldown+1;p.skillUse[chosen]=(p.skillUse[chosen]||0)+1;
+ let dmg=0,label='';if(d.type==='damage'){let stat=d.stat==='int'?p.stats[1]:d.stat==='agi'?p.stats[2]:p.stats[0];dmg=Math.max(1,Math.round(stat*d.power)+mastery+R(5)+battle.support-Math.floor(e.str/4));e.hp=Math.max(0,e.hp-dmg);label='ใช้'+chosen+' สร้างความเสียหาย '+dmg}
+ else if(d.type==='heal'){let hp=Math.ceil(p.stats[1]*d.power)+mastery*2+R(4);addHP(hp);label='ใช้'+chosen+' ฟื้นพลังชีวิต '+hp}
+ else if(d.type==='shield'){battle.shield=Math.ceil(p.stats[1]*d.power)+mastery*2;label='ใช้'+chosen+' สร้างเกราะพลัง '+battle.shield}
+ else if(d.type==='evade'){battle.evadeBoost=25+mastery*4;label='ใช้'+chosen+' เตรียมหลบการโจมตี'}
+ if(p.skillUse[chosen]%Math.max(3,8-mastery)===0&&R(100)<55){p.skillMastery[chosen]=Math.min(10,mastery+1);log('ความชำนาญ '+chosen+' พัฒนาขึ้น')}
+ battle.fxType=d.type==='heal'?'heal':'skill';return {damage:dmg,label,skill:chosen}}
+let state=null,battle=null,fx=null,animFrame=0,nowFrame=0,lastExploreAt=0,lastAutosaveAt=0;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function rand(n){if(!state)return Math.floor(Math.random()*Math.max(1,n));state.seed=(Math.imul(state.seed,1664525)+1013904223)>>>0;return Math.floor(state.seed/4294967296*Math.max(1,n))}
+function R(n){return rand(n)}
+function log(s){state.history.unshift(`วันที่ ${Math.floor(state.hours/24)+1} · ${s}`);state.history=state.history.slice(0,60)}
+function button(text,run,desc='',main=false){return {text,run,desc,main}}
+function chooseScene(scene,title,body,options=[],label=''){
+ state.scene=scene;$('sceneTitle').textContent=title;$('prose').textContent=body;$('sceneLabel').textContent=label||'เมืองใต้เงาหอคอย';$('notice').replaceChildren();const area=$('choices');area.replaceChildren();
+ for(const opt of options){let b=document.createElement('button');b.textContent=opt.text;b.className=opt.main?'primary':'ghost';if(opt.desc){let sm=document.createElement('small');sm.textContent=opt.desc;b.append(sm)}b.onclick=()=>{opt.run();refresh();autoSave()};area.append(b)}
+ $('storyView').classList.remove('hidden');$('battleView').classList.remove('on');refreshSidebar();updateMapVisibility();
+}
+function renderScene(){if(!state)return;switch(state.scene){case 'welcome':welcome();break;case 'arrival':arrival();break;case 'stone':stone();break;case 'sorting':sorting();break;case 'city':city();break;case 'inventory':inventory();break;case 'market':marketScene();break;case 'lodging':lodgingScene();break;case 'workboard':workboardScene();break;case 'npcMarket':npcMarketScene();break;case 'guild':guild();break;case 'worldBoard':worldBoard();break;case 'street':street();break;case 'tower':tower();break;case 'explore':exploreScene();break;case 'return':returnCity();break;case 'dead':dead();break;case 'battle':displayBattle();break;default:city()}}
+function levelLimit(level){return level*10+2}
+function playerHP(p){return 20+Math.round(p.stats[0]*3)+Math.max(0,p.level-1)*3}
+function addHP(n){const p=state.player;p.health=clamp(p.health+n,0,p.maxHealth)}
+function newPlayer(){const job=OCC[R(OCC.length)];const stats=job.bonus.map(n=>clamp(2+R(9)+n,1,12));let p={job:job.key,jobName:job.name,ability:job.ability,stats,level:1,health:0,maxHealth:0,alive:true,trait:['ระมัดระวัง','กล้าเสี่ยง','ชอบสังเกต','ดื้อดึง'][R(4)],mana:0,maxMana:0,skills:[],fightCount:0,nearDeath:0,hidden:{fights:3+R(4),nearDeath:R(2)},lastFightMilestone:0};if(R(100)<6){p.skills.push('ประกายดาบ');p.skillMastery={'ประกายดาบ':1};p.maxMana=4+R(6);p.mana=p.maxMana}p.maxHealth=playerHP(p);p.health=p.maxHealth;return p}
+function newGuilds(){let names=['โล่แดง','หมาป่าขาว','เหยี่ยวดำ','รุ่งอรุณ','ดาบเงิน','เปลวฟ้า'];let count=3+R(3),g=[];for(let i=0;i<count;i++)g.push({name:names[i],members:8+R(12),crystals:10+R(20),rank:1+i,score:10+R(40)});return g}
+function createGame(){let seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;state={version:7,seed,scene:'welcome',hours:0,day:1,gold:0,crystals:0,guildCrystals:0,potions:0,items:[],blueprints:[],highest:1,currentFloor:1,measured:false,accepted:null,path:null,player:null,history:[],mode:null,wins:0,breaks:0,training:0,jobs:0,explores:0,visits:0,runCrystals:0,tripSteps:0,world:{lastSpawn:0,lastBoss:0,overflow:0,floors:{},guilds:[],summonIndex:0,nextSummonAt:96+R(240)},map:null,battleSource:null,returnProcessed:false,economy:initialEconomy(),food:2,lodging:'inn',equipment:{weapon:null,armor:null},equipmentWear:0,hungryDays:0,foodDebt:0};state.world.guilds=newGuilds();initializeLivingWorld();battle=null;renderScene();autoSave()}
+function welcome(){chooseScene('welcome','เสียงเรียกจากหอคอย','ในโลกเดิมคุณใช้ชีวิตตามปกติ จู่ ๆ รอยแยกของแสงก็เปิดออกใต้ฝ่าเท้า\n\nเสียงที่ไม่มีเจ้าของดังขึ้นเพียงครั้งเดียว ก่อนทุกสิ่งจะดับวูบ',[button('ลืมตาในโลกที่ไม่รู้จัก',()=>{state.player=newPlayer();state.summonedCount=10+R(11);log('ถูกหอคอยอัญเชิญมาโดยไม่สมัครใจ');state.scene='arrival'},'ระบบสุ่มอาชีพเดิมและสถานะ ไม่สามารถเลือกได้',true)],'จุดเริ่มต้น')}
+function arrival(){chooseScene('arrival','แท่นอัญเชิญ ชั้นหนึ่ง',`คุณฟื้นขึ้นบนแท่นหินที่ตั้งอยู่ในหอคอยชั้นแรก ผู้ถูกอัญเชิญรอบนี้มี ${state.summonedCount} คน\n\nคนของกิลด์ผลัดเวรกันอยู่ที่นี่ เมื่อแสงนำทางส่องจากแท่นล่วงหน้า 23–30 นาที พวกเขาจึงเตรียมการตรวจผู้มาใหม่ไว้แล้ว\n\nในโลกเดิมคุณมีอาชีพเป็น ${state.player.jobName}`,[button('ให้กิลด์ตรวจสถานะ',()=>{state.scene='stone'},'กิลด์เป็นผู้จัดการทดสอบ',true)],'สถานที่อัญเชิญ')}
+function stone(){const p=state.player,first=!state.measured;const testingGuild=state.world.guilds[(state.visits)%state.world.guilds.length];state.testGuild=testingGuild.name;let note=first?`เจ้าหน้าที่กิลด์ ${testingGuild.name} นำศิลาที่ได้จากหอคอยออกมา ศิลาหายากและใช้ได้เพียงครั้งเดียว ก่อนแตกสลายหลังตรวจวัด`:'มีศิลาวัดระดับขายในเมือง แต่ราคาสูง คนทั่วไปไม่อาจใช้ได้บ่อย';chooseScene('stone','ศิลาวัดระดับ',`${note}\n\nระดับ ${p.level}\nกำลัง ${p.stats[0]}   ปัญญา ${p.stats[1]}   คล่องตัว ${p.stats[2]}\nพลังเวท ${p.mana}/${p.maxMana}\nความสามารถจากโลกเดิม: ${p.ability}\n\nศิลาไม่แสดงเงื่อนไขเพิ่มเลเวล`,[button(first?'รับผลการคัดเลือก':'กลับเข้าเมือง',()=>{if(first){state.measured=true;const score=p.stats[0]+p.stats[1]+p.stats[2];state.accepted=score>=23;state.path=state.accepted?'guild':'outcast';log(state.accepted?'ผ่านการคัดเลือก':'ไม่ได้รับเลือก');state.scene='sorting'}else state.scene='city'},'',true)]);state.lastMeasurement={day:state.day,level:p.level,stats:p.stats.slice(),mana:p.mana,maxMana:p.maxMana,ability:p.ability};refreshSidebar()}
+function sorting(){const yes=state.accepted;chooseScene('sorting',yes?'ประกาศรายชื่อผู้ได้รับเลือก':'ประกาศรายชื่อผู้ถูกปฏิเสธ',yes?`เจ้าหน้าที่กิลด์ ${state.testGuild} พยักหน้าเมื่อเห็นผลตรวจ และเสนอที่พัก อุปกรณ์ และลานฝึกให้คุณ\n\nข้อแลกเปลี่ยนคือผลึกเวทส่วนหนึ่งที่เก็บได้ต้องนำกลับมาส่งให้กิลด์`:'เจ้าหน้าที่ตรวจรายชื่อก่อนเดินผ่านคุณไป ไม่มีอุปกรณ์หรือที่พักจัดให้ ผู้ไม่ได้รับเลือกต้องหางานเลี้ยงชีพและเสียภาษีรายเดือนเช่นเดียวกับคนอื่น',[...(yes?[button('ยอมรับข้อเสนอ',()=>{state.path='guild';state.guild=state.testGuild;state.gold+=8;state.items.push('ดาบเหล็กฝึกหัด','เสื้อเกราะหนัง');equipItem('ดาบเหล็กฝึกหัด');equipItem('เสื้อเกราะหนัง');state.lodging='guild';state.scene='guild';log('เข้ากิลด์ '+state.guild)}),button('ปฏิเสธและใช้ชีวิตอิสระ',()=>{state.path='outcast';state.lodging='inn';state.scene='street';log('ปฏิเสธข้อเสนอของกิลด์')})]:[button('ออกไปหางานในเมือง',()=>state.scene='street')])],'ผลการตรวจ')}
+const MARKET_ITEMS=[
+ {id:'food',name:'เสบียงเดินทาง',base:3,stock:'food',qty:1,desc:'ใช้ระหว่างอยู่ในหอคอย 1 วัน'},
+ {id:'potion',name:'ยารักษา',base:9,stock:'potions',qty:1,desc:'ใช้ฟื้น HP ระหว่างต่อสู้หรือจากกระเป๋า'},
+ {id:'sword',name:'ดาบนักผจญภัย',base:24,stock:'swords',qty:1,desc:'อาวุธเพิ่มความเสียหาย'},
+ {id:'armor',name:'เสื้อเกราะเสริมเหล็ก',base:22,stock:'armor',qty:1,desc:'ป้องกันการโจมตีของมอนสเตอร์'}
+];
+function initialEconomy(){return {merchantGold:380,mealStock:500,caravanTrade:0,stock:{food:130,potions:34,swords:15,armor:12},baseStock:{food:130,potions:34,swords:15,armor:12},crystalsInMarket:32,crystalPrice:4,taxCollected:0,grossSales:0,grossPurchases:0,foodSpent:0,lodgingSpent:0,npcWages:0,unpaidDaily:0,lastDay:0,priceHistory:[]}}
+function ensureEconomy(){if(!state.economy)state.economy=initialEconomy();state.economy.stock ||= {food:100,potions:20,swords:10,armor:10};state.economy.baseStock||={food:130,potions:34,swords:15,armor:12};state.economy.mealStock??=500;state.economy.caravanTrade??=0;state.food??=2;state.lodging||=(state.path==='guild'?'guild':'inn');state.equipment||={weapon:null,armor:null};state.equipmentWear??=0;state.hungryDays??=0;state.foodDebt??=0;for(let n of state.world?.npcs||[]){n.gold??=12;n.food??=1;n.spent??=0;n.earned??=0;n.hungerDays??=0;n.gear??=0}}
+function marketPrice(id){ensureEconomy();let item=MARKET_ITEMS.find(i=>i.id===id);if(!item)return 0;let stock=state.economy.stock[item.stock],target=state.economy.baseStock[item.stock];let multiplier=clamp(1+(target-stock)/Math.max(1,target)*.35,.75,1.5);return Math.max(1,Math.round(item.base*multiplier))}
+function crystalSellPrice(){ensureEconomy();return clamp(4+Math.floor((40-state.economy.crystalsInMarket)/45),2,6)}
+function merchantBuysCrystals(amount,guild){ensureEconomy();let e=state.economy,price=crystalSellPrice(),pay=Math.min(e.merchantGold,Math.max(0,amount)*price);if(guild){guild.treasury+=pay}else state.gold+=pay;e.merchantGold-=pay;e.crystalsInMarket+=Math.floor(pay/price);e.grossPurchases+=pay;return pay}
+function sellCrystals(count){ensureEconomy();if(count<=0||state.crystals<count)return false;let price=crystalSellPrice(),paid=Math.min(count,Math.floor(state.economy.merchantGold/price));if(!paid){log('พ่อค้าไม่มีเงินรับซื้อผลึกในตอนนี้');return false}state.crystals-=paid;merchantBuysCrystals(paid);log('ขายผลึก '+paid+' ชิ้น ได้เงิน '+paid*price+' เหรียญ');return true}
+function buyItem(id){ensureEconomy();let it=MARKET_ITEMS.find(i=>i.id===id);if(!it)return false;let e=state.economy,price=marketPrice(id);if(e.stock[it.stock]<1){log('สินค้าหมดจากตลาด');return false}if(state.gold<price){log('เงินไม่พอซื้อ '+it.name);return false}state.gold-=price;e.merchantGold+=price;e.stock[it.stock]--;e.grossSales+=price;if(id==='food')state.food++;else if(id==='potion')state.potions++;else state.items.push(it.name);log('ซื้อ '+it.name+' ราคา '+price+' เหรียญ');return true}
+function equipItem(name){if(!state.items.includes(name))return false;let slot=name.includes('ดาบ')?'weapon':name.includes('เกราะ')?'armor':null;if(!slot)return false;state.equipment||={weapon:null,armor:null};state.equipment[slot]=name;state.equipmentWear=0;log('สวมใส่ '+name);return true}
+function repairEquipment(){ensureEconomy();if(!state.equipment?.weapon&&!state.equipment?.armor)return false;let wear=state.equipmentWear||0,price=Math.max(1,Math.ceil(wear/20));if(wear<=0){log('อุปกรณ์ไม่มีความเสียหาย');return false}if(state.gold<price){log('เงินไม่พอค่าซ่อม '+price+' เหรียญ');return false}state.gold-=price;state.economy.merchantGold+=price;state.equipmentWear=0;log('ซ่อมอุปกรณ์ '+price+' เหรียญ');return true}
+function marketScene(){ensureEconomy();let e=state.economy,rows=MARKET_ITEMS.map(it=>`${it.name}: ${marketPrice(it.id)} เหรียญ · เหลือ ${e.stock[it.stock]} · ${it.desc}`).join('\n');chooseScene('market','ตลาดนักผจญภัย',`เงิน ${state.gold} เหรียญ · ผลึก ${state.crystals} ชิ้น · เสบียง ${state.food}\nร้านรับซื้อผลึกในราคา ${crystalSellPrice()} เหรียญต่อชิ้น · เงินสดร้าน ${e.merchantGold}\n\n${rows}\n\nราคาเปลี่ยนตามสินค้าคงเหลือและการค้าขายจริง`,[button('ขายผลึกเวท 1 ชิ้น',()=>{sellCrystals(1)}),button('ขายผลึกทั้งหมด',()=>{sellCrystals(state.crystals)}),...MARKET_ITEMS.map(it=>button('ซื้อ'+it.name+' ('+marketPrice(it.id)+' เหรียญ)',()=>buyItem(it.id))),button('ซ่อมอุปกรณ์',()=>repairEquipment(),'จ่ายตามระดับความสึกหรอ'),button('กลับเมือง',()=>state.scene='city')],'ตลาดเมือง')}
+function lodgingScene(){ensureEconomy();chooseScene('lodging','ที่พักในเมือง',`สถานะที่พัก: ${state.lodging==='guild'?'เรือนกิลด์':state.lodging==='street'?'ข้างถนน':'โรงเตี๊ยม'}\n\nอาหารในเมือง 2 เหรียญต่อวัน · โรงเตี๊ยม 2 เหรียญต่อคืน · นอนข้างถนนไม่เสียค่าที่พักแต่ฟื้นฟูร่างกายได้แย่\n\nระหว่างอยู่ในหอคอยจะกินเสบียงที่พกไว้ ไม่ใช่จ่ายค่าโรงเตี๊ยม\n\nเงิน ${state.gold} · ค้างค่าอาหาร ${state.foodDebt||0} · ค้างภาษี ${state.taxDebt||0}`,[(state.path!=='guild'?button('เลือกพักโรงเตี๊ยม',()=>{state.lodging='inn';log('เลือกพักโรงเตี๊ยม')}):null),(state.path!=='guild'?button('นอนข้างถนน',()=>{state.lodging='street';log('เลือกนอนข้างถนน')}):null),button('ชำระหนี้ค้าง',()=>settleDebts()),button('พักหนึ่งวัน',()=>{advanceHours(24);addHP(Math.round(state.player.maxHealth*(state.lodging==='street'?.25:.55)))}),button('กลับเมือง',()=>state.scene='city')].filter(Boolean),'เมืองหอคอย')}
+const JOBS=[{id:'haul',name:'แบกของที่ท่าเรือ',pay:7},{id:'cook',name:'ทำอาหารให้โรงเตี๊ยม',pay:6,bonus:'cook'},{id:'repair',name:'ช่วยช่างซ่อมอุปกรณ์',pay:7,bonus:'builder'},{id:'records',name:'จัดบัญชีร้านค้า',pay:6,bonus:'clerk'},{id:'medic',name:'ช่วยสถานพยาบาล',pay:6,bonus:'medic'},{id:'errand',name:'ส่งของตามร้าน',pay:6,bonus:'courier'}];
+function selectJobForPlayer(){let special=JOBS.find(j=>j.bonus===state.player.job);return special||JOBS[0]}
+function doDayJob(job){if(!state.player?.alive)return;ensureEconomy();let base=job.pay+(job.bonus===state.player.job?3:0),pay=Math.max(1,base+(R(3)-1));state.gold+=pay;state.jobs++;log('รับจ้าง'+job.name+' ได้ '+pay+' เหรียญ');if(job.bonus===state.player.job&&job.id==='cook')log('รสมือของเชฟจากโลกเดิมทำให้งานเป็นที่ต้องการ (+40% ความอร่อย)');advanceHours(24);train(true);settleDebts(false)}
+function workboardScene(){let choices=JOBS.map(j=>button(j.name,()=>doDayJob(j),`รายได้พื้นฐาน ${j.pay} เหรียญ/วัน${j.bonus===state.player.job?' · ความสามารถตรงสาย +3':''}`));choices.push(button('กลับเมือง',()=>state.scene='city'));chooseScene('workboard','กระดานงานรับจ้าง',`ประกาศงานจากโรงเตี๊ยม ท่าเรือ ร้านค้า และช่างฝีมือ\n\nค่าสถานะสูงไม่ได้ทำให้งานทุกชนิดเหมาะกับคุณ งานบางประเภทอาศัยความชำนาญจากโลกเดิม`,choices,'งานและอาชีพ')}
+function settleDebts(verbose=true){ensureEconomy();let due=(state.foodDebt||0)+(state.taxDebt||0);if(due<=0){if(verbose)log('ไม่มีหนี้ค้าง');return}let payment=Math.min(state.gold,due);let foodPay=Math.min(payment,state.foodDebt||0);state.foodDebt-=foodPay;state.economy.merchantGold+=foodPay;let taxPay=payment-foodPay;state.taxDebt=Math.max(0,(state.taxDebt||0)-taxPay);if(taxPay)(state.world.guilds.find(g=>g.name===state.world.politics?.districtOwner)||state.world.guilds[0]).treasury+=taxPay;state.gold-=payment;if(verbose)log('ชำระหนี้ '+payment+' เหรียญ เหลือ '+((state.foodDebt||0)+(state.taxDebt||0)))}
+function dailyCityEconomy(){ensureEconomy();let e=state.economy;if(e.lastDay>=state.day)return;e.lastDay=state.day;let player=state.player;
+ if(player&&state.path&&player.alive){let inTower=state.mode&&['tower','explore','battle','return'].includes(state.scene);let mealCost=inTower?0:2,lodgingCost=inTower?0:state.lodging==='guild'?0:state.lodging==='street'?0:2;
+  if(inTower){if(state.food>0){state.food--;state.hungryDays=0}else{state.hungryDays++;if(state.hungryDays>=2){addHP(-3);log('ขาดเสบียงในหอคอย พลังชีวิตลดลง')}}}
+  else{if((state.lodging==='guild'&&state.world.guilds.find(g=>g.name===state.guild)?.treasury>=mealCost||state.gold>=mealCost)&&e.mealStock>0){let sponsor=state.lodging==='guild'?state.world.guilds.find(g=>g.name===state.guild):null;if(sponsor&&sponsor.treasury>=mealCost)sponsor.treasury-=mealCost;else state.gold-=mealCost;e.merchantGold+=mealCost;e.foodSpent+=mealCost;e.mealStock--;state.hungryDays=0}else{state.foodDebt+=(mealCost-state.gold);e.merchantGold+=state.gold;state.gold=0;state.hungryDays++;log('อาหารไม่เพียงพอ ค้างค่าอาหาร');if(state.hungryDays>=2)addHP(-3)}if(lodgingCost){if(state.gold>=lodgingCost){state.gold-=lodgingCost;e.merchantGold+=lodgingCost;e.lodgingSpent+=lodgingCost}else{state.lodging='street';log('เงินไม่พอค่าโรงเตี๊ยม ต้องนอนข้างถนน')}}else if(state.lodging==='guild'){let g=state.world.guilds.find(g=>g.name===state.guild);if(g&&g.treasury>=2){g.treasury-=2;e.merchantGold+=2}}if(state.lodging==='street'&&R(100)<12)addHP(-1)}
+  if(player.health<=0&&player.alive){player.alive=false;state.scene='dead';log('เสียชีวิตจากความอดอยากและการบาดเจ็บ')}
+ }
+ // NPC wallets and city jobs persist regardless of what the player does.
+ for(let n of state.world.npcs||[]){if(!n.alive)continue;n.gold??=12;n.hungerDays??=0;n.earned??=0;n.spent??=0;let g=state.world.guilds.find(g=>g.name===n.guild);let cost=2;
+  if(n.gold>=cost&&e.mealStock>0){n.gold-=cost;e.merchantGold+=cost;e.mealStock--;n.spent+=cost;n.hungerDays=0}else{n.hungerDays++;if(n.hungerDays>=4){n.health=Math.max(1,n.health-2)}}
+  if(n.role==='idle'&&n.restUntil<=state.hours&&(n.gold<6||R(100)<55)){let wanted=2+R(4)+(n.job==='cook'?2:0);let earned=Math.min(e.merchantGold,wanted);e.merchantGold-=earned;n.gold+=earned;n.earned+=earned;e.npcWages+=earned;if(n.gold>35&&e.stock.swords>0&&R(100)<24){let costGear=marketPrice('sword');if(n.gold>=costGear){n.gold-=costGear;e.merchantGold+=costGear;e.stock.swords--;n.gear=(n.gear||0)+1}}}
+ }
+ // NPC demand depletes limited shop inventory; a caravan periodically replenishes stock.
+ // NPC meals and player meals draw from the same city meal stock; travel supplies are a separate inventory.
+ if(state.day%7===0){for(let k of Object.keys(e.stock)){let restock=k==='food'?40:k==='potions'?6:2;e.stock[k]=Math.min(e.baseStock[k]*2,e.stock[k]+restock)}e.mealStock=Math.min(Math.max(650,state.world.npcs.filter(n=>n.alive).length*9),e.mealStock+Math.max(230,Math.ceil(state.world.npcs.filter(n=>n.alive).length*8.3)));let outsideTrade=35+Math.ceil(state.world.npcs.filter(n=>n.alive).length*.8);e.merchantGold+=outsideTrade;e.caravanTrade+=outsideTrade;e.priceHistory.push({day:state.day,food:marketPrice('food'),crystal:crystalSellPrice()});e.priceHistory=e.priceHistory.slice(-48);log('ขบวนพ่อค้าเติมสินค้าในตลาดประจำสัปดาห์')}
+}
+function npcMarketScene(){ensureEconomy();let e=state.economy,summary=state.world.guilds.map(g=>{let members=state.world.npcs.filter(n=>n.alive&&n.guild===g.name);let wealth=members.reduce((v,n)=>v+(n.gold||0),0);return g.name+': เงินกิลด์ '+g.treasury+' · เงินสมาชิก '+wealth+' · ผลึกคลัง '+g.crystals}).join('\n');chooseScene('npcMarket','เศรษฐกิจในเมือง',`วันที่ ${state.day}\nพ่อค้ามีเงินสด ${e.merchantGold} เหรียญ · อาหารเมือง ${e.mealStock} หน่วย · ผลึกในตลาด ${e.crystalsInMarket}\nราคาอาหาร ${marketPrice('food')} · ราคาขายผลึก ${crystalSellPrice()}\nภาษีที่เก็บไปแล้ว ${e.taxCollected} · เงินซื้อขายผลึก ${e.grossPurchases}\n\n${summary}\n\nตลาดรับผลึกจากทีมกิลด์และผู้เล่น สมาชิกกิลด์มีเงินของตัวเองและซื้อของใช้ระหว่างพักในเมือง`,[button('กลับเมือง',()=>state.scene='city')],'ตลาดและกิลด์')}
+
+function city(){const p=state.player;chooseScene('city','เมืองรอบหอคอย',`วันที่ ${state.day} · คุณถึงชั้น ${state.highest} · โลกพิชิตชั้น ${state.world.clearedFloor} แล้ว · ในเมืองมี ${state.world.guilds.length} กิลด์\n\nกิลด์แต่ละแห่งแย่งชิงผลึกเวทและอำนาจในเมือง บางครั้งมีการต่อสู้กัน แต่ทั้งหมดต้องเฝ้าระวังฝูงมอนสเตอร์ที่อาจทะลักออกจากหอคอย\n\n${state.path==='guild'?`คุณเป็นสมาชิกกิลด์ ${state.guild}`:'คุณอยู่โดยไม่มีสังกัด ต้องหาเงินค่าที่พักและภาษีทุกเดือน'}\n\nภัยมอนสเตอร์ทะลักที่เคยเกิดขึ้น: ${state.world.overflow} ครั้ง`,[
+ button('บัญชีเศรษฐกิจ NPC และกิลด์',()=>state.scene='npcMarket'),button('ข่าวเมืองและความก้าวหน้ากิลด์',()=>state.scene='worldBoard','ดูทีมสำรวจที่กำลังปฏิบัติการและชั้นที่โลกพิชิตแล้ว'),
+  button(state.path==='guild'?'ไปที่กิลด์':'ไปที่ถนนรับจ้าง',()=>state.scene=state.path==='guild'?'guild':'street'),
+ button('เข้าสู่หอคอย',()=>{state.mode=state.path==='guild'?'guildTeam':'solo';state.scene='tower'},'สำรวจผ่านแผนที่และเลือกแนวทางการเอาตัวรอด',true),
+ button('ตลาดและร้านค้า',()=>state.scene='market','ขายผลึก ซื้อเสบียง อาวุธ เกราะ และยารักษา'),button('ที่พักและค่าใช้จ่าย',()=>state.scene='lodging','เลือกพักโรงเตี๊ยมหรือนอนข้างถนน'),button('งานรับจ้างในเมือง',()=>state.scene='workboard'),button('เปิดกระเป๋าและใช้ไอเทม',()=>state.scene='inventory'),
+ button('ตรวจสถานะด้วยศิลาวัดระดับ (8 เหรียญ)',()=>{if(state.gold<8){log('ไม่มีเงินซื้อศิลาวัดระดับ');return}state.gold-=8;state.scene='stone';log('ซื้อศิลาวัดระดับแบบใช้ครั้งเดียว')}),
+ button('พักฟื้นหนึ่งวัน',()=>{advanceHours(24);addHP(Math.ceil(p.maxHealth*(state.lodging==='street'?.28:.65)));p.mana=Math.min(p.maxMana,p.mana+4);log('พักและรักษาบาดแผล')},state.path==='guild'?'กิลด์สนับสนุนที่พัก':'ค่าอาหารและที่พักเรียกเก็บตามวันจริง')]);}
+function inventory(){let p=state.player;ensurePower(p);let text=`สกิลที่เรียนรู้: ${p.skills.length?p.skills.map(n=>n+' (ชำนาญ '+(p.skillMastery[n]||1)+')').join(', '):'ยังไม่มี'}\nพลังเวท: ${p.mana}/${p.maxMana}\n\nยารักษา ${state.potions} ขวด\nเสบียงเดินทาง ${state.food||0} วัน\nอาวุธ ${(state.equipment?.weapon||'ไม่มี')} · เกราะ ${(state.equipment?.armor||'ไม่มี')} · สึกหรอ ${state.equipmentWear||0}%\nผลึก ${state.crystals} ชิ้น\nพิมพ์เขียว ${state.blueprints.length} แผ่น\n\n`+(state.items.length?'อุปกรณ์และของที่มี:\n'+state.items.map(x=>'• '+x).join('\n'):'กระเป๋าว่าง');text+='\n\nสกิลที่เรียนรู้:\n'+(p.skills.map(n=>{let d=SKILL_DEFS[n];return d?n+' · MP '+d.mana+' · คูลดาวน์ '+d.cooldown+' · '+d.desc:n}).join('\n')||'ยังไม่มี');let opts=[];if(state.potions>0)opts.push(button('ใช้ยารักษา',()=>usePotion()));if(state.items.includes('ผลไม้พลังเวท'))opts.push(button('กินผลไม้พลังเวท',()=>{state.items.splice(state.items.indexOf('ผลไม้พลังเวท'),1);p.maxMana+=6+R(9);p.mana=p.maxMana;state.lastMeasurement=null;log('ได้รับพลังเวทจากผลไม้ในหอคอย')}));for(let skillbook of [...new Set(state.items.filter(i=>i.startsWith('สมุดสกิล: ')))])opts.push(button('อ่าน'+skillbook,()=>{let skill=skillbook.slice('สมุดสกิล: '.length);if(unlockSkill(p,skill)){state.items.splice(state.items.indexOf(skillbook),1);log('เรียนรู้สกิล '+skill)}else log('คุณเรียนรู้สกิลนี้แล้ว')}));if(state.blueprints.length)opts.push(button('นำพิมพ์เขียวให้ช่างผลิต (16 เหรียญ + 4 ผลึก)',()=>forgeBlueprint()));for(let gear of state.items.filter(x=>x.includes('ดาบ')||x.includes('เกราะ')))opts.push(button('สวมใส่ '+gear,()=>equipItem(gear)));opts.push(button('ไปตลาด',()=>state.scene='market'));opts.push(button('กลับเมือง',()=>state.scene='city'));chooseScene('inventory','สัมภาระของผู้ถูกอัญเชิญ',text,opts,'ของจากหอคอย')}
+function guild(){chooseScene('guild','ที่ทำการกิลด์ '+(state.guild||''),`สมาชิกกิลด์ฝึกซ้อมและเตรียมเสบียงสำหรับออกสำรวจ\nผลึกที่ส่งกิลด์แล้ว: ${state.guildCrystals} ชิ้น\n\nอาวุธและที่พักจากกิลด์มีไว้ช่วยนักผจญภัย แต่การขึ้นหอคอยยังเสี่ยงชีวิต`,[
+ button('ฝึกฝนหนึ่งวัน',()=>{advanceHours(24);train();log('ฝึกซ้อมกับนักผจญภัยรุ่นพี่')}),button('ฝึกต่อเนื่อง 7 วัน',()=>{for(let i=0;i<7;i++){advanceHours(24);train()}log('ฝึกฝน 7 วัน กิลด์อื่นยังคงออกสำรวจ')}),
+ button('เข้าหอคอยกับทีมกิลด์',()=>{state.mode='guildTeam';state.scene='tower'},'',true),
+ button('กระดานงานรับจ้าง',()=>state.scene='workboard'),button('ตลาด',()=>state.scene='market'),button('กลับเมือง',()=>state.scene='city')]);}
+function street(){chooseScene('street','ถนนคนไร้สังกัด',`คนนอกกิลด์ต้องหาเงินทั้งค่ากินอยู่และภาษีรายเดือน\n\nคุณอาจรับจ้างทำงาน หรือแบกสัมภาระให้ทีมผจญภัยเข้าไปในหอคอยซึ่งอันตรายกว่ามาก`,[
+ button('รับจ้างหนึ่งวัน',()=>doDayJob(selectJobForPlayer())),
+ button('รับจ้างต่อเนื่อง 7 วัน',()=>{for(let i=0;i<7&&state.player.alive;i++)doDayJob(selectJobForPlayer());log('รับจ้างครบ 7 วัน โลกและกิลด์ยังดำเนินต่อ')}),
+  button('สมัครเป็นคนแบกสัมภาระ',()=>{state.mode='porter';state.scene='tower'},'รับค่าจ้างเมื่อกลับรอด',true),
+ button('เข้าหอคอยเอง',()=>{state.mode='solo';state.scene='tower'}),
+ button('กลับเมือง',()=>state.scene='city')]);}
+function train(light=false){const p=state.player,idx=light?2:R(3);let learnBonus=Math.floor(p.stats[1]*.7);if(R(100)<(light?18:48)+learnBonus&&p.stats[idx]<levelLimit(p.level)){p.stats[idx]++;if(idx===0){let old=p.maxHealth;p.maxHealth=playerHP(p);addHP(p.maxHealth-old)}log(`ฝึกฝนจน${['กำลัง','ปัญญา','ความคล่องตัว'][idx]}เพิ่มขึ้น`)}state.training++}
+function advanceHours(hours){
+ if(!Number.isFinite(hours)||hours<0)throw Error('เวลาไม่ถูกต้อง');
+ const start=state.hours,end=start+hours;
+ // Advance the same six-hour world steps whether the player works, trains or explores.
+ let next=Math.floor(start/6+1)*6,steps=0;
+ while(next<=end+1e-8){state.hours=next;state.day=Math.floor(next/24)+1;stepLivingWorld();if(next%24===0)dailyCityEconomy();next+=6;if(++steps>20000)throw Error('เกินขอบเขตการจำลองเวลา')}
+ state.hours=end;state.day=Math.floor(end/24)+1;
+ for(const floor of Object.values(state.world.floors))updateFloorSpawns(floor);
+ let oldMonth=Math.floor(start/720),newMonth=Math.floor(end/720);
+ for(let month=oldMonth+1;month<=newMonth;month++){let tax=6;for(let npc of state.world.npcs||[]){if(!npc.alive)continue;let g=state.world.guilds.find(g=>g.name===npc.guild)||state.world.guilds[0];let paid=Math.min(npc.gold||0,2);npc.gold-=paid;g.treasury+=paid;state.economy.taxCollected+=paid;}if(state.gold>=tax){state.gold-=tax;state.economy.taxCollected+=tax;(state.world.guilds.find(g=>g.name===state.world.politics?.districtOwner)||state.world.guilds[0]).treasury+=tax;log('ชำระภาษีเมืองรายเดือน '+tax+' เหรียญ')}else{let missing=tax-state.gold;state.gold=0;state.taxDebt=(state.taxDebt||0)+missing;log('ค้างภาษีเมือง '+missing+' เหรียญ')}}
+}
+
+const NP_FIRST=['ภูผา','ชลธาร','คิม','มินตรา','เมฆ','ริน','กานต์','บัว','เวหา','ป่าน','ต้น','ฟ้า','วิทย์','อิง','นที','วารี'];
+const NP_LAST=['ศรี','แก้ว','รุ่ง','เดช','เมฆา','จิตรา','สายลม','วัฒน์','สิงห์'];
+function grantNpcInnatePower(n){ensurePower(n);if(n.maxMana>0)return n; if(R(100)<12){n.maxMana=4+R(9);n.mana=n.maxMana;if(R(100)<45)unlockSkill(n,SKILL_NAMES[R(SKILL_NAMES.length)]);}return n}
+function makeNPC(guildName,startFloor=1){
+ const w=state.world,level=clamp(1+Math.floor(startFloor/5)+(R(3)-1),1,10),cap=levelLimit(level);
+ let stats=[0,1,2].map(()=>clamp(5+Math.floor(level*5)+R(9),1,cap));
+ const id=w.nextNpcId++,job=OCC[R(OCC.length)],hp=25+stats[0]*3;
+ return grantNpcInnatePower({gold:10+R(16),food:1,spent:0,earned:0,gear:0,hungerDays:0,id,name:NP_FIRST[R(NP_FIRST.length)]+' '+NP_LAST[R(NP_LAST.length)],guild:guildName,job:job.key,stats,level,health:hp,maxHealth:hp,alive:true,role:'idle',restUntil:0,teamId:null,historyKills:0,nearDeath:0,crystals:0,highestFloor:Math.max(1,startFloor-R(4)),hidden:{fights:4+R(7),nearDeath:R(2)},lastAction:state.hours});
+}
+function initializeLivingWorld(){
+ const w=state.world;
+ // These are an initial world-history snapshot, not player achievements.
+ const milestones=[4,9,14,19,24,29];w.clearedFloor=milestones[R(milestones.length)];
+ w.pastClears=w.clearedFloor;w.npcs=[];w.teams=[];w.nextNpcId=1;w.nextTeamId=1;w.news=[];w.lastWorldTick=0;w.lastClearedBy='ก่อนการอัญเชิญครั้งนี้';
+ for(const guild of w.guilds){guild.npcIds=[];guild.vault=guild.crystals;guild.wins=0;guild.losses=0;guild.completed=0;guild.treasury=20+R(50);guild.lastDispatch=-24;
+  for(let i=0;i<8+R(3);i++){const npc=makeNPC(guild.name,w.clearedFloor);w.npcs.push(npc);guild.npcIds.push(npc.id)}guild.members=guild.npcIds.length;
+ }
+ const winner=w.guilds[R(w.guilds.length)];recordWorldNews('ก่อนคุณมาถึง '+winner.name+' เป็นหนึ่งในกิลด์ที่ขึ้นหอคอยได้สูงสุด ชั้น '+w.clearedFloor);
+}
+function recordWorldNews(text){let w=state.world;w.news.unshift({hour:state.hours,text});w.news=w.news.slice(0,90);log('ข่าวเมือง: '+text)}
+function getNPC(id){return state.world.npcs.find(p=>p.id===id&&p.alive)}
+function activeTeam(guild){return state.world.teams.some(t=>t.guild===guild.name&&t.status==='exploring')}
+function dispatchGuild(guild){
+ const w=state.world;if(activeTeam(guild)||state.hours-guild.lastDispatch<12)return false;
+ let candidates=w.npcs.filter(n=>n.alive&&n.guild===guild.name&&n.role==='idle'&&n.restUntil<=state.hours);
+ candidates.sort((a,b)=>((b.stats[0]+b.stats[2]+b.stats[1])-(a.stats[0]+a.stats[2]+a.stats[1])));
+ if(candidates.length<2)return false;
+ let teamMembers=candidates.slice(0,Math.min(4,candidates.length));
+ let bestAvg=teamMembers.reduce((sum,n)=>sum+n.level,0)/teamMembers.length;
+ // Weaker teams train on previously-cleared floors, stronger ones challenge the frontier.
+ let target=bestAvg<1+Math.floor(w.clearedFloor/5)-.4?Math.max(1,w.clearedFloor-4):w.clearedFloor+1;
+ if(target%5===0&&teamMembers.length<3)target=Math.max(1,target-1);
+ let team={id:w.nextTeamId++,guild:guild.name,memberIds:teamMembers.map(n=>n.id),floor:target,goal:target,encounters:0,crystals:0,status:'exploring',started:state.hours,travelLeft:Math.max(2,Math.ceil(target/3)),returned:false};
+ teamMembers.forEach(n=>{n.role='exploring';n.teamId=team.id});w.teams.push(team);guild.lastDispatch=state.hours;
+ if(w.teams.length>120)w.teams=w.teams.filter(t=>t.status==='exploring').concat(w.teams.filter(t=>t.status!=='exploring').slice(-12));
+ recordWorldNews(guild.name+' ส่งทีม '+team.id+' จำนวน '+team.memberIds.length+' คนขึ้นชั้น '+target);
+ return true;
+}
+function npcEnemy(floor){
+ const boss=floor%5===0;
+ const base=boss?SPECIES[4]:SPECIES[R(Math.min(4,1+Math.ceil(floor/3)))];
+ const scale=1+(floor-1)*(boss?.13:.105);
+ return {name:base.name,str:Math.round(base.str*scale),agi:Math.round(base.agi*scale),hp:Math.round(base.hp*scale),crystals:Math.round(base.crystals*scale),boss};
+}
+function resolveNpcCombat(team,foe){
+ // An actual turn-based party encounter: each living combatant has AGI action gauge;
+ // the enemy uses the same action clock. HP, damage and deaths persist.
+ let members=team.memberIds.map(getNPC).filter(Boolean), enemy={name:foe.name,str:foe.str,int:foe.int,agi:foe.agi,hp:foe.hp,crystals:foe.crystals,boss:foe.boss};
+ if(!members.length)return {win:false,dead:[],hp:0};
+ const gauges=new Map(members.map(p=>[p.id,0]));const cooldowns=new Map(members.map(p=>[p.id,{}]));let enemyGauge=0,turns=0,retreat=false,initial=enemy.hp,dead=[];
+ while(enemy.hp>0&&members.length&&turns++<260){
+  const nextHero=members.map(n=>({n,time:(100-(gauges.get(n.id)||0))/Math.max(1,n.stats[2])})).sort((a,b)=>a.time-b.time)[0];
+  const enemyTime=(100-enemyGauge)/Math.max(1,enemy.agi);
+  const delta=Math.min(nextHero.time,enemyTime);
+  for(let n of members)gauges.set(n.id,(gauges.get(n.id)||0)+delta*Math.max(1,n.stats[2]));enemyGauge+=delta*Math.max(1,enemy.agi);
+  if(nextHero.time<=enemyTime){let p=nextHero.n;gauges.set(p.id,Math.max(0,gauges.get(p.id)-100));
+   ensurePower(p);let cd=cooldowns.get(p.id);for(const n of Object.keys(cd))cd[n]=Math.max(0,cd[n]-1);
+   let usable=p.skills.filter(n=>SKILL_DEFS[n]&&p.mana>=SKILL_DEFS[n].mana&&!cd[n]);
+   let healing=usable.find(n=>SKILL_DEFS[n].type==='heal'&&p.health<p.maxHealth*.65);
+   let offensive=usable.filter(n=>SKILL_DEFS[n].type==='damage').sort((a,b)=>SKILL_DEFS[b].power-SKILL_DEFS[a].power)[0];
+   let picked=healing||offensive;
+   let dmg=0;
+   if(picked){const skill=SKILL_DEFS[picked];p.mana-=skill.mana;cd[picked]=skill.cooldown+1;p.skillUse[picked]=(p.skillUse[picked]||0)+1;
+    if(skill.type==='heal')p.health=Math.min(p.maxHealth,p.health+Math.round(p.stats[1]*skill.power)+5);
+    else dmg=Math.max(1,Math.round(p.stats[skill.stat==='int'?1:skill.stat==='agi'?2:0]*skill.power)+R(5)-Math.floor(enemy.str/5));
+   }else{dmg=Math.max(1,Math.round(p.stats[0]*.75)+Math.min(4,(p.gear||0)*2)+R(5)-Math.floor(enemy.str/5));if(R(100)<Math.min(40,3+p.stats[1]))dmg=Math.ceil(dmg*1.5)}
+   enemy.hp=Math.max(0,enemy.hp-dmg);p.historyKills+=(enemy.hp===0?1:0);
+  }else{enemyGauge=Math.max(0,enemyGauge-100);let target=members[R(members.length)];
+   let dodge=clamp(5+(target.stats[2]-enemy.agi)*2,3,52);
+   if(R(100)>=dodge){let dmg=Math.max(1,Math.round(enemy.str*.57)+R(6)-Math.floor(target.stats[0]/4));target.health=Math.max(0,target.health-dmg);
+    if(target.health<=target.maxHealth*.2&&target.health>0){target.nearDeath++;if(!target.maxMana&&R(100)<5){target.maxMana=5+R(8);target.mana=target.maxMana;unlockSkill(target,SKILL_NAMES[R(SKILL_NAMES.length)])}}
+    if(target.health<=0){target.alive=false;target.role='dead';target.teamId=null;dead.push(target);members=members.filter(n=>n.id!==target.id)}
+   }
+  }
+  if(enemy.hp>0&&members.length&&members.some(n=>n.health<n.maxHealth*.38)){retreat=true;break}
+ }
+ const win=enemy.hp<=0;team.encounters++;if(win){team.crystals+=enemy.crystals;for(const p of members){p.crystals+=Math.floor(enemy.crystals/members.length);p.hidden.fights=Math.max(0,p.hidden.fights-1);
+  if(R(100)<21){let idx=R(3);p.stats[idx]=Math.min(levelLimit(p.level),p.stats[idx]+1);p.maxHealth=25+p.stats[0]*3}
+  if(p.hidden.fights===0&&p.nearDeath>=p.hidden.nearDeath){p.level++;p.hidden={fights:5+R(8),nearDeath:R(2)};p.health=Math.min(p.maxHealth,p.health+9)}
+ }}return {win,dead,retreat,enemy,damage:initial-enemy.hp,remainingHP:enemy.hp};
+}
+function returnNpcTeam(team,reason='พักฟื้น'){if(team.status!=='exploring')return;
+ const w=state.world,g=w.guilds.find(g=>g.name===team.guild),members=team.memberIds.map(getNPC).filter(Boolean);
+ for(let p of members){p.role='idle';p.teamId=null;p.restUntil=state.hours+72+(p.health<p.maxHealth*.5?48:0);p.health=Math.min(p.maxHealth,p.health+Math.round(p.maxHealth*.42));ensurePower(p);p.mana=Math.min(p.maxMana,p.mana+Math.max(2,Math.round(p.maxMana*.5)));p.highestFloor=Math.max(p.highestFloor,team.floor)}
+ g.crystals+=team.crystals;g.vault+=team.crystals;let sale=merchantBuysCrystals(team.crystals,g);let totalBonus=Math.min(g.treasury,Math.floor(sale*.4));if(members.length&&totalBonus){let each=Math.floor(totalBonus/members.length);for(let n of members){n.gold+=each;n.earned=(n.earned||0)+each}g.treasury-=each*members.length;}g.score+=team.crystals;g.completed++;g.members=w.npcs.filter(n=>n.alive&&n.guild===g.name).length;
+ team.status='returned';team.returned=state.hours;recordWorldNews(g.name+' ทีม '+team.id+' กลับจากชั้น '+team.floor+' ('+reason+') ผู้รอด '+members.length+' คน ได้ผลึก '+team.crystals);
+}
+function tickNpcTeam(team){if(team.status!=='exploring')return;if(team.travelLeft>0){team.travelLeft--;return}
+ let g=state.world.guilds.find(x=>x.name===team.guild),members=team.memberIds.map(getNPC).filter(Boolean);
+ if(members.length<2){returnNpcTeam(team,'กำลังพลไม่พอ');return}
+ let site=dungeonFloor(team.floor);updateFloorSpawns(site);const needsBoss=team.floor%5===0&&team.floor===state.world.clearedFloor+1;let foe=needsBoss?site.monsters.find(m=>m.boss):site.monsters.find(m=>!m.boss)||site.monsters.find(m=>m.boss);if(!foe)return;let result=resolveNpcCombat(team,foe);if(result.win)site.monsters=site.monsters.filter(m=>m.id!==foe.id);else foe.hp=Math.max(1,result.remainingHP);
+ if(result.dead.length){g.losses+=result.dead.length;recordWorldNews('ทีม '+team.id+' ของ '+g.name+' สูญเสีย '+result.dead.map(n=>n.name).join(', ')+' ระหว่างสู้ที่ชั้น '+team.floor)}
+ if(!result.win){returnNpcTeam(team,result.retreat?'บาดเจ็บหนัก':'ไม่อาจเอาชนะศัตรู');return}
+ if(team.floor===state.world.clearedFloor+1){state.world.clearedFloor=team.floor;state.world.lastClearedBy=g.name;g.wins++;
+  recordWorldNews('กิลด์ '+g.name+' พิชิตชั้น '+team.floor+' สำเร็จ'+(result.enemy.boss?' และปราบบอสประจำชั้น':'')+' เปิดทางไปชั้น '+(team.floor+1));
+ }
+ // Progress one floor per victory (other parties can continue advancing independently).
+ if(team.encounters>=3||team.memberIds.map(getNPC).filter(Boolean).some(n=>n.health<n.maxHealth*.40)){returnNpcTeam(team,'ภารกิจเสร็จสิ้น');return}
+ team.floor++;team.goal=team.floor;team.travelLeft=2;
+}
+function stepLivingWorld(){
+ const w=state.world;if(!w?.npcs)return;
+ while(w.nextSummonAt!==undefined&&state.hours>=w.nextSummonAt){w.summonIndex=(w.summonIndex||0)+1;const g=w.guilds[w.summonIndex%w.guilds.length],count=10+R(11),recruits=2+R(3);
+  for(let i=0;i<recruits;i++){let n=makeNPC(g.name,Math.max(1,w.clearedFloor-4));w.npcs.push(n);g.npcIds.push(n.id)}g.members=w.npcs.filter(n=>n.alive&&n.guild===g.name).length;
+  recordWorldNews('แท่นอัญเชิญนำคนมาใหม่ '+count+' คน รอบคัดเลือกของกิลด์ '+g.name+' รับสมาชิก '+recruits+' คน');w.nextSummonAt+=96+R(480)
+ }
+ // Existing teams act before dispatching replacements. World advances without player input.
+ for(const team of [...w.teams])if(team.status==='exploring')tickNpcTeam(team);
+ if(state.hours%24===0)for(const guild of w.guilds){
+  for(let p of w.npcs.filter(n=>n.alive&&n.guild===guild.name&&n.role==='idle')){if(p.health<p.maxHealth)p.health=Math.min(p.maxHealth,p.health+Math.ceil(p.maxHealth*.13));
+   if(R(100)<20){let i=R(3);p.stats[i]=Math.min(levelLimit(p.level),p.stats[i]+1)}}
+  dispatchGuild(guild);
+ }
+ w.lastWorldTick=state.hours;
+}
+function worldBoard(){const w=state.world;if(!w?.npcs)return city();
+ let guildInfo=w.guilds.map(g=>{let living=w.npcs.filter(n=>n.alive&&n.guild===g.name),team=w.teams.find(t=>t.guild===g.name&&t.status==='exploring');return `${g.name} · สมาชิก ${living.length} · ผลึกคลัง ${g.crystals} · ทีมสำรวจ ${team?'ชั้น '+team.floor:'ไม่มี'} · พิชิตใหม่ ${g.wins} ชั้น`}).join('\n');
+ let important=w.news.filter(n=>/พิชิตชั้น|สูญเสีย|อัญเชิญ|ทะลัก/.test(n.text)).slice(0,5),recent=w.news.slice(0,6);let news=[...important,...recent.filter(n=>!important.includes(n)).slice(0,5)].map(n=>'วันที่ '+(Math.floor(n.hour/24)+1)+' · '+n.text).join('\n');
+ chooseScene('worldBoard','ข่าวเมืองและกิลด์',`ชั้นสูงสุดที่โลกพิชิตได้: ${w.clearedFloor}\nผู้พิชิตครั้งล่าสุด: ${w.lastClearedBy}\nชั้นสูงสุดที่คุณไปถึง: ${state.highest}\n\nกิลด์ในเมือง\n${guildInfo}\n\nข่าวที่มีผู้รายงาน\n${news||'ยังไม่มีข่าว'}`,[button('กลับเมือง',()=>state.scene='city','',true)],'โลกดำเนินต่อ แม้คุณไม่ได้ขึ้นหอคอย')
+}
+
+const MW=22,MH=14;
+function key(x,y){return `${x},${y}`}
+function dungeonFloor(n){let existing=state.world.floors[n];if(existing)return existing;let seed=(state.seed ^ Math.imul(n,2654435761))>>>0;function r(max){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return Math.floor(seed/4294967296*max)}const cells=[];for(let y=0;y<MH;y++){let line=[];for(let x=0;x<MW;x++){let edge=x===0||y===0||x===MW-1||y===MH-1;line.push(edge?1:(r(100)<(n%4===0?24:13)?1:0))}cells.push(line)}for(let x=1;x<MW-1;x++)cells[7][x]=0;for(let y=1;y<MH-1;y++){cells[y][2]=0;cells[y][MW-3]=0}cells[7][1]=0;cells[7][MW-2]=0;let entities=[];for(let i=0;i<5+r(5);i++){let x=2+r(MW-4),y=2+r(MH-4);if(!cells[y][x]&&x!==2&&x!==MW-3)entities.push({id:'treasure-'+i,x,y,type:'treasure',taken:false})}let floor={number:n,cells,entities,monsters:[],seen:[],visited:[],entry:{x:2,y:7},stairs:{x:MW-3,y:7},lastSpawn:state.hours,lastBoss:state.hours,visibility:n%4===0?3:n%3===0?4:7,pressure:0};state.world.floors[n]=floor;for(let i=0;i<3+Math.min(3,n);i++)spawnMonster(floor);if(n%5===0)spawnMonster(floor,true);return floor}
+function spawnMonster(floor,boss=false){if(floor.monsters.length>24)return false;let species=SPECIES[boss?4:R(Math.min(4,1+Math.ceil(floor.number/3)))],position=null;for(let tries=0;tries<50;tries++){let x=4+R(MW-7),y=2+R(MH-4);if(!floor.cells[y][x]&&Math.abs(x-2)+Math.abs(y-7)>4){position={x,y};break}}if(!position)return false;let scaling=1+(floor.number-1)*.16;floor.monsters.push({id:'m'+floor.number+'-'+(state.world.seq=(state.world.seq||0)+1),x:position.x,y:position.y,name:species.name,kind:SPECIES.indexOf(species),faction:species.faction,boss,alive:true,str:Math.round(species.str*scaling),int:Math.round(species.int*scaling),agi:Math.round(species.agi*scaling),maxHp:Math.round(species.hp*scaling),hp:Math.round(species.hp*scaling),crystals:Math.max(1,Math.round(species.crystals*scaling)),color:species.color});return true}
+function updateFloorSpawns(floor){let spawns=0;while(state.hours-floor.lastSpawn>=10&&spawns++<40){floor.lastSpawn+=10;spawnMonster(floor);monsterSkirmish(floor)}let bosses=0;if(floor.number%5===0)while(state.hours-floor.lastBoss>=72&&bosses++<10){floor.lastBoss+=72;if(!floor.monsters.some(m=>m.boss))spawnMonster(floor,true)}if(floor.monsters.length>=18&&new Set(floor.monsters.map(m=>m.faction)).size===1&&R(1000)<15){state.world.overflow++;floor.monsters.splice(0,Math.max(1,Math.floor(floor.monsters.length/3)));log('ฝูงมอนสเตอร์จากชั้น '+floor.number+' ทะลักออกสู่เมือง')}}
+function monsterSkirmish(floor){
+ // Monsters fight physically nearby rival factions, not remote enemies.
+ const fighters=floor.monsters.filter(a=>floor.monsters.some(b=>a!==b&&a.faction!==b.faction&&Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=1));
+ if(!fighters.length)return;let a=fighters[R(fighters.length)],rivals=floor.monsters.filter(b=>b.faction!==a.faction&&Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=1);
+ if(!rivals.length)return;let b=rivals[R(rivals.length)],loser=R(a.str+b.str)<a.str?b:a;
+ floor.monsters=floor.monsters.filter(m=>m!==loser);
+}
+function moveMonsters(floor){for(let m of floor.monsters){if(R(100)>45)continue;let candidates=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>!floor.cells[m.y+dy]?.[m.x+dx]);if(candidates.length){let [dx,dy]=candidates[R(candidates.length)];m.x+=dx;m.y+=dy}}if(R(100)<65)monsterSkirmish(floor)}
+function updateSeen(){let f=dungeonFloor(state.currentFloor);if(!state.map)return;let {x,y}=state.map.pos;let rad=f.visibility+(state.player.job==='courier'?1:0);for(let yy=Math.max(0,y-rad);yy<=Math.min(MH-1,y+rad);yy++)for(let xx=Math.max(0,x-rad);xx<=Math.min(MW-1,x+rad);xx++)if(Math.hypot(xx-x,yy-y)<=rad+.3){let k=key(xx,yy);if(!f.seen.includes(k))f.seen.push(k)}let k=key(x,y);if(!f.visited.includes(k))f.visited.push(k)}
+function tower(){state.returnProcessed=false;chooseScene('tower','ประตูหอคอย',`คุณยืนอยู่ที่ประตูชั้นหนึ่ง ด้านในเป็นพื้นที่กว้างซึ่งมีทางเดินหลายเส้น บันไดนำขึ้นไปยังชั้นถัดไป\n\nตัวละครจะเดินสำรวจและตัดสินใจต่อสู้เอง คุณเพียงกำหนดแนวทางการกระทำ`,[
+ button('เอาตัวรอด',()=>beginExplore('survive'),'ระวังภัย หาของ และสู้เมื่อจำเป็น',true),
+ button('ต่อสู้ทั้งหมด',()=>beginExplore('hunt'),'ไล่ตามมอนสเตอร์ เสี่ยงขึ้น แต่มีโอกาสเก็บผลึกมากขึ้น'),
+ button('หลบหนี',()=>beginExplore('flee'),'ถอยออกจากหอคอย'),
+ button('กลับเมือง',()=>state.scene='city')],'หน้าประตูหอคอย')}
+function beginExplore(strategy){state.currentFloor=state.currentFloor||1;if(!state.map||state.map.floor!==state.currentFloor){if(!state.map)state.tripSteps=0;let f=dungeonFloor(state.currentFloor);state.map={floor:state.currentFloor,pos:{...f.entry},strategy,steps:0,discoveries:0}}else state.map.strategy=strategy;state.scene='explore';lastExploreAt=performance.now();updateSeen();refresh()}
+function exploreScene(){let f=dungeonFloor(state.currentFloor),m=state.map;if(!m)return tower();chooseScene('explore',`หอคอย ชั้น ${state.currentFloor}`,`ชั้นนี้มี${f.visibility<=4?'หมอกหนาทำให้มองเห็นได้เพียงไม่กี่ก้าว':'พื้นที่ค่อนข้างโล่ง มองเห็นได้ไกล'}\n\nแนวทาง: ${m.strategy==='survive'?'เอาตัวรอด':m.strategy==='hunt'?'ต่อสู้ทั้งหมด':'หลบหนี'} · สัมภาระ: ผลึก ${state.crystals} ชิ้น\nตัวละครเดินสำรวจเองบนแผนที่ เมื่อพบมอนสเตอร์จะเริ่มการต่อสู้อัตโนมัติ`,[
+ button('เอาตัวรอด',()=>state.map.strategy='survive'),button('ต่อสู้ทั้งหมด',()=>state.map.strategy='hunt'),button('หลบหนี',()=>state.map.strategy='flee'),button('ถอนตัวกลับเมือง',()=>{state.scene='return';state.returnProcessed=false})],'การสำรวจอัตโนมัติ');updateMapVisibility();drawMap()}
+function directionToward(f,from,to){
+ // Breadth-first search avoids oscillating at cave walls; no diagonal wall clipping.
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]],start=key(from.x,from.y),goal=key(to.x,to.y),queue=[{x:from.x,y:from.y}],prev=new Map([[start,null]]);
+ for(let i=0;i<queue.length;i++){let q=queue[i],qk=key(q.x,q.y);if(qk===goal)break;for(let [dx,dy] of dirs){let x=q.x+dx,y=q.y+dy,k=key(x,y);if(x<0||y<0||x>=MW||y>=MH||f.cells[y][x]||prev.has(k))continue;prev.set(k,qk);queue.push({x,y})}}
+ if(!prev.has(goal))return null;let current=goal,prior=prev.get(current);while(prior!==null&&prior!==start){current=prior;prior=prev.get(current)}let [x,y]=current.split(',').map(Number);return {x,y}
+}
+function locateTarget(f){const m=state.map,p=m.pos;let monsters=f.monsters.filter(x=>!x.boss||m.strategy==='hunt');let treasure=f.entities.filter(t=>!t.taken);if(m.strategy==='flee')return f.entry;if(m.strategy==='hunt'&&monsters.length){monsters.sort((a,b)=>Math.abs(a.x-p.x)+Math.abs(a.y-p.y)-Math.abs(b.x-p.x)-Math.abs(b.y-p.y));return monsters[0]}if(m.strategy==='survive'&&treasure.length){treasure.sort((a,b)=>Math.abs(a.x-p.x)+Math.abs(a.y-p.y)-Math.abs(b.x-p.x)-Math.abs(b.y-p.y));if(Math.abs(treasure[0].x-p.x)+Math.abs(treasure[0].y-p.y)<10)return treasure[0]}return f.stairs}
+function exploreStep(){if(!state||state.scene!=='explore'||!state.player.alive)return;let m=state.map,f=dungeonFloor(state.currentFloor);advanceHours(.5);moveMonsters(f);m.steps++;state.tripSteps=(state.tripSteps||0)+1;let target=locateTarget(f);let potential=f.monsters.find(q=>Math.abs(q.x-m.pos.x)+Math.abs(q.y-m.pos.y)<=1);if(potential&&m.strategy==='flee'&&R(100)<70){log('รีบเลี่ยงมอนสเตอร์และถอยกลับ');}else if(potential&&(m.strategy==='hunt'||(potential.x===m.pos.x&&potential.y===m.pos.y)||R(100)<(m.strategy==='survive'?35:12))){startBattle(potential);return}
+ let next=directionToward(f,m.pos,target);if(!next){let options=[];for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++)if(!f.cells[y][x]&&!f.visited.includes(key(x,y))){let route=directionToward(f,m.pos,{x,y});if(route)options.push({x,y,route})}if(options.length){options.sort((a,b)=>(Math.abs(a.x-m.pos.x)+Math.abs(a.y-m.pos.y))-(Math.abs(b.x-m.pos.x)+Math.abs(b.y-m.pos.y)));next=options[0].route}}if(next)m.pos=next;updateSeen();let found=f.entities.find(q=>!q.taken&&q.x===m.pos.x&&q.y===m.pos.y);if(found&&m.strategy!=='flee'){found.taken=true;m.discoveries++;let roll=R(100);if(roll<48){let crystals=1+R(2);state.crystals+=crystals;state.runCrystals+=crystals;log('เก็บผลึกเวทที่หล่นอยู่ '+crystals+' ชิ้น')}else if(roll<70){state.potions++;log('พบยารักษาหนึ่งขวด')}else if(roll<86){state.items.push('วัตถุไม่ทราบชนิด');log('พบวัตถุแปลกประหลาด')}else if(roll<94){state.blueprints.push('พิมพ์เขียวจากหอคอย');log('พบพิมพ์เขียวหนึ่งแผ่น')}else{state.items.push('ผลไม้พลังเวท');log('พบผลไม้เรืองแสงในหอคอย')}state.explores++}
+ if(m.strategy==='flee'&&m.pos.x===f.entry.x&&m.pos.y===f.entry.y){state.scene='return';state.returnProcessed=false;refresh();return}
+ if(m.pos.x===f.stairs.x&&m.pos.y===f.stairs.y){if(f.number%5===0&&f.monsters.some(q=>q.boss)){log('บันไดถูกปิดผนึก ต้องจัดการบอสประจำชั้น');m.strategy='hunt'}else{if(f.number===state.world.clearedFloor+1){state.world.clearedFloor=f.number;state.world.lastClearedBy='ผู้เล่น';recordWorldNews('นักผจญภัยอิสระเดินทางผ่านชั้น '+f.number+' และเปิดบันไดขึ้นชั้น '+(f.number+1))}state.currentFloor++;state.highest=Math.max(state.highest,state.currentFloor);let nextFloor=dungeonFloor(state.currentFloor);state.map={floor:state.currentFloor,pos:{...nextFloor.entry},strategy:m.strategy,steps:0,discoveries:0};log('ขึ้นสู่หอคอยชั้น '+state.currentFloor);updateSeen();exploreScene();autoSave();return}}
+ let danger=f.monsters.find(q=>q.x===m.pos.x&&q.y===m.pos.y);if(danger&&m.strategy==='hunt'){startBattle(danger);return}if(m.steps>90){log('เหนื่อยล้าจากการสำรวจ จึงกลับเมือง');state.scene='return';state.returnProcessed=false;refresh();return}drawMap();refreshSidebar();if(m.steps%5===0)autoSave()}
+function usePotion(){if(state.potions<1)return false;state.potions--;let amount=18+(state.player.job==='medic'?8:0);addHP(amount);log('ใช้ยารักษาบาดแผล');return true}
+function startBattle(monster){let p=state.player;ensurePower(p);let e={...monster,hp:monster.hp,maxHp:monster.maxHp};battle={enemy:e,enemyId:monster.id,heroHp:p.health,heroMax:p.maxHealth,actions:0,heroGauge:0,enemyGauge:0,phase:'ready',turnAt:performance.now()+250,fxStart:0,fxActor:'hero',fxDmg:0,fxType:'hit',support:state.mode==='guildTeam'?2:state.mode==='porter'?3:0,skillCooldowns:{},shield:0,evadeBoost:0,log:'พบ '+monster.name+' — เริ่มต่อสู้อัตโนมัติ',speed:1,finished:false,returnTo:'explore'};state.scene='battle';displayBattle();autoSave()}
+function improveAfterBattle(nearDeath){const p=state.player;p.fightCount++;if(nearDeath)p.nearDeath++;for(let i=0;i<3;i++){let chance=i===0?38:i===1?25:34;if(p.stats[i]<levelLimit(p.level)&&R(100)<chance){p.stats[i]++;if(i===0){let old=p.maxHealth;p.maxHealth=playerHP(p);addHP(p.maxHealth-old)}log(['กำลัง','ปัญญา','คล่องตัว'][i]+'เพิ่มจากการต่อสู้')}}const cond=p.hidden||{fights:4,nearDeath:1};let meets=p.fightCount>=cond.fights&&p.nearDeath>=cond.nearDeath;let exceptional=R(10000)<4;if(meets||exceptional){p.level++;p.fightCount=0;p.nearDeath=0;p.hidden={fights:3+R(6)+p.level,nearDeath:R(3)};state.breaks++;log('ร่างกายก้าวข้ามขีดจำกัด — เลเวลเพิ่มขึ้น');state.lastMeasurement=null;if(R(100)<17&&p.maxMana===0){p.maxMana=8+R(8);p.mana=p.maxMana;log('ตื่นขึ้นมาพร้อมพลังเวทที่ไม่เคยมี')}if(p.stats[0]>=levelLimit(p.level-1))p.stats[0]=Math.min(p.stats[0]+1,levelLimit(p.level))}}
+function battleTurn(){if(!battle||battle.finished)return;const p=state.player,e=battle.enemy;battle.actions++;if(battle.actions>200){battle.finished=true;log('การต่อสู้ยืดเยื้อ จึงถอนตัว');battle.phase='retreat';battle.turnAt=performance.now()+600;return}
+ // Action gauges: AGI 10 accumulates twice as quickly as AGI 5.
+ if(battle.heroGauge<100&&battle.enemyGauge<100){let ht=(100-battle.heroGauge)/Math.max(1,p.stats[2]),et=(100-battle.enemyGauge)/Math.max(1,e.agi);let advance=Math.min(ht,et);battle.heroGauge+=Math.max(1,p.stats[2])*advance;battle.enemyGauge+=Math.max(1,e.agi)*advance}
+ let actor=battle.heroGauge>=99.999&&battle.enemyGauge>=99.999?(p.stats[2]>=e.agi?'hero':'enemy'):battle.heroGauge>=99.999?'hero':'enemy';if(actor==='hero')battle.heroGauge=Math.max(0,battle.heroGauge-100);else battle.enemyGauge=Math.max(0,battle.enemyGauge-100);
+ let dmg=0,label='',critical=false;
+ if(actor==='hero'){
+  battle.skillCooldowns ||= {};for(let n of Object.keys(battle.skillCooldowns))battle.skillCooldowns[n]=Math.max(0,battle.skillCooldowns[n]-1);
+  if(state.potions>0&&p.health<p.maxHealth*.3&&R(100)<75){usePotion();label='ใช้ยารักษา';battle.fxType='heal'}
+  else if(p.skills.some(n=>SKILL_DEFS[n])&&p.mana>0&&(battle.actions%3!==0||p.health<p.maxHealth*.6)&& (battle.usedSkill=useSkillInBattle(p,e))){dmg=battle.usedSkill.damage;label=battle.usedSkill.label;battle.usedSkill=null}
+  else{dmg=Math.max(1,Math.floor(p.stats[0]*.7)+R(5)+(state.equipment?.weapon==='ดาบเหล็กฝึกหัด'&&state.equipmentWear<100?3:state.equipment?.weapon==='ดาบนักผจญภัย'&&state.equipmentWear<100?5:state.equipment?.weapon==='ดาบผลึกเวท'&&state.equipmentWear<100?8:0)+battle.support-Math.floor(e.str/4));critical=R(100)<Math.min(45,4+p.stats[1]*2);if(critical)dmg=Math.ceil(dmg*1.6);e.hp=Math.max(0,e.hp-dmg);label=(critical?'คริติคอล! ':'')+'โจมตี '+e.name+' '+dmg+' หน่วย';battle.fxType='hit'}
+ }else{
+  let dodge=clamp(Math.round(5+(p.stats[2]-e.agi)*2.7)+(battle.evadeBoost||0),3,85);battle.evadeBoost=0;if(R(100)<dodge){label='หลบการโจมตีของ '+e.name+' ได้';battle.fxType='miss'}else{dmg=Math.max(1,Math.round(e.str*.7)+R(4)-Math.floor(p.stats[0]/5)-(state.equipment?.armor==='เสื้อเกราะหนัง'&&state.equipmentWear<100?2:state.equipment?.armor==='เสื้อเกราะเสริมเหล็ก'&&state.equipmentWear<100?4:state.equipment?.armor==='เกราะผลึกเวท'&&state.equipmentWear<100?6:0)-(battle.support?1:0));if(battle.shield>0){let blocked=Math.min(dmg,battle.shield);dmg-=blocked;battle.shield=0;log('ม่านพลังรับความเสียหาย '+blocked)}addHP(-dmg);state.equipmentWear=Math.min(100,(state.equipmentWear||0)+2);label=e.name+' โจมตีคุณ '+dmg+' หน่วย';battle.fxType='hit'}
+ }
+ battle.heroHp=p.health;battle.fxActor=actor;battle.fxDmg=dmg;battle.log=label;log(label);battle.phase='anim';battle.fxStart=performance.now();battle.turnAt=battle.fxStart+Math.max(170,620/battle.speed);
+ if(e.hp<=0){battle.finished=true;let flo=dungeonFloor(state.currentFloor);flo.monsters=flo.monsters.filter(m=>m.id!==battle.enemyId);state.wins++;if(e.boss&&state.currentFloor===state.world.clearedFloor+1){state.world.clearedFloor=state.currentFloor;state.world.lastClearedBy='ผู้เล่น';recordWorldNews('นักผจญภัยอิสระพิชิตบอสชั้น '+state.currentFloor+' ได้สำเร็จ')}state.crystals+=e.crystals;state.runCrystals+=e.crystals;let nearDeath=p.health<=p.maxHealth*.25;if(nearDeath&&p.maxMana===0&&R(100)<9){p.maxMana=6+R(8);p.mana=p.maxMana;log('พลังเวทตื่นขึ้นเมื่อเฉียดความตาย')}improveAfterBattle(nearDeath);if(R(100)<12){let skill=SKILL_NAMES[R(SKILL_NAMES.length)];state.items.push('สมุดสกิล: '+skill);log('ดรอปสมุดสกิล '+skill)}if(R(100)<9){state.blueprints.push('พิมพ์เขียวจาก '+e.name);log('พบพิมพ์เขียวจากมอนสเตอร์')}log('ชนะ '+e.name+' ได้ผลึกเวท '+e.crystals+' ชิ้น');battle.log='ชัยชนะ! ได้ผลึก '+e.crystals+' ชิ้น';battle.phase='victory';battle.turnAt=performance.now()+Math.max(650,1000/battle.speed)}
+ else if(p.health<=0){battle.finished=true;p.alive=false;log('เสียชีวิตในหอคอย');battle.log='พ่ายแพ้ — การเดินทางสิ้นสุด';battle.phase='defeat';battle.turnAt=performance.now()+Math.max(700,1200/battle.speed)}refreshSidebar();refreshBattleUI();autoSave()}
+function displayBattle(){if(!state||state.scene!=='battle')return;$('storyView').classList.add('hidden');$('battleView').classList.add('on');refreshBattleUI();refreshSidebar()}
+function refreshBattleUI(){if(!battle)return;$('heroName').textContent='ผู้ถูกอัญเชิญ — Lv ?';$('enemyName').textContent=battle.enemy.name;$('heroHp').textContent=state.player.health+'/'+state.player.maxHealth;$('enemyHp').textContent=battle.enemy.hp+'/'+battle.enemy.maxHp;$('heroFill').style.width=Math.max(0,100*state.player.health/state.player.maxHealth)+'%';$('enemyFill').style.width=Math.max(0,100*battle.enemy.hp/battle.enemy.maxHp)+'%';$('battleLog').textContent=battle.log;$('battleSpeed').textContent='ความเร็ว ×'+battle.speed}
+$('battleSpeed').onclick=()=>{if(!battle)return;battle.speed=battle.speed===1?2:battle.speed===2?4:1;refreshBattleUI()};
+function paintBattle(timestamp){nowFrame=timestamp;const can=$('arena'),c=can.getContext('2d');if(!c)return;c.clearRect(0,0,800,350);const bg=c.createLinearGradient(0,0,0,350);bg.addColorStop(0,'#151b31');bg.addColorStop(1,'#4c4650');c.fillStyle=bg;c.fillRect(0,0,800,350);c.fillStyle='#253147';for(let i=0;i<12;i++){const x=i*76-20;c.fillRect(x,100,30,170);c.fillStyle='#3f4858';c.fillRect(x-6,99,42,12);c.fillStyle='#253147'}c.fillStyle='#5e5550';c.fillRect(0,264,800,86);for(let i=0;i<800;i+=75){c.strokeStyle='#79706a';c.strokeRect(i,264,75,44);c.strokeRect(i-35,308,75,44)}if(!battle){animFrame=requestAnimationFrame(paintBattle);return}let shift=0,jump=0,shake=0,elapsed=timestamp-battle.fxStart;if(battle.phase==='anim'&&elapsed<Math.max(200,540/battle.speed)){let t=Math.min(1,elapsed/(540/battle.speed));let rush=Math.sin(t*Math.PI);shift=115*rush*(battle.fxActor==='hero'?1:-1);jump=18*Math.sin(t*Math.PI);shake=t>.38&&t<.75?Math.sin(t*90)*5:0}drawFighter(c,190+Math.max(0,shift),240-jump,'#c1a074',true,Math.sin(timestamp/180)*1.5);drawFighter(c,594+Math.min(0,shift)+shake,240,(battle.enemy?.color||'#b97068'),false,Math.sin(timestamp/220)*2,true);if(battle.phase==='anim'&&battle.fxDmg&&elapsed>130&&elapsed<700/battle.speed){c.font='bold 29px system-ui';c.textAlign='center';c.fillStyle='#ffe0aa';c.fillText('−'+battle.fxDmg,battle.fxActor==='hero'?590:196,146-elapsed*.018)}if(battle.phase==='victory'||battle.phase==='defeat'){c.font='bold 27px system-ui';c.textAlign='center';c.fillStyle=battle.phase==='victory'?'#ffe9a1':'#f3b2b2';c.fillText(battle.phase==='victory'?'ชัยชนะ':'พ่ายแพ้',400,66)}if(state.scene==='battle'){if(battle.phase==='ready'&&timestamp>=battle.turnAt)battleTurn();else if(battle.phase==='anim'&&timestamp>=battle.turnAt){battle.phase='ready';battle.turnAt=timestamp+Math.max(50,120/battle.speed)}else if(['victory','defeat','retreat'].includes(battle.phase)&&timestamp>=battle.turnAt){let end=battle.phase;battle=null;state.scene=end==='victory'?'explore':end==='defeat'?'dead':'return';state.returnProcessed=false;renderScene();autoSave()}}animFrame=requestAnimationFrame(paintBattle)}
+function drawFighter(c,x,y,color,friendly,sway,enemy=false){c.save();c.translate(x,y+sway);if(!friendly)c.scale(-1,1);c.fillStyle='#0005';c.beginPath();c.ellipse(0,44,50,11,0,0,Math.PI*2);c.fill();c.fillStyle=enemy?'#282a38':'#2d313b';c.fillRect(-18,8,15,40);c.fillRect(7,8,15,40);c.fillStyle=color;c.fillRect(-23,-43,50,55);c.fillStyle=enemy?'#5a564b':'#ded1b0';c.fillRect(-18,-90,38,40);c.fillStyle=enemy?'#293339':'#43332c';c.fillRect(-21,-95,44,14);c.fillStyle='#151b21';c.fillRect(10,-74,5,5);c.fillStyle=enemy?'#c1a88b':'#ad875d';c.fillRect(-32,-34,12,43);c.fillRect(26,-34,12,43);c.fillStyle='#988475';c.fillRect(-35,0,14,11);c.fillStyle=enemy?'#927f65':'#afbfcb';c.fillRect(32,-48,6,80);c.fillRect(29,-55,13,13);c.fillStyle='#786455';c.fillRect(30,30,11,5);c.fillStyle=friendly?'#dac187':'#aeb4bc';c.fillRect(-21,-13,50,8);c.restore()}
+function returnCity(){if(!state.returnProcessed){let details=[];if(state.mode==='porter'){if((state.tripSteps||0)>=6){let pay=5+R(5);state.gold+=pay;details.push('ค่าจ้างแบกสัมภาระ '+pay+' เหรียญ')}else details.push('ยังไม่ได้เดินทางไกลพอ ผู้ว่าจ้างจึงไม่จ่ายค่าจ้าง')}if(state.mode==='guildTeam'&&state.runCrystals){let due=Math.ceil(state.runCrystals*.5);due=Math.min(state.crystals,due);state.crystals-=due;state.guildCrystals+=due;details.push('ส่งผลึกที่ได้จากเที่ยวนี้ให้กิลด์ '+due+' ชิ้น')}advanceHours(8);state.mode=null;state.runCrystals=0;state.returnProcessed=true;state.returnText='คุณเดินกลับผ่านประตูหอคอย มีผู้บาดเจ็บทยอยออกมาพร้อมกับขบวนพ่อค้า\n\n'+(details.join('\n')||'ครั้งนี้คุณรอดชีวิตกลับออกมา')+'\n\nบาดแผลจากการต่อสู้ยังคงอยู่';log('กลับออกจากหอคอย')}chooseScene('return','กลับสู่เมือง',state.returnText,[button('กลับเข้าเมือง',()=>{state.scene='city';state.map=null;state.currentFloor=1},'',true)],'เมืองรอบหอคอย')}
+function dead(){chooseScene('dead','ชื่อที่หายไปในหอคอย',`การเดินทางของคุณสิ้นสุดลงในหอคอย\n\nอยู่รอดได้ ${state.day} วัน ไปถึงชั้น ${state.highest}\n\nโลกยังคงดำเนินต่อ และหอคอยยังอัญเชิญคนกลุ่มต่อไป`,[button('สุ่มชีวิตใหม่',createGame,'',true)],'จุดจบ')}
+function refreshSidebar(){if(!state)return;let p=state.player;$('profile').textContent=p?`อาชีพเดิม: ${p.jobName}\nความสามารถ: ${p.ability}\nเส้นทาง: ${state.path==='guild'?'กิลด์ '+(state.guild||''):state.path==='outcast'?'ผู้ไม่มีสังกัด':'รอการคัดเลือก'}\nวัน ${state.day} · คุณถึงชั้น ${state.highest} · โลกพิชิตชั้น ${state.world.clearedFloor||1}\nHP ${p.health}/${p.maxHealth} · พลังเวท ${p.mana}/${p.maxMana}`:'ยังไม่ได้รับการอัญเชิญ';$('profile').style.whiteSpace='pre-line';$('resources').textContent=`เงิน ${state.gold} · ผลึก ${state.crystals} · เสบียง ${state.food||0}\nยารักษา ${state.potions} · อุปกรณ์ ${state.items.length} ชิ้น\nค้างภาษี ${state.taxDebt||0} · ค้างอาหาร ${state.foodDebt||0}`;$('resources').style.whiteSpace='pre-line';let m=state.lastMeasurement;$('stoneData').textContent=m?`วัดวันที่ ${m.day} · เลเวล ${m.level}\nกำลัง ${m.stats[0]} · ปัญญา ${m.stats[1]}\nคล่องตัว ${m.stats[2]} · พลังเวท ${m.maxMana}`:'ไม่ทราบสถานะปัจจุบัน ต้องใช้ศิลาวัดระดับ';$('stoneData').style.whiteSpace='pre-line';$('history').replaceChildren(...state.history.slice(0,12).map(v=>{let d=document.createElement('div');d.textContent=v;return d}))}
+const sceneArt=$('sceneArt'),mapCanvas=document.createElement('canvas');mapCanvas.width=880;mapCanvas.height=560;mapCanvas.id='floorMap';mapCanvas.style.cssText='display:none;position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:1';sceneArt.appendChild(mapCanvas);
+function updateMapVisibility(){mapCanvas.style.display=state?.scene==='explore'?'block':'none';sceneArt.style.height=state?.scene==='explore'?'min(52vw,440px)':''}
+function drawMap(){if(state?.scene!=='explore'||!state.map)return;let f=dungeonFloor(state.currentFloor),m=state.map,c=mapCanvas.getContext('2d');if(!c)return;let sx=mapCanvas.width/MW,sy=mapCanvas.height/MH;c.fillStyle='#0b1220';c.fillRect(0,0,mapCanvas.width,mapCanvas.height);let seen=new Set(f.seen),vis=f.visibility+(state.player.job==='courier'?1:0);for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){let k=key(x,y);if(!seen.has(k))continue;let dist=Math.hypot(m.pos.x-x,m.pos.y-y),bright=dist<=vis+.3;c.fillStyle=f.cells[y][x]?'#3c4551':'#59675b';if(!bright)c.fillStyle=f.cells[y][x]?'#222937':'#303d37';c.fillRect(x*sx,y*sy,sx+1,sy+1);if(f.cells[y][x]){c.fillStyle='#70756f';c.fillRect(x*sx,y*sy,sx,sy*.18)}else{let seed=((x*17+y*41+f.number*61)%7);c.fillStyle=bright?'#6f8568':'#43574c';c.fillRect(x*sx+seed*2,y*sy+sy*.68,3,3)}}
+ for(let t of f.entities)if(!t.taken&&seen.has(key(t.x,t.y))){c.fillStyle='#c8aa6e';c.fillRect(t.x*sx+sx*.32,t.y*sy+sy*.32,sx*.35,sy*.35)}let stairs=f.stairs;c.fillStyle='#e5cb89';if(seen.has(key(stairs.x,stairs.y))){c.fillRect(stairs.x*sx+sx*.2,stairs.y*sy+sy*.25,sx*.6,sy*.48);c.fillStyle='#69543f';c.fillRect(stairs.x*sx+sx*.3,stairs.y*sy+sy*.34,sx*.4,sy*.28)}for(let e of f.monsters)if(Math.hypot(e.x-m.pos.x,e.y-m.pos.y)<=vis+.3){c.fillStyle=ECO_COLORS[e.faction]||(e.boss?'#f38369':'#bd6c73');c.beginPath();c.arc((e.x+.5)*sx,(e.y+.5)*sy,e.boss?13:8,0,Math.PI*2);c.fill()}c.fillStyle='#f9e4a8';c.beginPath();c.arc((m.pos.x+.5)*sx,(m.pos.y+.5)*sy,11,0,Math.PI*2);c.fill();c.strokeStyle='#282c3b';c.lineWidth=3;c.stroke();c.font='bold 20px system-ui';c.textAlign='left';c.fillStyle='#fff5d9';c.fillText('ชั้น '+state.currentFloor+'  ·  '+(m.strategy==='survive'?'เอาตัวรอด':m.strategy==='hunt'?'ต่อสู้ทั้งหมด':'หลบหนี'),16,29)}
+function refresh(){if(!state)return;if(state.scene==='battle')displayBattle();else renderScene()}
+function autoSave(){if(!state)return false;try{localStorage.setItem(SAVE,JSON.stringify({state,battle}));return true}catch(e){console.warn('Save failed',e);return false}}
+function hydrate(old){if(!old)return null;if(old.version===8||old.version===7||old.version===6||old.version===5||old.version===4)return old;if(old.version===3){old.version=4;return old;}if(old.version===2){old.version=4;return old;} // migrate previous prototype to current rules without EXP
+ let p=old.player;if(!p)return null;let newState={...old,version:2,hours:Math.max(0,(old.day-1)*24),world:{lastSpawn:0,lastBoss:0,overflow:0,floors:{},guilds:[],summonIndex:0,nextSummonAt:96+R(240)},map:null,currentFloor:1,runCrystals:0,blueprints:[],returnProcessed:false};p.stats=[clamp(p.stats[0],1,levelLimit(p.level)),clamp(p.stats[3]??p.stats[1],1,levelLimit(p.level)),clamp(p.stats[1],1,levelLimit(p.level))];p.maxMana=0;p.mana=0;p.skills=[];p.fightCount=0;p.nearDeath=0;p.hidden={fights:4,nearDeath:1};p.maxHealth=playerHP(p);p.health=clamp(p.health,1,p.maxHealth);newState.lastMeasurement=null;newState.seed=old.seed||12345;return newState}
+function loadGame(silent=false){try{const v=JSON.parse(localStorage.getItem(SAVE)||localStorage.getItem('tower_rpg_choice_v7')||localStorage.getItem('tower_rpg_choice_v6')||localStorage.getItem('tower_rpg_choice_v5')||localStorage.getItem('tower_rpg_choice_v4')||localStorage.getItem(PREV_SAVE)||localStorage.getItem(OLD_SAVE)||localStorage.getItem(FIRST_SAVE)||'null');if(!v?.state)throw Error('no save');state=hydrate(v.state);if(state)state.version=7;if(!state)throw Error('invalid save');state.world ||= {floors:{},guilds:[],overflow:0};state.world.floors||={};state.world.guilds ||= [];if(!state.world.guilds.length)state.world.guilds.push(...newGuilds());if(!Array.isArray(state.world.npcs)){initializeLivingWorld();state.world.lastWorldTick=Math.floor(state.hours/6)*6;}state.world.summonIndex??=0;state.world.nextSummonAt??=state.hours+96+R(240);state.blueprints||=[];state.currentFloor||=1;state.runCrystals||=0;if(state.player){state.player.mana||=0;state.player.maxMana||=0;state.player.skills||=[];ensurePower(state.player);state.player.hidden ||= {fights:4,nearDeath:1}}ensureEconomy();battle=v.battle;if(state.scene==='battle'&&!battle)state.scene='explore';if(state.scene==='explore'&&!state.map){state.map={floor:state.currentFloor,pos:{x:2,y:7},strategy:'survive',steps:0}}if(battle)battle.turnAt=performance.now()+450;renderScene();return true}catch(e){if(!silent)alert('ไม่พบเซฟที่ใช้งานได้');return false}}
+$('saveBtn').onclick=()=>alert(autoSave()?'บันทึกเกมบนอุปกรณ์นี้แล้ว':'บันทึกไม่สำเร็จ โปรดตรวจพื้นที่จัดเก็บข้อมูล');$('loadBtn').onclick=()=>loadGame();$('newBtn').onclick=()=>{if(confirm('เริ่มใหม่และแทนที่เซฟเดิม?'))createGame()};window.addEventListener('pagehide',()=>autoSave());document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autoSave()});
+// V0.5: Persistent NPC personalities, relationships and faction politics.
+// Each social update happens on the existing six-hour world tick (not per animation frame).
+const MOODS=['กล้าหาญ','รอบคอบ','ทะเยอทะยาน','เห็นแก่พวกพ้อง','รักอิสระ','มัธยัสถ์'];
+const SOC_MAX_MEMORY=12, SOC_REL_MIN=-100, SOC_REL_MAX=100;
+function socClamp(value){return clamp(Math.round(value),SOC_REL_MIN,SOC_REL_MAX)}
+function ensureNPCSocial(n){
+ if(!n.personality){let seed=Math.imul(n.id||1,2654435761)>>>0;const get=(k)=>8+((seed >>> k)%13);n.personality={bravery:get(3),ambition:get(8),loyalty:get(13),sociability:get(18),caution:get(22)};n.temperament=MOODS[(n.id||0)%MOODS.length]}
+ if(!n.relations||typeof n.relations!=='object')n.relations={};
+ if(!Array.isArray(n.memories))n.memories=[];
+ if(!n.guildAffinity||typeof n.guildAffinity!=='object')n.guildAffinity={};
+ n.guildAffinity[n.guild]??=30;
+ n.morale??=65;n.lastSocial??=-24;n.lastTransfer??=-240;
+ return n;
+}
+function npcMemory(n,kind,subject,text,importance=2){
+ ensureNPCSocial(n);n.memories.unshift({hour:state.hours,kind,subject,text,importance});
+ if(n.memories.length>SOC_MAX_MEMORY)n.memories.length=SOC_MAX_MEMORY;
+}
+function relation(n,personId){ensureNPCSocial(n);return n.relations[String(personId)]||0}
+function changeRelation(n,personId,amount){ensureNPCSocial(n);n.relations[String(personId)]=socClamp(relation(n,personId)+amount);return relation(n,personId)}
+function ensurePolitics(){
+ if(!state?.world)return;
+ const w=state.world;
+ w.politics ||= {districtOwner:w.guilds[0]?.name||'',conflicts:0,transfers:0,friendships:0,lastConflictAt:-240};
+ for(let i=0;i<w.guilds.length;i++){const g=w.guilds[i];g.influence??=35+(w.guilds.length-i)*5;g.hostility??={};g.prestige??=0;g.taxDistrict??=(g.name===w.politics.districtOwner?1:0)}
+ for(const n of w.npcs||[])ensureNPCSocial(n);
+}
+function initializeNewSocialState(){ensurePolitics();if(!state.world?.npcs?.length)return;let people=state.world.npcs;for(let g of state.world.guilds){let group=people.filter(n=>n.guild===g.name&&n.alive).sort((a,b)=>a.id-b.id);for(let i=1;i<group.length;i++){let a=group[i-1],b=group[i];if(relation(a,b.id)===0){changeRelation(a,b.id,8+(a.id%5));changeRelation(b,a.id,8+(b.id%5))}}}}
+// Decision scores combine morale, relationships, temperament and material benefit;
+// NPCs are not advanced by random narrative messages alone.
+function socCohesion(n,team){if(!team.length)return 0;return team.reduce((v,other)=>v+relation(n,other.id),0)/team.length}
+function socialTeamSelection(candidates){
+ if(!candidates.length)return [];
+ let leader=candidates.slice().sort((a,b)=>(b.stats[0]+b.stats[1]+b.stats[2]+b.personality.bravery)-(a.stats[0]+a.stats[1]+a.stats[2]+a.personality.bravery))[0];
+ let members=[leader],rest=candidates.filter(n=>n!==leader);
+ while(members.length<4&&rest.length){rest.sort((a,b)=>(b.level*5+b.morale/6+socCohesion(b,members)*.9+b.personality.loyalty)-(a.level*5+a.morale/6+socCohesion(a,members)*.9+a.personality.loyalty));members.push(rest.shift())}
+ return members;
+}
+function socialDispatchGuild(g){
+ // Keep existing encounter and dispatch rules, but select a cohesive party and remember its leader.
+ let w=state.world;if(activeTeam(g)||state.hours-g.lastDispatch<12)return false;
+ const candidates=w.npcs.filter(n=>n.alive&&n.guild===g.name&&n.role==='idle'&&n.restUntil<=state.hours&&n.morale>=20);
+ if(candidates.length<2)return false;
+ const chosen=socialTeamSelection(candidates);let avg=chosen.reduce((a,n)=>a+n.level,0)/chosen.length;
+ let target=avg<1+Math.floor(w.clearedFloor/5)-.4?Math.max(1,w.clearedFloor-4):w.clearedFloor+1;
+ if(target%5===0&&chosen.length<3)target=Math.max(1,target-1);
+ const cohesion=chosen.length<2?0:chosen.reduce((v,p)=>v+socCohesion(p,chosen.filter(x=>x!==p)),0)/chosen.length;
+ let team={id:w.nextTeamId++,guild:g.name,leaderId:chosen[0].id,memberIds:chosen.map(n=>n.id),floor:target,goal:target,encounters:0,crystals:0,status:'exploring',started:state.hours,travelLeft:Math.max(2,Math.ceil(target/3)),returned:false,cohesion:Math.round(cohesion)};
+ chosen.forEach(n=>{n.role='exploring';n.teamId=team.id;n.morale=clamp(n.morale+(cohesion>10?1:0),0,100)});w.teams.push(team);g.lastDispatch=state.hours;
+ if(w.teams.length>120)w.teams=w.teams.filter(t=>t.status==='exploring').concat(w.teams.filter(t=>t.status!=='exploring').slice(-12));
+ recordWorldNews(g.name+' ส่งทีม '+team.id+' จำนวน '+chosen.length+' คนขึ้นชั้น '+target);
+ return true;
+}
+function settleTeamExperience(team,beforeAlive){
+ const w=state.world,dead=team.memberIds.filter(id=>beforeAlive.has(id)&&!getNPC(id));
+ const survivors=team.memberIds.map(getNPC).filter(Boolean);
+ for(let n of survivors){
+   if(dead.length){n.morale=clamp(n.morale-7*dead.length,0,100);n.guildAffinity[team.guild]=socClamp((n.guildAffinity[team.guild]||0)-6*dead.length);
+     for(let id of dead){changeRelation(n,team.leaderId,-(team.leaderId===n.id?0:7));npcMemory(n,'loss',id,'สูญเสียเพื่อนร่วมทีมระหว่างสำรวจชั้น '+team.floor,4)}
+   }
+ }
+ for(let id of dead){let deadNPC=w.npcs.find(n=>n.id===id);if(deadNPC){npcMemory(deadNPC,'death',team.leaderId,'เสียชีวิตในทีม '+team.id,5);for(let close of w.npcs.filter(n=>n.alive&&n.id!==id&&relation(n,id)>=20)){changeRelation(close,team.leaderId,-8);close.morale=Math.max(0,close.morale-5);npcMemory(close,'grief',id,deadNPC.name+' เสียชีวิตที่ชั้น '+team.floor,5)}}}
+}
+function dailySocialInteraction(){
+ const w=state.world;
+ for(let g of w.guilds){let idle=w.npcs.filter(n=>n.alive&&n.guild===g.name&&n.role==='idle');
+   if(idle.length<2)continue;
+   // One or two interactions per guild per day, bounded for iPad performance.
+   for(let k=0;k<Math.min(2,Math.floor(idle.length/3));k++){
+    let a=idle[R(idle.length)],b=idle[R(idle.length)];if(a===b)continue;
+    let tension=(a.morale<35||b.morale<35)?-1:1;
+    let drift=tension>0?1+R(4):-(1+R(4));
+    changeRelation(a,b.id,drift);changeRelation(b,a.id,drift);a.lastSocial=b.lastSocial=state.hours;
+    if(drift>0&&relation(a,b.id)>=30&&relation(a,b.id)-drift<30){w.politics.friendships++;npcMemory(a,'friend',b.id,'เริ่มสนิทกับ '+b.name,2);npcMemory(b,'friend',a.id,'เริ่มสนิทกับ '+a.name,2)}
+    if(drift<0&&relation(a,b.id)<=-25&&relation(a,b.id)-drift>-25){npcMemory(a,'dispute',b.id,'ทะเลาะกับ '+b.name,3);npcMemory(b,'dispute',a.id,'มีปัญหากับ '+a.name,3)}
+   }
+ }
+}
+function npcTransfers(){
+ const w=state.world,guilds=w.guilds;if(guilds.length<2)return;
+ const idle=w.npcs.filter(n=>n.alive&&n.role==='idle'&&state.hours-n.lastTransfer>720&&n.morale<=58);
+ if(!idle.length)return;
+ const n=idle[R(idle.length)];let from=guilds.find(g=>g.name===n.guild);
+ let scores=guilds.filter(g=>g!==from&&g.treasury>=8).map(g=>{
+   let friends=w.npcs.filter(x=>x.alive&&x.guild===g.name&&relation(n,x.id)>=20).length;
+   let hostile=g.hostility?.[from.name]||0;
+   return {g,utility:g.treasury/80+friends*9+(g.influence-(from.influence||0))*.16+(n.personality.ambition-14)*.65-hostile*.23};
+ }).sort((a,b)=>b.utility-a.utility);
+ if(!scores.length)return;
+ const best=scores[0];const dissatisfaction=70-n.morale+(n.guildAffinity[n.guild]||0)*-.3;
+ if(best.utility+dissatisfaction<40)return;
+ from.npcIds=from.npcIds.filter(id=>id!==n.id);best.g.npcIds.push(n.id);best.g.treasury-=8;n.gold=(n.gold||0)+8;n.earned=(n.earned||0)+8;n.guild=best.g.name;n.lastTransfer=state.hours;n.morale=clamp(n.morale+18,0,100);n.guildAffinity[n.guild]=24;
+ from.members=w.npcs.filter(x=>x.alive&&x.guild===from.name).length;best.g.members=w.npcs.filter(x=>x.alive&&x.guild===best.g.name).length;
+ w.politics.transfers++;npcMemory(n,'transfer',from.name,'ย้ายจาก '+from.name+' ไป '+best.g.name,4);recordWorldNews(n.name+' ย้ายจาก '+from.name+' ไปกิลด์ '+best.g.name+' หลังความสัมพันธ์และสวัสดิการเปลี่ยนไป');
+}
+function actualGuildConflict(a,b){
+ const w=state.world;let ar=w.npcs.filter(n=>n.alive&&n.guild===a.name&&n.role==='idle'&&n.restUntil<=state.hours).sort((x,y)=>y.level-x.level).slice(0,3),br=w.npcs.filter(n=>n.alive&&n.guild===b.name&&n.role==='idle'&&n.restUntil<=state.hours).sort((x,y)=>y.level-x.level).slice(0,3);
+ if(ar.length<2||br.length<2)return false;
+ let aBefore=a.influence,bBefore=b.influence,damageDone=[0,0];
+ // A short resolved guild encounter: individual hit points and injuries persist.
+ for(let round=0;round<8&&ar.some(n=>n.health>n.maxHealth*.25)&&br.some(n=>n.health>n.maxHealth*.25);round++){
+  let acting=[...ar.map(n=>({n,side:0})),...br.map(n=>({n,side:1}))].sort((x,y)=>y.n.stats[2]-x.n.stats[2]);
+  for(let actor of acting){const foe=actor.side?ar:br,target=foe.filter(n=>n.health>n.maxHealth*.22).sort((x,y)=>x.health-y.health)[0];if(!target||actor.n.health<=actor.n.maxHealth*.22)continue;
+   if(R(100)<clamp(8+(target.stats[2]-actor.n.stats[2])*2,3,45))continue;
+   let dmg=Math.max(1,Math.round(actor.n.stats[0]*.35)+R(3)-Math.floor(target.stats[0]/7));target.health=Math.max(1,target.health-dmg);damageDone[actor.side]+=dmg;
+  }
+ }
+ const scoreA=damageDone[0]+ar.reduce((v,n)=>v+n.health/n.maxHealth*5,0),scoreB=damageDone[1]+br.reduce((v,n)=>v+n.health/n.maxHealth*5,0);
+ let winner=scoreA>=scoreB?a:b,loser=scoreA>=scoreB?b:a;
+ winner.influence=Math.min(160,winner.influence+3);loser.influence=Math.max(1,loser.influence-2);
+ winner.prestige++;winner.hostility[loser.name]=Math.min(100,(winner.hostility[loser.name]||0)+4);loser.hostility[winner.name]=Math.min(100,(loser.hostility[winner.name]||0)+7);
+ for(const n of [...ar,...br]){n.restUntil=state.hours+24+(n.health<n.maxHealth*.5?48:0);n.morale=clamp(n.morale+(n.guild===winner.name?3:-6),0,100);npcMemory(n,'guildfight',n.guild===winner.name?loser.name:winner.name,'ปะทะระหว่าง '+a.name+' กับ '+b.name+' · '+winner.name+' ชนะ',3)}
+ // Control changes only when the winning guild has earned a real influence advantage.
+ const old=w.politics.districtOwner;
+ if(winner.influence>=loser.influence+12&&winner.influence>=50&&w.politics.districtOwner!==winner.name){w.politics.districtOwner=winner.name;for(let g of w.guilds)g.taxDistrict=g.name===winner.name?1:0;recordWorldNews('กิลด์ '+winner.name+' ได้อำนาจเก็บภาษีเมือง หลังความขัดแย้งกับ '+loser.name)}
+ w.politics.conflicts++;w.politics.lastConflictAt=state.hours;
+ recordWorldNews('กิลด์ '+a.name+' ปะทะ '+b.name+' · '+winner.name+' ชนะ ('+damageDone[0]+' ต่อ '+damageDone[1]+' ความเสียหาย)');
+ return true;
+}
+function politicalTick(){
+ const w=state.world;if(state.hours-w.politics.lastConflictAt<240)return;
+ let entries=[];for(let i=0;i<w.guilds.length;i++)for(let j=i+1;j<w.guilds.length;j++){
+  let a=w.guilds[i],b=w.guilds[j],hostile=(a.hostility[b.name]||0)+(b.hostility[a.name]||0);
+  let competition=Math.round(Math.abs(a.influence-b.influence)<25?13:5)+(a.crystals+b.crystals>100?6:0);
+  let trigger=hostile+competition+(R(10)-4);
+  if(trigger>=13)entries.push({a,b,trigger});
+ }
+ entries.sort((x,y)=>y.trigger-x.trigger);
+ if(entries.length){let {a,b}=entries[0];actualGuildConflict(a,b)}
+}
+function socialTick(){if(!state?.world?.npcs||state.hours%24!==0)return;ensurePolitics();dailySocialInteraction();
+ for(let n of state.world.npcs){if(!n.alive)continue;n.morale=clamp(n.morale+(n.health<n.maxHealth*.4?-2:1)+(n.gold<=2?-2:0),0,100)}
+ if(state.hours%168===0)npcTransfers();if(state.hours%672===0)politicalTick();
+}
+function socialNPCBoard(){ensurePolitics();const w=state.world;
+ const alive=w.npcs.filter(n=>n.alive).sort((a,b)=>(relation(b,'player')-relation(a,'player'))||(b.level-a.level)).slice(0,12);
+ const lines=alive.map((n,i)=>`${i+1}. ${n.name} · ${n.guild} · ${n.temperament} · ความสัมพันธ์ ${relation(n,'player')>0?'+':''}${relation(n,'player')}`);
+ chooseScene('socialNPC','ผู้คนในเมือง',`นักผจญภัยมีบุคลิก ความสัมพันธ์และความทรงจำของตัวเอง\n\n${lines.join('\n')}\n\nค่าในหน้านี้เป็นข้อมูลที่คุณรู้จักจากการพบปะ ไม่ใช่ศิลาวัดระดับของทุกคน`,[
+ ...alive.slice(0,8).map(n=>button('พบ '+n.name,()=>socialNPCDetail(n.id),n.guild+' · '+n.temperament)),button('กลับเมือง',()=>state.scene='city')],'นักผจญภัยและชีวิตในเมือง');
+}
+function socialNPCDetail(id){state.activeSocialId=id;let n=getNPC(id);if(!n){state.scene='socialNPC';socialNPCBoard();return}ensureNPCSocial(n);
+ const memories=n.memories.filter(m=>m.importance>=2).slice(0,4).map(m=>'• '+m.text).join('\n');const bond=relation(n,'player');
+ const text=`${n.name} · กิลด์ ${n.guild}\nอาชีพเดิม ${OCC.find(o=>o.key===n.job)?.name||'ไม่ทราบ'} · นิสัย ${n.temperament}\nความสัมพันธ์กับคุณ ${bond>0?'+':''}${bond} · สภาพจิตใจ ${n.morale}/100\nการกระทำล่าสุด: ${n.role==='exploring'?'ออกสำรวจหอคอย':n.role==='idle'?'อยู่ในเมือง':n.role}\n\nความทรงจำสำคัญ\n${memories||'ยังไม่มีเหตุการณ์สำคัญ'}\n\nคำพูดและการช่วยเหลือจะถูกจดจำและส่งผลต่อการพบกันครั้งต่อไป`;
+ const actions=[button('พูดคุย (ใช้เวลา 1 ชั่วโมง)',()=>{advanceHours(1);let gain=n.personality.sociability>=14?4:2;changeRelation(n,'player',gain);n.morale=Math.min(100,n.morale+1);npcMemory(n,'conversation','player','พูดคุยกับผู้ถูกอัญเชิญ',1);log('พูดคุยกับ '+n.name+' ความสัมพันธ์ดีขึ้น')}),
+ button('ช่วยเหลือด้วยเงิน 3 เหรียญ',()=>{if(state.gold<3){log('เงินไม่พอช่วยเหลือ');return}state.gold-=3;n.gold+=3;changeRelation(n,'player',7);n.morale=Math.min(100,n.morale+3);npcMemory(n,'help','player','คุณช่วยเหลือด้วยเงิน 3 เหรียญ',4);log(n.name+' จดจำความช่วยเหลือของคุณ')},'เงินเปลี่ยนมือจริงและ NPC จดจำได้'),
+ button('กลับไปดูผู้คน',()=>{state.scene='socialNPC';state.activeSocialId=null})];chooseScene('socialDetail','พบ '+n.name,text,actions,'ความทรงจำของผู้คน');
+}
+function politicsBoard(){ensurePolitics();const w=state.world;let lines=w.guilds.map(g=>{
+ let living=w.npcs.filter(n=>n.alive&&n.guild===g.name).length;
+ let strongest=w.guilds.filter(x=>x!==g).sort((a,b)=>(g.hostility[b.name]||0)-(g.hostility[a.name]||0))[0];
+ return `${g.name}\n   สมาชิก ${living} · อิทธิพล ${g.influence} · ทุน ${g.treasury} · ผลึก ${g.crystals}\n   คู่แข่ง ${strongest?.name||'ไม่มี'} · ความขัดแย้ง ${g.hostility[strongest?.name]||0}`}).join('\n\n');
+ chooseScene('politics','อำนาจและความขัดแย้งระหว่างกิลด์',`กิลด์ที่เก็บภาษีเมือง: ${w.politics.districtOwner}\nการปะทะจริง ${w.politics.conflicts} ครั้ง · การย้ายกิลด์ ${w.politics.transfers} ครั้ง\n\n${lines}\n\nกิลด์ส่งคนที่มีตัวตนปะทะกัน ผู้ร่วมปะทะบาดเจ็บและต้องพักฟื้น อิทธิพลจึงเปลี่ยนตามผลจริง`,[button('ดูผู้คนในเมือง',()=>state.scene='socialNPC'),button('กลับเมือง',()=>state.scene='city')],'การแข่งขันระหว่างกิลด์');
+}
+// Hook into existing version-4 engine functions while preserving previous saves.
+const _v04MakeNPC=makeNPC;makeNPC=function(...args){let n=_v04MakeNPC(...args);n.personality={bravery:8+R(13),ambition:8+R(13),loyalty:8+R(13),sociability:8+R(13),caution:8+R(13)};n.temperament=MOODS[R(MOODS.length)];return ensureNPCSocial(n)};
+const _v04Init=initializeLivingWorld;initializeLivingWorld=function(...args){const v=_v04Init(...args);initializeNewSocialState();return v};
+// Replace selection only; keep the existing persistent NPC combat and rewards.
+dispatchGuild=socialDispatchGuild;
+const _v04TeamTick=tickNpcTeam;tickNpcTeam=function(team){let beforeAlive=new Set(team.memberIds.filter(id=>getNPC(id)).map(id=>id));let originalEnc=team.encounters;const v=_v04TeamTick(team);if(team.encounters!==originalEnc){settleTeamExperience(team,beforeAlive);if(team.status==='returned')for(let n of team.memberIds.map(getNPC).filter(Boolean)){n.morale=clamp(n.morale+2,0,100);npcMemory(n,'expedition',team.id,'กลับจากชั้น '+team.floor+' กับกิลด์ '+team.guild,2)}}return v};
+const _v04Step=stepLivingWorld;stepLivingWorld=function(){_v04Step();socialTick()};
+const _v04City=city;city=function(){_v04City();const area=$('choices');for(let label of [{text:'พบ NPC และดูความสัมพันธ์',go:()=>state.scene='socialNPC'},{text:'การเมืองและความขัดแย้งของกิลด์',go:()=>state.scene='politics'}]){let b=document.createElement('button');b.textContent=label.text;b.className='ghost';b.onclick=()=>{label.go();refresh();autoSave()};area.append(b)}};
+const _v04Render=renderScene;renderScene=function(){if(state?.scene==='socialNPC')return socialNPCBoard();if(state?.scene==='socialDetail'){let id=state.activeSocialId;return socialNPCDetail(id)}if(state?.scene==='politics')return politicsBoard();return _v04Render()};
+// A friend's help is a transfer from their wallet, not magically generated currency.
+const _v04Daily=dailyCityEconomy;dailyCityEconomy=function(){_v04Daily();if(!state.player?.alive||!state.path)return;for(let n of state.world.npcs.filter(x=>x.alive&&relation(x,'player')>=60&&x.gold>=9))if(state.hungryDays>=2&&state.hours-(n.lastHelpHour??-240)>=168){n.gold-=3;state.gold+=3;n.lastHelpHour=state.hours;npcMemory(n,'help','player','ช่วยคุณยามขัดสนด้วยเงิน 3 เหรียญ',4);log(n.name+' นึกถึงความช่วยเหลือในอดีตและช่วยเหลือคุณ 3 เหรียญ');break}};
+const _v04Create=createGame;createGame=function(){_v04Create();state.version=5;ensurePolitics();autoSave()};
+const _v04Load=loadGame;loadGame=function(silent){let result=_v04Load(silent);if(result){ensurePolitics();state.version=5;autoSave()}return result};
+
+
+// V0.6: Monster populations, contested territories, food pressure, persistent danger.
+// A fixed six-hour ecology step is independent of animation framerate and player location.
+const ECO_FACTIONS=['สัตว์ร้าย','ก็อบลิน','ผู้พิทักษ์'];
+const ECO_COLORS={'สัตว์ร้าย':'#bf9f85','ก็อบลิน':'#83be85','ผู้พิทักษ์':'#c4a6a0','บอส':'#d9676d'};
+function ensureEcology(f){
+ if(!f.ecology)f.ecology={lastTick:state.hours,foodReserve:80,territories:{},kills:0,conflicts:0,pressureHours:0,overflowCount:0,lastOverflow:-10000,dominant:'',scarcityHours:0};
+ let e=f.ecology;
+ e.lastTick??=state.hours;e.foodReserve??=80;e.territories||={};e.kills??=0;e.conflicts??=0;e.pressureHours??=0;e.overflowCount??=0;e.lastOverflow??=-10000;e.dominant||='';e.scarcityHours??=0;
+ for(let m of f.monsters){m.energy??=45+R(35);m.hunts??=0;m.wounds??=0;m.ageHours??=0;m.faction||='สัตว์ร้าย';if(!Number.isFinite(m.hp))m.hp=m.maxHp||20}
+ return e;
+}
+function countFactions(f){let counts={};for(let m of f.monsters)if(!m.boss)counts[m.faction]=(counts[m.faction]||0)+1;return counts}
+function territoriesFor(f){let territory={};for(let m of f.monsters){if(m.boss)continue;let region=(m.x<MW/2?'ตะวันตก':'ตะวันออก')+(m.y<MH/2?'เหนือ':'ใต้');let r=territory[region]||={};r[m.faction]=(r[m.faction]||0)+1;territory[region]=r}return Object.fromEntries(Object.entries(territory).map(([sector,counts])=>[sector,Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'ว่าง']))}
+const v05SpawnMonster=spawnMonster;
+spawnMonster=function(f,boss=false){let result=v05SpawnMonster(f,boss);if(result){let m=f.monsters[f.monsters.length-1];if(m){m.energy=50+R(40);m.hunts=0;m.wounds=0;m.ageHours=0;const e=ensureEcology(f);e.territories=territoriesFor(f)}}return result};
+// Repeat spawns on the specified 10-hour/72-hour clocks; omit V0.5's
+// random single-faction overflow shortcut.
+updateFloorSpawns=function(f){ensureEcology(f);let normal=0;while(state.hours-f.lastSpawn>=10&&normal++<120){f.lastSpawn+=10;spawnMonster(f)}let bosses=0;if(f.number%5===0)while(state.hours-f.lastBoss>=72&&bosses++<60){f.lastBoss+=72;if(!f.monsters.some(m=>m.boss))spawnMonster(f,true)}};
+function ecoHostile(a,b){return a!==b&&a.faction!==b.faction&&(a.faction!=='บอส'||b.faction!=='บอส')}
+function ecoNeighbor(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=2}
+function ecoMove(f,m){let adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:m.x+dx,y:m.y+dy})).filter(p=>!f.cells[p.y]?.[p.x]);if(!adjacent.length)return;
+ // Hungry predators follow rivals, territorial groups hold their corners.
+ let prey=f.monsters.filter(n=>ecoHostile(m,n)&&!n.boss),hunt=m.energy<45&&prey.length;
+ if(hunt){adjacent.sort((a,b)=>Math.min(...prey.map(n=>Math.abs(a.x-n.x)+Math.abs(a.y-n.y)))-Math.min(...prey.map(n=>Math.abs(b.x-n.x)+Math.abs(b.y-n.y))));if(R(100)<70){m.x=adjacent[0].x;m.y=adjacent[0].y;return}}
+ let own=f.monsters.filter(n=>n!==m&&n.faction===m.faction);let centroid=own.length?{x:own.reduce((a,n)=>a+n.x,0)/own.length,y:own.reduce((a,n)=>a+n.y,0)/own.length}:null;
+ adjacent.sort((a,b)=>(centroid?Math.abs(a.x-centroid.x)+Math.abs(a.y-centroid.y):0)-(centroid?Math.abs(b.x-centroid.x)+Math.abs(b.y-centroid.y):0));let next=adjacent[R(100)<55?0:R(adjacent.length)];m.x=next.x;m.y=next.y;
+}
+function ecoDuel(f,a,b){let e=ensureEcology(f);e.conflicts++;const act=(attacker,defender)=>{let hit=Math.max(1,Math.round(attacker.str*.46)+R(5)-Math.floor(defender.str/5));if(R(100)<clamp(9+(defender.agi-attacker.agi)*3,3,38))return 0;defender.hp-=hit;defender.wounds++;return hit};
+ let first=a.agi>=b.agi?a:b,second=first===a?b:a;act(first,second);if(second.hp>0)act(second,first);
+ for(let m of [a,b])if(m.hp<=0){f.monsters=f.monsters.filter(n=>n!==m);e.kills++;let winner=m===a?b:a;winner.energy=Math.min(100,winner.energy+26);winner.hunts++}
+}
+function ecoBattleTick(f){let e=ensureEcology(f);let living=f.monsters.slice();for(let m of living){if(!f.monsters.includes(m))continue;m.ageHours+=6;m.energy-=m.boss?1:3;if(m.energy<22&&e.foodReserve>0){let consumed=Math.min(9,e.foodReserve);e.foodReserve-=consumed;m.energy=Math.min(100,m.energy+consumed*2)}if(m.energy<=0){m.hp-=3;if(m.hp<=0){f.monsters=f.monsters.filter(n=>n!==m);e.kills++;continue}}if(!m.boss&&R(100)<58)ecoMove(f,m)}
+ // Territorial encounters require real proximity; faction wars are not random news.
+ let participants=f.monsters.slice().sort((a,b)=>a.id.localeCompare(b.id));let occupied=new Set();for(let a of participants){if(occupied.has(a.id)||!f.monsters.includes(a))continue;let rivals=f.monsters.filter(b=>!occupied.has(b.id)&&ecoHostile(a,b)&&ecoNeighbor(a,b));if(!rivals.length)continue;let b=rivals[R(rivals.length)];occupied.add(a.id);occupied.add(b.id);ecoDuel(f,a,b)}
+ e.foodReserve=Math.min(140,e.foodReserve+8+R(5));e.territories=territoriesFor(f);
+ let counts=countFactions(f),total=Object.values(counts).reduce((a,b)=>a+b,0),top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];let dominant=top?.[0]||'',share=total?top[1]/total:0;
+ if(total>=15&&share>=.78){e.pressureHours+=6;e.dominant=dominant}else{e.pressureHours=Math.max(0,e.pressureHours-12);if(e.pressureHours===0)e.dominant=''}
+ // Rare overflow only after prolonged uncontested accumulation; never a pure time trigger.
+ if(e.pressureHours>=72&&total>=18&&state.hours-e.lastOverflow>=24*15&&R(100)<9){
+  let escaping=f.monsters.filter(m=>!m.boss&&m.faction===dominant).slice(0,Math.max(3,Math.floor(top[1]/3)));f.monsters=f.monsters.filter(m=>!escaping.includes(m));e.pressureHours=0;e.lastOverflow=state.hours;e.overflowCount++;state.world.overflow=(state.world.overflow||0)+1;resolveOverflow(f,dominant,escaping);
+ }
+}
+function resolveOverflow(f,faction,escaping){let w=state.world,g=w.guilds[R(w.guilds.length)],numbers=escaping.length,loss=Math.min(g.crystals||0,Math.max(1,Math.ceil(numbers*.6)));g.crystals-=loss;
+ let defenders=w.npcs.filter(n=>n.alive&&n.guild===g.name&&n.role!=='exploring');if(defenders.length){let n=defenders[R(defenders.length)],damage=Math.min(n.health,Math.max(1,Math.ceil(numbers/2)));n.health=Math.max(1,n.health-damage);n.restUntil=Math.max(n.restUntil||0,state.hours+48);npcMemory(n,'overflow',f.number,'รับบาดเจ็บขณะรับมือฝูง'+faction,4)}
+ if(state.economy){state.economy.mealStock=Math.max(0,state.economy.mealStock-numbers*2)}recordWorldNews('มอนสเตอร์ฝ่าย'+faction+'จากชั้น '+f.number+' จำนวน '+numbers+' ตัวทะลักเข้าเขตเมือง '+g.name+'สูญเสียผลึก '+loss+' ชิ้น');
+}
+const _v05StepForEcosystem=stepLivingWorld;
+stepLivingWorld=function(){_v05StepForEcosystem();for(let f of Object.values(state.world.floors)){ensureEcology(f);updateFloorSpawns(f);if(state.hours-f.ecology.lastTick>=6){ecoBattleTick(f);f.ecology.lastTick=state.hours}}};
+// Player's on-screen monsters continue moving between ecology updates.
+moveMonsters=function(f){ensureEcology(f);for(let m of f.monsters)if(R(100)<45)ecoMove(f,m)};
+monsterSkirmish=function(f){ensureEcology(f);let pair=f.monsters.find(a=>f.monsters.some(b=>ecoHostile(a,b)&&ecoNeighbor(a,b)));if(!pair)return;let foe=f.monsters.find(b=>ecoHostile(pair,b)&&ecoNeighbor(pair,b));if(foe)ecoDuel(f,pair,foe)};
+function ecosystemBoard(){dungeonFloor(1);let all=Object.values(state.world.floors).sort((a,b)=>a.number-b.number),lines=all.slice(0,36).map(f=>{let e=ensureEcology(f),count=countFactions(f),groups=Object.entries(count).map(([name,n])=>name+' '+n).join(' · ')||'ไม่มี';let boss=f.monsters.some(m=>m.boss)?' · บอสอยู่':'',danger=e.pressureHours>=24?' · เฝ้าระวัง '+e.pressureHours+' ชม.':'';return `ชั้น ${f.number} — ${groups}${boss}\n   อาหาร ${e.foodReserve} · การปะทะ ${e.conflicts} · ทะลัก ${e.overflowCount}${danger}`});let active=all.filter(f=>f.ecology?.pressureHours>=24).length;chooseScene('ecosystem','ระบบนิเวศหอคอย',`ชั้นที่กำลังติดตาม ${all.length} ชั้น · ชั้นที่มีความเสี่ยง ${active} ชั้น\nเหตุการณ์มอนสเตอร์ทะลักทั้งหมด ${state.world.overflow}\n\n${lines.join('\n\n')||'ยังไม่มีข้อมูลจากการสำรวจหอคอย'}\n\nเผ่าต่าง ๆ เคลื่อนที่ แย่งอาณาเขต ล่าและต่อสู้กันเองทุกช่วงจำลองเวลา 6 ชั่วโมง บอสยังเกิดใหม่ทุก 3 วัน มอนสเตอร์ทั่วไปเกิดทุก 10 ชั่วโมง`,[button('กลับไปดูข่าวเมือง',()=>state.scene='worldBoard'),button('กลับเมือง',()=>state.scene='city','',true)],'ประชากรและการแย่งพื้นที่')}
+const _v05CityForEcosystem=city;
+city=function(){_v05CityForEcosystem();let b=document.createElement('button');b.textContent='ระบบนิเวศมอนสเตอร์ในหอคอย';b.className='ghost';b.onclick=()=>{state.scene='ecosystem';refresh();autoSave()};$('choices').append(b)};
+const _v05RenderForEcosystem=renderScene;
+renderScene=function(){if(state?.scene==='ecosystem')return ecosystemBoard();return _v05RenderForEcosystem()};
+// Migration: read V0.5 saves, write to new slot without silently overwriting originals.
+const _v05CreateForEcosystem=createGame;
+createGame=function(){_v05CreateForEcosystem();state.version=7;autoSave()};
+const _v05LoadForEcosystem=loadGame;
+loadGame=function(silent){let result=_v05LoadForEcosystem(silent);if(result){for(let f of Object.values(state.world.floors||{}))ensureEcology(f);state.version=7;autoSave()}return result};
+
+
+// V0.8: consequence-driven emergent events, with stored provenance and delayed follow-ups.
+// Incidents are raised by persistent combat/politics/economy state, never by a free-floating random story prompt.
+const EVENT_MAX=90;
+function ensureStory(){if(!state?.world)return null;const w=state.world;w.story ||= {nextId:1,incidents:[],lastIncidentHour:{},relics:[],resolved:0,expired:0};w.story.incidents||=[];w.story.lastIncidentHour||={};w.story.relics||=[];w.story.nextId||=1;return w.story}
+function storyTrigger(kind,details,subject='',unique=''){
+ const story=ensureStory();if(!story)return null;
+ const key=unique||kind+':'+subject+':'+Math.floor(state.hours/48);
+ if(story.incidents.some(e=>e.key===key))return null;
+ if(story.incidents.length>=EVENT_MAX)story.incidents=story.incidents.filter(e=>e.status==='pending').concat(story.incidents.filter(e=>e.status!=='pending').slice(-35));
+ if(story.incidents.filter(e=>e.status==='pending').length>=8)return null;
+ const e={id:story.nextId++,key,kind,subject,details,hour:state.hours,due:state.hours+24*7,status:'pending',choice:null,outcome:null,followupAt:null};
+ story.incidents.unshift(e);story.lastIncidentHour[kind]=state.hours;return e;
+}
+function storyFromNews(text){if(!state?.player||!state.world?.npcs)return;
+ let guildName=state.world.guilds.find(g=>text.includes(g.name))?.name||'';
+ if(/สูญเสีย/.test(text)){
+   const dead=state.world.npcs.filter(n=>!n.alive&&text.includes(n.name)).slice(0,2);
+   if(dead.length){const victim=dead[0],guild=state.world.guilds.find(g=>g.name===victim.guild);
+    storyTrigger('loss',{victimId:victim.id,victim:victim.name,guild:victim.guild,oldTreasury:guild?.treasury||0},victim.guild,'loss:'+victim.id)}
+ } else if(/พิชิตชั้น/.test(text)&&/สำเร็จ/.test(text)){
+   const n=Number(text.match(/พิชิตชั้น\s+(\d+)/)?.[1]);if(Number.isFinite(n)&&n>0)storyTrigger('clear',{floor:n,guild:guildName},guildName,'clear:'+n);
+ } else if(/ปะทะ/.test(text)&&/ชนะ/.test(text)){
+   const p=state.world.politics;const count=p?.conflicts||0;
+   storyTrigger('dispute',{guild:guildName,count},guildName,'war:'+count+':'+Math.floor(state.hours/24));
+ } else if(/ทะลัก/.test(text)){
+   const floor=Number(text.match(/ชั้น\s+(\d+)/)?.[1])||1;
+   storyTrigger('overflow',{floor},'ชั้น '+floor,'overflow:'+floor+':'+Math.floor(state.hours/24));
+ } else if(/ย้ายจาก/.test(text)&&/ไปกิลด์/.test(text)){
+   let name=text.split(' ย้ายจาก')[0],npc=state.world.npcs.find(n=>n.name===name);
+   if(npc)storyTrigger('transfer',{npcId:npc.id,npc:npc.name,guild:npc.guild},npc.guild,'transfer:'+npc.id+':'+Math.floor(state.hours/24));
+ }
+}
+function storyActive(){const st=ensureStory();return st?st.incidents.filter(e=>e.status==='pending'&&e.due>state.hours).sort((a,b)=>b.hour-a.hour):[]}
+function storyGuild(name){return state.world.guilds.find(g=>g.name===name)}
+function storyWitness(name){return state.world.npcs.filter(n=>n.alive&&n.guild===name).sort((a,b)=>a.id-b.id)[0]||null}
+function storyTitle(e){return ({loss:'ผู้รอดชีวิตจากทีมที่สูญเสีย',clear:'ข่าวการเปิดชั้นใหม่',dispute:'ความขัดแย้งระหว่างกิลด์',overflow:'ผู้คนหลังมอนสเตอร์ทะลัก',transfer:'นักผจญภัยเปลี่ยนสังกัด',relic:'สมบัติประหลาด',aftermath:'ผลที่ตามมา'})[e.kind]||'เหตุการณ์เมือง'}
+function storyDescription(e){let d=e.details||{};switch(e.kind){
+ case 'loss':return `ทีมของกิลด์ ${d.guild} กลับมาไม่ครบ ${d.victim} เสียชีวิตระหว่างการสำรวจ ผู้รอดชีวิตกำลังรวบรวมเงินดูแลคนที่เหลืออยู่`;
+ case 'clear':return `กิลด์ ${d.guild} พิชิตชั้น ${d.floor} ได้จริง ข่าวแพร่ไปตามโรงเตี๊ยม พ่อค้าเริ่มตั้งราคาสินค้าที่คาดว่าจะมาจากชั้นใหม่`;
+ case 'dispute':return `กิลด์ ${d.guild||'ต่าง ๆ'} เพิ่งเกิดการปะทะ มีผู้บาดเจ็บและการแย่งชิงพื้นที่ค้าขาย ผู้คนเริ่มลังเลว่าจะเข้าข้างใคร`;
+ case 'overflow':return `มอนสเตอร์จากชั้น ${d.floor} ทะลักออกมา เสบียงเสียหายและคนในเมืองต้องการผู้ช่วยรวบรวมสิ่งของ`;
+ case 'transfer':return `${d.npc} เปลี่ยนสังกัดไปยังกิลด์ ${d.guild} ความไว้ใจในกลุ่มเดิมอาจสั่นคลอน`;
+ case 'relic':return `ทีม ${d.guild} นำ ${d.name} กลับจากชั้น ${d.floor} สมบัตินี้เก็บอยู่ในคลังกิลด์จริง และมีผู้เสนอซื้อ`;
+ case 'aftermath':return d.description||'ผลจากการตัดสินใจครั้งก่อนเริ่มปรากฏ';
+ default:return 'มีเหตุการณ์เกิดขึ้นในเมือง';}}
+function storyOptions(e){switch(e.kind){
+ case 'loss':return [{label:'ช่วยค่ารักษาและฝังศพ (5 เหรียญ)',action:'aid',cost:5},{label:'เสนอตัวช่วยงานผู้รอดชีวิต (ใช้เวลา 1 วัน)',action:'volunteer',hours:24},{label:'ไม่เข้าไปเกี่ยวข้อง',action:'ignore'}];
+ case 'clear':return [{label:'สมัครช่วยขนส่งเสบียง (ใช้เวลา 1 วัน)',action:'supply',hours:24},{label:'ซื้อข่าวชั้นใหม่ (4 เหรียญ)',action:'intel',cost:4},{label:'ติดตามข่าวโดยไม่ใช้เงิน',action:'watch'}];
+ case 'dispute':return [{label:'ช่วยรักษาคนบาดเจ็บ (3 เหรียญ)',action:'mediate',cost:3},{label:'รับจ้างขนสินค้าให้ฝ่ายที่ชนะ (1 วัน)',action:'contract',hours:24},{label:'หลีกเลี่ยงความขัดแย้ง',action:'avoid'}];
+ case 'overflow':return [{label:'มอบเสบียงจากกระเป๋า 2 วัน',action:'food',food:2},{label:'อาสาช่วยกู้เมือง (1 วัน)',action:'rescue',hours:24},{label:'หลบอยู่ในเมือง',action:'shelter'}];
+ case 'transfer':return [{label:'พูดคุยกับผู้ย้ายกิลด์ (1 ชั่วโมง)',action:'talk',hours:1},{label:'ไม่ยุ่งเกี่ยว',action:'ignore'}];
+ case 'relic':return [{label:'ร่วมออกเงินวิจัย (8 เหรียญ)',action:'research',cost:8},{label:'ช่วยขนย้ายสมบัติ (1 วัน)',action:'carry',hours:24},{label:'ปล่อยให้กิลด์จัดการเอง',action:'ignore'}];
+ case 'aftermath':return [{label:'รับทราบผลที่เกิดขึ้น',action:'ack'}];
+ default:return [{label:'รับทราบ',action:'ack'}];}}
+function storyBoard(){let st=ensureStory(),open=storyActive(),closed=st.incidents.filter(e=>e.status!=='pending').slice(0,5);
+ let contents=`เหตุการณ์ที่ยังตัดสินใจได้ ${open.length} เรื่อง · ตัดสินใจแล้ว ${st.resolved} · หมดเวลา ${st.expired}\nเหตุการณ์มีต้นทางจากการสูญเสีย การพิชิตชั้น การแย่งอำนาจและระบบนิเวศจริง\n\n`+
+ (open.length?open.slice(0,7).map(e=>`#${e.id} วันที่ ${Math.floor(e.hour/24)+1} · ${storyTitle(e)}\n${storyDescription(e)}`).join('\n\n'):'ขณะนี้ไม่มีเรื่องที่ต้องตัดสินใจ')+'\n\nบันทึกผลล่าสุด\n'+(closed.map(e=>`วันที่ ${Math.floor(e.hour/24)+1} · ${storyTitle(e)}: ${e.outcome||e.status}`).join('\n')||'ยังไม่มี');
+ chooseScene('storyBoard','เรื่องราวของเมือง',contents,[...open.slice(0,7).map(e=>button('เปิดเหตุการณ์ #'+e.id+' · '+storyTitle(e),()=>{state.activeStoryId=e.id;state.scene='storyDetail'})),button('กลับเมือง',()=>state.scene='city')],'เหตุการณ์ที่เกิดจากโลกจำลอง');}
+function storyDetail(){let st=ensureStory(),e=st.incidents.find(e=>e.id===state.activeStoryId);
+ if(!e||e.status!=='pending'||e.due<=state.hours){state.scene='storyBoard';return storyBoard()}
+ let opts=storyOptions(e).map(o=>button(o.label,()=>resolveStory(e.id,o.action),`เหลืออีก ${Math.max(1,Math.ceil((e.due-state.hours)/24))} วันสำหรับการตัดสินใจ`));opts.push(button('กลับไปดูกระดานข่าว',()=>state.scene='storyBoard'));
+ chooseScene('storyDetail',storyTitle(e),storyDescription(e)+'\n\nการตัดสินใจมีผลกับเงิน เวลา NPC และกิลด์ตามสถานะโลกจริง ไม่สามารถย้อนเลือกซ้ำได้',opts,'เหตุการณ์ #'+e.id);}
+function resolveStory(id,action){let st=ensureStory(),e=st.incidents.find(x=>x.id===id);if(!e||e.status!=='pending'||e.due<=state.hours)return false;
+ const choice=storyOptions(e).find(x=>x.action===action);if(!choice)return false;
+ if(choice.cost&&state.gold<choice.cost){log('เงินไม่พอสำหรับทางเลือกนี้');return false}
+ if(choice.food&&(state.food||0)<choice.food){log('เสบียงไม่พอสำหรับทางเลือกนี้');return false}
+ const d=e.details||{},g=storyGuild(d.guild),n=d.npcId?getNPC(d.npcId):storyWitness(d.guild);let outcome='';
+ if(choice.cost)state.gold-=choice.cost;
+ if(choice.food)state.food-=choice.food;
+ // Mark before advancing time so an expiring deadline cannot double-apply an outcome.
+ e.status='resolved';e.choice=action;st.resolved++;
+ switch(e.kind){
+ case 'loss':if(action==='aid'||action==='volunteer'){if(g)g.treasury+=(action==='aid'?5:2);if(n){changeRelation(n,'player',action==='aid'?8:6);n.morale=clamp(n.morale+7,0,100);npcMemory(n,'memorial','player','ผู้เล่นช่วยคนที่เหลือหลังการสูญเสีย',4)}outcome='ผู้รอดชีวิตได้รับการช่วยเหลือและจดจำผู้ให้ความช่วยเหลือ'}else outcome='ผู้รอดชีวิตจัดการการสูญเสียด้วยตนเอง';break;
+ case 'clear':if(action==='supply'){state.gold+=6;state.jobs++;if(g)g.treasury=Math.max(0,g.treasury-6);outcome='รับจ้างส่งเสบียง ได้เงิน 6 เหรียญจากกิลด์'}else if(action==='intel'){state.intelFloor=Math.max(state.intelFloor||0,d.floor+1);outcome='ซื้อข่าวเส้นทางชั้น '+(d.floor+1)+' ไว้แล้ว'}else outcome='เฝ้าติดตามข่าวการพิชิตชั้น';break;
+ case 'dispute':if(action==='mediate'){if(n){changeRelation(n,'player',6);n.morale=clamp(n.morale+4,0,100)}if(g)g.hostility=Object.fromEntries(Object.entries(g.hostility||{}).map(([k,v])=>[k,Math.max(0,v-4)]));outcome='ช่วยผู้บาดเจ็บ ความตึงเครียดของฝ่ายนี้ลดลงเล็กน้อย'}else if(action==='contract'){state.gold+=8;if(g)g.treasury=Math.max(0,g.treasury-8);outcome='ทำงานให้กิลด์และรับค่าจ้าง 8 เหรียญ'}else outcome='หลีกเลี่ยงการปะทะ';break;
+ case 'overflow':if(action==='food'||action==='rescue'){if(state.economy)state.economy.mealStock+=(action==='food'?2:7);if(n){changeRelation(n,'player',action==='food'?5:8);n.morale=Math.min(100,n.morale+5)}outcome='ช่วยเติมเสบียงเมืองและฟื้นฟูขวัญกำลังใจ'}else outcome='อยู่ในพื้นที่ปลอดภัยขณะเมืองซ่อมความเสียหาย';break;
+ case 'transfer':if(action==='talk'&&n){changeRelation(n,'player',5);npcMemory(n,'talk','player','ผู้เล่นถามถึงการเปลี่ยนสังกัด',2);outcome='ได้รู้จักและพูดคุยกับ '+n.name}else outcome='ปล่อยให้ผู้ย้ายกิลด์ดำเนินชีวิตต่อ';break;
+ case 'relic':if(action==='research'){state.blueprints.push('พิมพ์เขียวจาก'+d.name);if(g)g.treasury+=8;outcome='ได้รับพิมพ์เขียวจากการช่วยวิจัยสมบัติ'}else if(action==='carry'){state.gold+=5;if(g)g.treasury=Math.max(0,g.treasury-5);outcome='รับค่าจ้างขนย้ายสมบัติ 5 เหรียญ'}else outcome='กิลด์เก็บสมบัติไว้ในคลังต่อ';break;
+ case 'aftermath':outcome=d.description||'เรื่องราวดำเนินต่อ';break;
+ default:outcome='รับทราบเหตุการณ์';}
+ e.outcome=outcome;e.followupAt=state.hours+48;e.followupDone=e.kind==='aftermath'||action==='ignore'||action==='watch'||action==='avoid'||action==='shelter';
+ log('ผลเหตุการณ์: '+outcome);
+ if(choice.hours)advanceHours(choice.hours);
+ state.scene='storyBoard';return true;
+}
+function storyTick(){if(!state?.world?.story)return;const st=ensureStory();for(let e of st.incidents.slice()){
+ if(e.status==='pending'&&state.hours>=e.due){e.status='expired';e.outcome='ไม่มีใครจากฝ่ายผู้เล่นเข้ามาตัดสินใจ ผู้คนดำเนินการต่อกันเอง';st.expired++}
+ if(e.status==='resolved'&&e.followupAt!==null&&!e.followupDone&&state.hours>=e.followupAt){e.followupDone=true;
+  const g=storyGuild(e.details?.guild),n=storyWitness(e.details?.guild);
+  // NPCs and factions react to the earlier concrete outcome. The follow-up carries the original event ID.
+  const response=e.choice==='aid'||e.choice==='volunteer'||e.choice==='mediate'||e.choice==='rescue'||e.choice==='food'?'ผู้คนพูดถึงการช่วยเหลือครั้งก่อน':e.choice==='research'?'ช่างในเมืองเริ่มทดลองพิมพ์เขียวใหม่':e.choice==='talk'?'นักผจญภัยคนที่เคยพบจำบทสนทนาได้':'ข้อตกลงจากครั้งก่อนเริ่มส่งผลต่อกิจการ';
+  if(n&&['aid','volunteer','mediate','rescue','food','talk'].includes(e.choice)){changeRelation(n,'player',2);npcMemory(n,'aftermath','player',response,2)}
+  const follow=storyTrigger('aftermath',{description:response+' (ต่อเนื่องจากเหตุการณ์ #'+e.id+')',guild:g?.name||''},'เหตุการณ์ #'+e.id,'follow:'+e.id);
+  if(follow)follow.due=state.hours+24*10;
+ }}
+}
+function storyRelicFromTeam(team){if(!team||team.status!=='returned'||team.crystals<3)return;
+ const st=ensureStory(),g=storyGuild(team.guild);if(!g)return;
+ if(R(100)<12){const name=['ศิลาหมอก','เขี้ยวผลึก','เหรียญอาคม','แกนหอคอย'][R(4)]+' ชั้น '+team.floor;
+  st.relics.unshift({name,guild:g.name,floor:team.floor,teamId:team.id,hour:state.hours});st.relics=st.relics.slice(0,25);
+  recordWorldNews('ทีม '+team.id+' ของ '+g.name+' ค้นพบ '+name+' ที่ชั้น '+team.floor);
+  storyTrigger('relic',{name,guild:g.name,floor:team.floor,teamId:team.id},g.name,'relic:'+team.id);
+ }}
+const _v07News=recordWorldNews;recordWorldNews=function(text){_v07News(text);storyFromNews(text)};
+const _v07ReturnTeam=returnNpcTeam;returnNpcTeam=function(team,reason){let active=team?.status==='exploring';const v=_v07ReturnTeam(team,reason);if(active&&team.status==='returned')storyRelicFromTeam(team);return v};
+const _v07Step=stepLivingWorld;stepLivingWorld=function(){_v07Step();storyTick()};
+const _v07City=city;city=function(){_v07City();let n=storyActive().length,b=document.createElement('button');b.className=n?'primary':'ghost';b.textContent='เหตุการณ์และทางเลือกในเมือง'+(n?' ('+n+' เรื่อง)':'');b.onclick=()=>{state.scene='storyBoard';refresh();autoSave()};$('choices').prepend(b)};
+const _v07Render=renderScene;renderScene=function(){if(state?.scene==='storyBoard')return storyBoard();if(state?.scene==='storyDetail')return storyDetail();return _v07Render()};
+const _v07Create=createGame;createGame=function(){_v07Create();state.version=8;ensureStory();autoSave()};
+const _v07Load=loadGame;loadGame=function(silent){const ok=_v07Load(silent);if(ok){state.version=8;ensureStory();autoSave()}return ok};
+
+if(!loadGame(true))createGame();
+let lastFrame=0;function gameLoop(t){if(document.visibilityState!=='hidden'&&state?.scene==='explore'&&t-lastExploreAt>440){lastExploreAt=t;exploreStep()}if(state?.scene==='explore'&&t-lastFrame>220){drawMap();lastFrame=t}requestAnimationFrame(gameLoop)}requestAnimationFrame(gameLoop);requestAnimationFrame(paintBattle);
+</script></body></html>
