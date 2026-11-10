@@ -99,10 +99,11 @@
     return 'ถนนในเมือง';
   }
 
-  const INTERACTIONS = { 360: [90, 665], 1000: [735, 1305], 1550: [1490, 1980], 4250: [4035, 4465] };
+  // Interact near each entrance or counter, not anywhere along a whole facade.
+  const INTERACTIONS = { 360: [250, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360] };
   function nearBuilding(x, y, anchor) {
     const zone = INTERACTIONS[anchor];
-    return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 850;
+    return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 835;
   }
   function nearGate(x, y) { return x >= 2310 && x <= 2550 && y <= 685; }
 
