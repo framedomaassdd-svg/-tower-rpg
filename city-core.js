@@ -6,7 +6,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   // Reference pixels for the current front-oblique scene; not a metre grid.
-  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:5190,
+  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:7500,
     playerWidth:76.5,playerHeight:130.05,spriteFrameWidth:400,spriteFrameHeight:680,
     walkFeet:Object.freeze([661,658,655,658]),walkFramesPerSecond:8,
     speedX:210,speedY:140,footRadius:9,lampWidth:64});
@@ -44,8 +44,12 @@
       else if (old.position >= 2020) state.position = old.position + 1200;
     }
     state.layoutRevision = LAYOUT_REVISION;
+    state.scene = old.scene === 'outskirts' ? 'outskirts' : 'town';
+    state.outsideX = clamp(finite(old.outsideX, 520), 35, 3205);
+    state.outsideY = clamp(finite(old.outsideY, 820), 745, 1010);
+    state.smithWork = Math.max(0, Math.floor(finite(old.smithWork, 0)));
     state.day = Math.max(1, Math.floor(finite(state.day, 1)));
-    state.position = clamp(finite(state.position, 960), 35, 5155);
+    state.position = clamp(finite(state.position, 960), 35, 6865);
     state.positionY = clamp(finite(state.positionY, 800), 625, 1030);
     if (!walkable(state.position, state.positionY)) state.positionY = 800;
     state.events = Array.isArray(old.events) ? old.events : [];
@@ -66,8 +70,9 @@
   }
 
   function walkable(x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 5155 || y < 625 || y > 1030) return false;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 6865 || y < 625 || y > 1030) return false;
     if (y >= 765) return true;
+    if (x >= 6380 && x <= 6580 && y >= 650) return true;
     if (y >= 700 && x >= 675 && x <= 725) return true;
     if (y >= 650) {
       const t = clamp((765 - y) / 115, 0, 1);
@@ -81,6 +86,7 @@
 
   function depthScale(x, y) {
     if (y >= 765) return 1;
+    if (x >= 6380 && x <= 6580) return clamp(0.65 + (y - 650) / 115 * 0.35, 0.65, 1);
     if (x >= 675 && x <= 725) return clamp(0.72 + (y - 700) / 65 * 0.28, 0.72, 1);
     if (x >= 1323 && x <= 1473) return clamp(0.55 + (y - 650) / 115 * 0.45, 0.55, 1);
     if (x >= 2150 && x <= 2710) return clamp(0.68 + (y - 625) / 140 * 0.32, 0.68, 1);
@@ -95,17 +101,20 @@
     if (x >= 735 && x < 1305) return 'กิลด์นักผจญภัย';
     if (x >= 1490 && x < 1980) return 'ร้านอาหาร';
     if (x >= 4035 && x < 4465) return 'โรงแรม';
+    if (x >= 6100) return 'ประตูเมือง';
+    if (x >= 5260) return 'โรงตีเหล็ก';
     if (x >= 2880) return 'ย่านที่พัก';
     return 'ถนนในเมือง';
   }
 
   // Interact near each entrance or counter, not anywhere along a whole facade.
-  const INTERACTIONS = { 360: [250, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360] };
+  const INTERACTIONS = { 360: [250, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360], 5705: [5615, 5785] };
   function nearBuilding(x, y, anchor) {
     const zone = INTERACTIONS[anchor];
     return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 835;
   }
   function nearGate(x, y) { return x >= 2310 && x <= 2550 && y <= 685; }
+  function nearCityGate(x, y) { return x >= 6380 && x <= 6580 && y <= 710; }
 
   // Horizontal footprint as a fraction of the source sprite width; vertical extent
   // in world pixels around the visible foot.  Decorative shadows are not obstacles.
@@ -118,6 +127,7 @@
     'props/market_set/sacks.png': [0.15, 0.85, 7],
     'props/market_set/guild_board.png': [0.18, 0.82, 6],
     'props/market_set/inn_table.png': [0.12, 0.88, 9],
+    'props/market_stall_v50.png': [0.08, 0.92, 9],
     'props/plant_pot.png': [0.23, 0.78, 6],
     'props/barrel.png': [0.20, 0.88, 7],
     'props/firewood.png': [0.16, 0.82, 6],
@@ -162,6 +172,6 @@
     return finite(state.strength, 3) + finite(state.agility, 3) >= EXAM_SCORE ? 'passed' : 'failed';
   }
   return { SCENE, playerFrame, viewport, LAYOUT_REVISION, MONTH_LENGTH, TAX_PER_MONTH, EXAM_SCORE, nextTaxDay,
-    migrateSave, freshState, walkable, depthScale, sceneName, nearBuilding, nearGate,
+    migrateSave, freshState, walkable, depthScale, sceneName, nearBuilding, nearGate, nearCityGate,
     hitsProp, accrueTax, payTax, workWage, examResult };
 });
