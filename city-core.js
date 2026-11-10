@@ -108,7 +108,7 @@
   }
 
   // Interact near each entrance or counter, not anywhere along a whole facade.
-  const INTERACTIONS = { 360: [250, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360], 5705: [5615, 5785] };
+  const INTERACTIONS = { 360: [145, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360], 5805: [5735, 5880] };
   function nearBuilding(x, y, anchor) {
     const zone = INTERACTIONS[anchor];
     return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 835;

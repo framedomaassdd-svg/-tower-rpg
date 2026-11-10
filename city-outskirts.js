@@ -19,7 +19,7 @@
     const [sx, sy, sw, sh] = cropRect, height = width * sh / sw;
     ctx.drawImage(image, sx, sy, sw, sh, x, bottom - height, width, height);
   }
-  function draw(ctx, canvas, art, pos, core, time) {
+  function draw(ctx, canvas, art, pos, core, time, clock) {
     const scale = Math.max(canvas.width / 1920, canvas.height / 1080);
     const viewportWidth = canvas.width / scale, viewportHeight = canvas.height / scale;
     const camera = clamp(pos.x - viewportWidth / 2, 0, Math.max(0, WIDTH - viewportWidth));
@@ -27,6 +27,7 @@
     ctx.fillStyle = '#9bb7a3'; ctx.fillRect(camera, 0, viewportWidth, viewportHeight);
     if (art.background.complete && art.background.naturalWidth)
       ctx.drawImage(art.background, 0, 0, WIDTH, HEIGHT);
+    CityLighting.stars(ctx, camera, viewportWidth, clock, true);
     // A short paving connection aligns the visible opening with the road.
     if (art.background.complete && art.background.naturalWidth) {
       ctx.save(); ctx.beginPath(); ctx.moveTo(453, 700); ctx.lineTo(587, 700);
@@ -41,19 +42,19 @@
     // Stone wall and the gate are independent layers on top of the landscape.
     crop(ctx, art.wall, [0,149,2172,530], -850, 740, 1100);
     crop(ctx, art.wall, [0,149,2172,530], 850, 740, 1050);
-    // The existing town alley shows through the transparent gate opening.
-    if (art.alley.complete && art.alley.naturalWidth) {
-      const width = 200, height = width * art.alley.naturalHeight / art.alley.naturalWidth;
-      const fade = 45, sourceFade = art.alley.naturalHeight * fade / height;
-      const solid = art.alley.naturalHeight - sourceFade;
-      ctx.drawImage(art.alley, 0, 0, art.alley.naturalWidth, solid,
-        420, 740 - height, width, height - fade);
-      ctx.save();
-      for (let i = 0; i < 8; i++) {
-        ctx.globalAlpha = 1 - i / 8;
-        ctx.drawImage(art.alley, 0, solid + i * sourceFade / 8,
-          art.alley.naturalWidth, sourceFade / 8,
-          420, 740 - fade + i * fade / 8, width, fade / 8);
+    // Through the opening, show the city's street and distant roof line.
+    if (art.citySky.complete && art.citySky.naturalWidth &&
+        art.cityBack.complete && art.cityBack.naturalWidth &&
+        art.cityRoad.complete && art.cityRoad.naturalWidth) {
+      ctx.save(); ctx.beginPath(); ctx.rect(420, 420, 200, 320); ctx.clip();
+      ctx.drawImage(art.citySky, 600, 0, 452, 452.5, 420, 420, 200, 200);
+      ctx.drawImage(art.cityBack, 24, 46, 2117, 591, 410, 565, 220, 61.4);
+      // Blend the city paving into the outside path instead of ending in a hard rectangle.
+      ctx.drawImage(art.cityRoad, 100, 700, 400, 160, 420, 620, 200, 80);
+      for(let i=0;i<8;i++){
+        ctx.save(); ctx.globalAlpha=1-(i+.5)/8;
+        ctx.drawImage(art.cityRoad, 100, 860+i*10, 400, 10, 420, 700+i*5, 200, 5.2);
+        ctx.restore();
       }
       ctx.restore();
     }
@@ -65,8 +66,7 @@
       const width = 300, height = width * art.tree.naturalHeight / art.tree.naturalWidth;
       ctx.drawImage(art.tree, 1780, 750 - height, width, height);
     }
-    ctx.save(); ctx.fillStyle = 'rgba(36,28,24,.28)'; ctx.beginPath();
-    ctx.ellipse(pos.x, pos.y - 1, 29, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    CityLighting.actorShadow(ctx,pos.x,pos.y,1,clock);
     if (art.sprite.complete && art.sprite.naturalWidth) {
       const pose = core.playerFrame(pos.anim, pos.moving), sc = core.SCENE;
       ctx.save(); ctx.translate(pos.x, pos.y); ctx.scale(pos.face, 1);
@@ -83,6 +83,7 @@
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff0bc';
       ctx.fillText('!', pos.x, iconY + .5); ctx.restore();
     }
+    CityLighting.draw(ctx,camera,viewportWidth,viewportHeight,clock,{outside:true});
   }
   return { WIDTH, HEIGHT, START_X, START_Y, nearGate, step, draw };
 });
