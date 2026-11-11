@@ -204,7 +204,7 @@
       lastToast = msg; toastEl.textContent = msg.replace(/^วันที่ \d+ · /, ''); toastEl.classList.add('show');
       clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3800);
     }
-    if (!hudEl._drawn && window.CharacterRig && CharacterRig.portrait(hudEl.querySelector('canvas'))) hudEl._drawn = true;
+    if (!hudEl._drawn && window.HeroSprite && HeroSprite.portrait(hudEl.querySelector('canvas'))) hudEl._drawn = true;
     if (!hudEl._drawn && sprite.complete && sprite.naturalWidth) { hudEl._drawn = true; portrait(hudEl.querySelector('canvas'), sprite, 400, 680, PLAYER_BOX); }
   }
   function init() {

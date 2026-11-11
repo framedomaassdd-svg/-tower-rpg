@@ -68,10 +68,10 @@
       ctx.drawImage(art.tree, 1780, 750 + width * 52 / 1312 - height, width, height);
     }
     CityLighting.actorShadow(ctx,pos.x,pos.y,1,clock);
-    if (art.sprite.complete && art.sprite.naturalWidth) {
+    if ((globalThis.HeroSprite && globalThis.HeroSprite.ready()) || (art.sprite.complete && art.sprite.naturalWidth)) {
       const pose = core.playerFrame(pos.anim, pos.moving), sc = core.SCENE;
       ctx.save(); ctx.translate(pos.x, pos.y); ctx.scale(pos.face, 1);
-      if (globalThis.CharacterRig && globalThis.CharacterRig.ready()) globalThis.CharacterRig.drawActor(ctx, 'player-outskirts', pos.x, pos.y, '', pos.moving, 124);
+      if (globalThis.HeroSprite && globalThis.HeroSprite.ready()) globalThis.HeroSprite.draw(ctx, { anim: pos.anim, moving: pos.moving, face: 1, vdir: pos.vdir || 0, horizontal: !!pos.horizontal });
       else ctx.drawImage(art.sprite, pose.frame * sc.spriteFrameWidth, 0,
         sc.spriteFrameWidth, sc.spriteFrameHeight, -sc.playerWidth / 2,
         -sc.playerHeight + pose.footOffset, sc.playerWidth, sc.playerHeight);
