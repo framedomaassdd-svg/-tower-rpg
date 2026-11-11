@@ -189,7 +189,7 @@
     if (!open) process();
     const s = LifeSim.sample(state, clock);
     player = s.x; playerY = s.y; moving = s.moving; anim = s.anim; if (s.face) face = s.face;
-    window.LIFE_HIDDEN = s.hidden;
+    window.LIFE_HIDDEN = s.hidden; window.LIFE_ACT = s.act;
     const t = performance.now();
     if (t - hudAt > 250) { hudAt = t; hud(s); }
   }
@@ -204,6 +204,7 @@
       lastToast = msg; toastEl.textContent = msg.replace(/^วันที่ \d+ · /, ''); toastEl.classList.add('show');
       clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3800);
     }
+    if (!hudEl._drawn && window.CharacterRig && CharacterRig.portrait(hudEl.querySelector('canvas'))) hudEl._drawn = true;
     if (!hudEl._drawn && sprite.complete && sprite.naturalWidth) { hudEl._drawn = true; portrait(hudEl.querySelector('canvas'), sprite, 400, 680, PLAYER_BOX); }
   }
   function init() {

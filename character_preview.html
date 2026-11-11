@@ -1,0 +1,14 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ตัวละคร · ทดสอบท่าทาง</title>
+<style>body{margin:0;background:#2a2320;color:#f3e6d3;font:15px system-ui;text-align:center}h1{font-size:18px;margin:12px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:10px;max-width:1100px;margin:auto}
+.c{background:#3a302b;border-radius:12px;padding:6px}canvas{width:100%;height:220px;display:block}</style></head><body>
+<h1>ท่าทางตัวละคร (แอนิเมชันหุ่นตัดต่อ)</h1><div id="grid"></div>
+<script src="character-rig.js?v=65"></script><script>
+const names={idle:'ยืนหายใจ',walk:'เดิน',run:'วิ่ง',hammer:'ตีเหล็ก',train:'ฝึกที่กิลด์',carry:'ขนของในตลาด',eat:'กินข้าว',sick:'ป่วย',sleep:'นอน'};
+CharacterRig.load();const cells=[];
+for(const k in names){const d=document.createElement('div');d.className='c';d.innerHTML='<canvas></canvas><div>'+names[k]+'</div>';grid.appendChild(d);cells.push([k,d.querySelector('canvas')])}
+let T0=null;window.FIXED_T=null;
+function f(now){const t=window.FIXED_T!=null?window.FIXED_T:(now-(T0??=now))/1000;for(const [k,cv] of cells){const r=cv.getBoundingClientRect(),dp=Math.min(devicePixelRatio||1,2);if(cv.width!==Math.round(r.width*dp)){cv.width=Math.round(r.width*dp);cv.height=Math.round(r.height*dp)}
+const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(cv.width/2,cv.height*.9,cv.width*.22,cv.height*.025,0,0,7);g.fill();
+g.save();g.translate(cv.width/2,cv.height*.9);CharacterRig.draw(g,k,t,cv.height*.78);g.restore()}requestAnimationFrame(f)}requestAnimationFrame(f);
+</script></body></html>
