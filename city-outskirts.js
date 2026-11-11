@@ -22,7 +22,7 @@
   function draw(ctx, canvas, art, pos, core, time, clock) {
     const scale = Math.max(canvas.width / 1920, canvas.height / 1080);
     const viewportWidth = canvas.width / scale, viewportHeight = canvas.height / scale;
-    const camera = clamp(pos.x - viewportWidth / 2, 0, Math.max(0, WIDTH - viewportWidth));
+    const camera = Math.round(clamp(pos.x - viewportWidth / 2, 0, Math.max(0, WIDTH - viewportWidth)) * scale) / scale;
     ctx.setTransform(scale, 0, 0, scale, -camera * scale, 0);
     ctx.fillStyle = '#9bb7a3'; ctx.fillRect(camera, 0, viewportWidth, viewportHeight);
     if (art.background.complete && art.background.naturalWidth)
@@ -60,11 +60,12 @@
     }
     if (art.gate.complete && art.gate.naturalWidth) {
       const width = 800, height = width * art.gate.naturalHeight / art.gate.naturalWidth;
-      ctx.drawImage(art.gate, 120, 740 - height, width, height);
+      ctx.drawImage(art.gate, 120, 740 + width * 36 / 1536 - height, width, height);
     }
     if (art.tree.complete && art.tree.naturalWidth) {
       const width = 300, height = width * art.tree.naturalHeight / art.tree.naturalWidth;
-      ctx.drawImage(art.tree, 1780, 750 - height, width, height);
+      CityLighting.propShadow(ctx, 1780 + width / 2, 750, width, clock);
+      ctx.drawImage(art.tree, 1780, 750 + width * 52 / 1312 - height, width, height);
     }
     CityLighting.actorShadow(ctx,pos.x,pos.y,1,clock);
     if (art.sprite.complete && art.sprite.naturalWidth) {

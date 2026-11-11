@@ -121,7 +121,7 @@
     const lights=[];
     for(const o of objects||[]){
       const img=o.image;if(!img||!img.complete||!img.naturalWidth)continue;
-      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y-h;
+      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y+o.width*(o.footInset||0)-h;
       if(o.src==='props/lamp.webp') lights.push([o.x+o.width*.5,top+h*.19,115,o.y-5]);
       const profile=BUILDING_LIGHTS[o.src];
       if(profile)for(const [x,y,r] of profile)lights.push([o.x+o.width*x,top+h*y,r]);
@@ -136,7 +136,7 @@
     ctx.fillRect(camera,0,width,height);ctx.restore();
     if(l.lamps<.01)return;
     const glow=haloCanvas();if(!glow)return;
-    const lights=opts.outside?[[344,522,78],[696,522,78]]:sceneLights(opts.objects);
+    const lights=opts.outside?[[344,541,78],[696,541,78]]:sceneLights(opts.objects);
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.8*l.lamps;
     for(const [x,y,r,ground] of lights){
       if(x+r<camera||x-r>camera+width)continue;
