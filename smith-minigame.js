@@ -1,4 +1,4 @@
-/* Blacksmith minigame: heat → hammer → quench. Tap / click / Space. Returns 0–9 stars. */
+/* Blacksmith minigame (v64 art): heat → hammer → quench. Tap / click / Space. Returns 0–9 stars. */
 (function (root) {
   'use strict';
   const STEPS = [
@@ -8,6 +8,30 @@
   ];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const starText = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+
+  const ART_FILES = { interior: 'smith_interior', anvil: 'smith_anvil', barCold: 'smith_bar_cold', barHot: 'smith_bar_hot',
+    bladeHot: 'smith_blade_hot', swordDone: 'smith_sword_done', hammer: 'smith_hammer', trough: 'smith_trough' };
+  let art = null;
+  function loadArt() {
+    if (art || typeof Image === 'undefined') return art || {};
+    art = {};
+    for (const [k, f] of Object.entries(ART_FILES)) { const im = new Image(); im.decoding = 'async'; im.src = f + '.webp?v=64'; art[k] = im; }
+    return art;
+  }
+  const colds = new WeakMap();
+  function coldCopy(im) {           // grey, cooled-iron version of a glowing image (no pixel reads, so safe on any origin)
+    if (colds.has(im)) return colds.get(im);
+    let c = null;
+    try {
+      c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+      const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+      x.globalCompositeOperation = 'saturation'; x.fillStyle = '#808080'; x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'multiply'; x.fillStyle = '#6d7480'; x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'destination-in'; x.drawImage(im, 0, 0);
+    } catch (e) { c = null; }
+    colds.set(im, c); return c;
+  }
+  if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', () => setTimeout(loadArt, 2500));
 
   function open(opts) {
     const tol = clamp(opts.tolerance || 1, 0.6, 2.2);
@@ -76,21 +100,29 @@
       nextBeat(s);
     }
     function nextBeat(s) {
-      beats.push(s); beatIndex++;
-      if (s >= 2) for (let i = 0; i < 14; i++) sparks.push({ x: 0, y: 0, vx: (Math.random() - .5) * 2, vy: -Math.random() * 1.6, life: 1 });
+      beats.push(s); beatIndex++; if (s > 0) swingAt = now();
+      if (s >= 1) for (let i = 0; i < (s >= 2 ? 22 : 8); i++) sparks.push({ x: 0, y: 0, vx: (Math.random() - .5) * 2, vy: -Math.random() * 1.6, life: 1 });
       if (beatIndex >= 4) { const avg = Math.round(beats.reduce((a, b) => a + b, 0) / 4); score(avg, LABELS[avg]); }
       else beatStart = now() + 0.3;
     }
 
-    // ---- drawing
+    // ---- drawing (v64: painted art; falls back to simple shapes until images load)
+    const A = loadArt();
+    const ok = im => im && im.complete && im.naturalWidth > 0;
+    let swingAt = -9;
     function drawBackdrop(W, H) {
       g.fillStyle = '#1b1411'; g.fillRect(0, 0, W, H);
-      if (bg && bg.complete && bg.naturalWidth) {
-        const sw = bg.naturalWidth * 0.36, sh = bg.naturalHeight * 0.42, sx = bg.naturalWidth * 0.25, sy = bg.naturalHeight * 0.44;
+      const im = ok(A.interior) ? A.interior : bg;
+      if (ok(im)) {
+        const full = im === A.interior;
+        const sw = full ? im.naturalWidth : im.naturalWidth * 0.36, sh = full ? im.naturalHeight : im.naturalHeight * 0.42;
+        const sx = full ? 0 : im.naturalWidth * 0.25, sy = full ? 0 : im.naturalHeight * 0.44;
         const sc = Math.max(W / sw, H / sh), dw = sw * sc, dh = sh * sc;
-        g.drawImage(bg, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        g.drawImage(im, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
       }
-      g.fillStyle = 'rgba(15,10,8,.55)'; g.fillRect(0, 0, W, H);
+      const v = g.createRadialGradient(W / 2, H * .55, Math.min(W, H) * .3, W / 2, H * .55, Math.max(W, H) * .75);
+      v.addColorStop(0, 'rgba(15,10,8,.12)'); v.addColorStop(1, 'rgba(15,10,8,.62)');
+      g.fillStyle = v; g.fillRect(0, 0, W, H);
     }
     function anvil(cx, cy, u) {
       g.fillStyle = '#2b2d33';
@@ -111,16 +143,60 @@
       g.save(); g.shadowColor = colour; g.shadowBlur = u * .8; g.fillStyle = colour;
       g.fillRect(cx - (len || 1.6) * u, cy - .22 * u, 2 * (len || 1.6) * u, .22 * u); g.restore();
     }
+    function glow(x, y, r, colour, a) {
+      if (a <= 0) return;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, colour.replace('rgb', 'rgba').replace(')', ',' + (0.55 * a) + ')')); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // metal piece whose colour follows heat 0..1: cooled grey copy → glowing art → white-hot boost
+    function hotPiece(im, x, y, w, heat) {
+      const h = w * im.naturalHeight / im.naturalWidth, k = clamp((heat - 0.2) / 0.52, 0, 1);
+      glow(x + w / 2, y + h / 2, w * .62, heatColour(heat), k);
+      const cold = coldCopy(im);
+      if (cold && k < 1) g.drawImage(cold, x, y, w, h);
+      if (k > 0) { g.globalAlpha = cold ? k : 1; g.drawImage(im, x, y, w, h); g.globalAlpha = 1; }
+      const white = clamp((heat - 0.8) * 3.5, 0, 1);
+      if (white > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = white * .6; g.drawImage(im, x, y, w, h); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+      return h;
+    }
+    function layout(W, H) {
+      const S = Math.min(W / (W > H ? 1000 : 560), H / 620);
+      const AW = 400 * S, AH = AW * 384 / 700, ax = W / 2 - AW * .42, ay = H * .8 - AH;
+      return { S, AW, AH, ax, ay, top: ay + AH * .2, mid: ax + AW * .37 };
+    }
+    function sparkle(x, y, S) {
+      for (const s of sparks) { s.x += s.vx * 9 * S; s.y += s.vy * 9 * S; s.vy += .07; s.life -= .028;
+        if (s.life > 0) { g.fillStyle = 'rgba(255,' + (150 + 90 * s.life | 0) + ',80,' + s.life + ')'; g.fillRect(x + s.x, y + s.y, 4 * S + 1, 4 * S + 1); } }
+      sparks = sparks.filter(s => s.life > 0);
+    }
+    function hammer(sx, sy, S, t) {
+      const im = A.hammer; if (!ok(im)) return;
+      const HW = 300 * S, HH = HW * im.naturalHeight / im.naturalWidth;
+      const since = t - swingAt;
+      let ang = 0.95;                                   // raised
+      if (since < 0.07) ang = 0.95 * (1 - since / 0.07); // falling
+      else if (since < 0.2) ang = 0;                     // on the metal
+      else if (since < 0.5) ang = 0.95 * ((since - 0.2) / 0.3);
+      g.save(); g.translate(sx + HW * .83, sy - HH * .5); g.rotate(ang);
+      g.drawImage(im, -HW, -HH * .5, HW, HH); g.restore();
+    }
     function draw() {
       if (finished) return;
       const W = cv.width, H = cv.height, u = Math.min(W > H ? W / 9 : W / 6.5, H / 5.5), t = now(), id = STEPS[step].id;
       const dt = lastFrame ? Math.min(0.05, t - lastFrame) : 0; lastFrame = t;
       drawBackdrop(W, H);
-      const cx = W / 2, cy = H * 0.46;
+      const cx = W / 2, cy = H * 0.46, L = layout(W, H), art = ok(A.anvil) && ok(A.barHot) && ok(A.bladeHot) && ok(A.trough);
       if (id === 'heat') {
         const p = flash && flash.p !== undefined ? flash.p : needle(t);
-        anvil(cx, cy, u); bar(cx, cy, u, heatColour(p));
-        const gx = W * 0.12, gw = W * 0.76, gy = H * 0.86, gh = Math.max(14, u * .28);
+        const gx = W * 0.12, gw = W * 0.76, gy = H * 0.88, gh = Math.max(14, u * .28);
+        if (art) {
+          g.drawImage(A.anvil, L.ax, L.ay, L.AW, L.AH);
+          const bw = L.AW * .78, bh = bw * A.barHot.naturalHeight / A.barHot.naturalWidth;
+          hotPiece(A.barHot, L.mid - bw / 2, L.top - bh * .78, bw, p);
+          const ic = gh * 2.2;
+          if (ok(A.barCold) && gx > ic * 2.6) g.drawImage(A.barCold, gx - ic * 2.4, gy + gh / 2 - ic * .45, ic * 2.2, ic * .89);
+        } else { anvil(cx, cy, u); bar(cx, cy, u, heatColour(p)); }
         const grad = g.createLinearGradient(gx, 0, gx + gw, 0);
         [[0, '#505056'], [.45, '#96201a'], [.72, '#ff7a1e'], [.9, '#ffdc78'], [1, '#fffff0']].forEach(([o, c]) => grad.addColorStop(o, c));
         g.fillStyle = grad; g.fillRect(gx, gy, gw, gh);
@@ -128,34 +204,54 @@
         g.strokeRect(gx + gw * (0.72 - hw), gy - 4, gw * hw * 2, gh + 8);
         g.fillStyle = '#fff'; g.fillRect(gx + gw * p - 3, gy - gh * .6, 6, gh * 2.2);
       } else if (id === 'hammer') {
-        anvil(cx, cy, u); bar(cx, cy, u, '#ff8a2a');
-        const R = u * 1.6, tx = cx, ty = cy - .1 * u;
+        let tx = cx, ty = cy - .1 * u, R = u * 1.6;
+        if (art) {
+          g.drawImage(A.anvil, L.ax, L.ay, L.AW, L.AH);
+          const shaped = clamp(beatIndex / 4, 0, 1), bw = L.AW * .78;
+          const bh = bw * A.barHot.naturalHeight / A.barHot.naturalWidth, x0 = L.mid - bw / 2, y0 = L.top - bh * .78;
+          g.globalAlpha = 1 - shaped; hotPiece(A.barHot, x0, y0, bw, 0.74); g.globalAlpha = 1;
+          if (shaped > 0) { const lh = bw * A.bladeHot.naturalHeight / A.bladeHot.naturalWidth;
+            g.globalAlpha = shaped; g.drawImage(A.bladeHot, x0, L.top - lh * .85, bw, lh); g.globalAlpha = 1; }
+          tx = L.mid; ty = L.top - bh * .55; R = L.AW * .42;
+        } else { anvil(cx, cy, u); bar(cx, cy, u, '#ff8a2a'); }
         g.strokeStyle = '#f2c14e'; g.lineWidth = Math.max(3, u * .09); g.beginPath(); g.arc(tx, ty, R * 0.3, 0, Math.PI * 2); g.stroke();
         if (!flash && beatIndex < 4 && t >= beatStart) {
           const r = ringAt(t);
           if (r <= -0.15) nextBeat(0);
           else { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = Math.max(2, u * .06); g.beginPath(); g.arc(tx, ty, Math.max(2, R * Math.max(r, 0)), 0, Math.PI * 2); g.stroke(); }
         }
-        g.fillStyle = 'rgba(255,255,255,.85)'; g.font = Math.round(u * .32) + 'px system-ui'; g.textAlign = 'center';
-        g.fillText('ครั้งที่ ' + Math.min(beatIndex + 1, 4) + '/4', cx, H * 0.9);
-        for (const s of sparks) { s.x += s.vx * u * .08; s.y += s.vy * u * .08; s.vy += .06; s.life -= .03;
-          if (s.life > 0) { g.fillStyle = 'rgba(255,200,90,' + s.life + ')'; g.fillRect(tx + s.x, ty + s.y, 3, 3); } }
-        sparks = sparks.filter(s => s.life > 0);
+        if (art) hammer(tx, ty, L.S, t);
+        sparkle(tx, ty, art ? L.S : u / 60);
+        g.fillStyle = 'rgba(255,255,255,.88)'; g.font = Math.round(u * .32) + 'px system-ui'; g.textAlign = 'center';
+        g.fillText('ครั้งที่ ' + Math.min(beatIndex + 1, 4) + '/4', cx, H * 0.93);
       } else {
         if (holding && !flash) { steam = Math.min(1.05, steam + dt * 0.7); bladeDip = Math.min(1, bladeDip + dt * 5); }
         else if (!flash) bladeDip = Math.max(0, bladeDip - dt * 3);
         if (steam >= 1.02 && !flash) { holding = false; score(0, 'ดาบร้าว!'); }
-        const bx = cx - u * .6, by = H * 0.5, bw = u * 2.4, bh = u * 1.6;
-        g.fillStyle = '#4a3020'; g.fillRect(bx - bw / 2, by, bw, bh);
-        g.fillStyle = '#3c78a8'; g.beginPath(); g.ellipse(bx, by, bw / 2, u * .22, 0, 0, Math.PI * 2); g.fill();
-        const tipY = by - u * 1.2 + bladeDip * u * 1.1;
-        g.fillStyle = heatColour(Math.max(0.2, 0.75 - steam * 0.5)); g.fillRect(bx - u * .09, tipY - u * 1.4, u * .18, u * 1.4);
-        g.fillStyle = '#5a3a24'; g.fillRect(bx - u * .3, tipY - u * 1.55, u * .6, u * .14); g.fillRect(bx - u * .07, tipY - u * 2.05, u * .14, u * .5);
-        if (holding) for (let i = 0; i < 5; i++) { g.fillStyle = 'rgba(235,235,235,' + (0.25 + Math.random() * .2) + ')';
-          g.beginPath(); g.arc(bx + (Math.random() - .5) * bw * .7, by - Math.random() * u * 1.2, u * (.15 + Math.random() * .2), 0, Math.PI * 2); g.fill(); }
-        const mx = cx + u * 2.2, my = H * 0.18, mh = H * 0.62, mw = Math.max(16, u * .32);
-        g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(mx, my, mw, mh);
-        const hw = 0.075 * tol; g.fillStyle = 'rgba(80,200,120,.55)'; g.fillRect(mx, my + mh * (1 - 0.75 - hw), mw, mh * hw * 2);
+        const mx = cx + (art ? Math.min(W * .36, 330 * L.S) : u * 2.2), my = H * 0.16, mh = H * 0.64, mw = Math.max(16, u * .32);
+        if (art) {
+          const TW = 430 * L.S, TH = TW * 534 / 700, tx0 = W / 2 - TW * .62, ty0 = H * .9 - TH, water = ty0 + TH * .38, bx = tx0 + TW * .45;
+          const lw = TH * 1.25, lh = lw * A.bladeHot.naturalHeight / A.bladeHot.naturalWidth, tip = water - TH * .3 + bladeDip * TH * .42;
+          g.save(); g.translate(bx, tip); g.rotate(-Math.PI / 2);   // tip points down into the water
+          hotPiece(A.bladeHot, 0, -lh / 2, lw, Math.max(0.2, 0.75 - steam * 0.55)); g.restore();
+          g.drawImage(A.trough, tx0, ty0, TW, TH);
+          if (holding || steam > 0) for (let i = 0; i < 6; i++) {
+            const a = (holding ? 0.3 : 0.12) + Math.random() * .18;
+            g.fillStyle = 'rgba(240,240,240,' + a + ')'; g.beginPath();
+            g.arc(bx + (Math.random() - .5) * TW * .5, water - Math.random() * TH * .7 * (0.4 + steam), TH * (.06 + Math.random() * .09), 0, Math.PI * 2); g.fill();
+          }
+        } else {
+          const bx = cx - u * .6, by = H * 0.5, bw = u * 2.4, bh = u * 1.6;
+          g.fillStyle = '#4a3020'; g.fillRect(bx - bw / 2, by, bw, bh);
+          g.fillStyle = '#3c78a8'; g.beginPath(); g.ellipse(bx, by, bw / 2, u * .22, 0, 0, Math.PI * 2); g.fill();
+          const tipY = by - u * 1.2 + bladeDip * u * 1.1;
+          g.fillStyle = heatColour(Math.max(0.2, 0.75 - steam * 0.5)); g.fillRect(bx - u * .09, tipY - u * 1.4, u * .18, u * 1.4);
+          g.fillStyle = '#5a3a24'; g.fillRect(bx - u * .3, tipY - u * 1.55, u * .6, u * .14); g.fillRect(bx - u * .07, tipY - u * 2.05, u * .14, u * .5);
+          if (holding) for (let i = 0; i < 5; i++) { g.fillStyle = 'rgba(235,235,235,' + (0.25 + Math.random() * .2) + ')';
+            g.beginPath(); g.arc(bx + (Math.random() - .5) * bw * .7, by - Math.random() * u * 1.2, u * (.15 + Math.random() * .2), 0, Math.PI * 2); g.fill(); }
+        }
+        g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(mx, my, mw, mh);
+        const hw = 0.075 * tol; g.fillStyle = 'rgba(80,200,120,.6)'; g.fillRect(mx, my + mh * (1 - 0.75 - hw), mw, mh * hw * 2);
         g.fillStyle = '#e8eef5'; g.fillRect(mx, my + mh * (1 - Math.min(steam, 1)), mw, mh * Math.min(steam, 1));
         g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(mx, my, mw, mh);
       }
@@ -170,7 +266,7 @@
     function result() {
       const total = scores.reduce((a, b) => a + b, 0), overall = Math.round(total / 3);
       const panel = document.createElement('div'); panel.className = 'lg-card lg-result';
-      panel.innerHTML = '<h2>ดาบเสร็จแล้ว</h2><div class="lg-bigstars">' + starText(overall) + '</div>' +
+      panel.innerHTML = '<h2>ดาบเสร็จแล้ว</h2>' + (ok(A.swordDone) ? '<img class="lg-sword" alt="" src="' + A.swordDone.src + '"' + (overall === 0 ? ' style="filter:grayscale(1) brightness(.7)"' : '') + '>' : '') + '<div class="lg-bigstars">' + starText(overall) + '</div>' +
         '<p>' + STEPS.map((s, i) => s.title + ' ' + starText(scores[i])).join('<br>') + '</p>' +
         '<p class="lg-muted">รวม ' + total + '/9 ดาว · ' + (overall >= 3 ? 'ช่างใหญ่พยักหน้าให้' : overall === 2 ? 'ใช้งานได้ดี' : overall === 1 ? 'พอขายได้' : 'ต้องหลอมใหม่') + '</p>' +
         '<button class="lg-btn lg-primary">รับค่าแรงและทำงานต่อ</button>';
