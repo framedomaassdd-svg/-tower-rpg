@@ -68,14 +68,21 @@
   }
   // A faint, flattened ground shadow joins each facade to the pavement.
   function buildingShadows(ctx,objects,camera,width,clock) {
-    const light=sample(clock); if(light.sunlight<.04)return;
+    const light=sample(clock);
     const shift=35*light.shadowDirection, depth=18+14*Math.abs(light.shadowDirection);
-    ctx.save();ctx.fillStyle=`rgba(27,31,38,${(.055*light.sunlight).toFixed(3)})`;
+    ctx.save();
     for(const o of objects){
       if(!(o.src.startsWith('buildings/')||o.src.startsWith('buildings__'))||o.y<740||o.src.includes('alley_view'))continue;
       if(o.x+o.width<camera-60||o.x>camera+width+60)continue;
-      const left=o.x+o.width*.08,right=o.x+o.width*.92;
-      ctx.beginPath();ctx.moveTo(left,o.y);ctx.lineTo(right,o.y);ctx.lineTo(right+shift,o.y+depth);ctx.lineTo(left+shift,o.y+depth);ctx.closePath();ctx.fill();
+      // Contact shadows remain at night; the open gate has two separate feet.
+      ctx.fillStyle='rgba(25,27,31,.16)';
+      const pads=o.src==='buildings__city_gate_v49.png'?[[.18,.15],[.82,.15]]:[[.50,.43]];
+      for(const [cx,rx] of pads){ctx.beginPath();ctx.ellipse(o.x+o.width*cx,o.y+1,o.width*rx,5,0,0,Math.PI*2);ctx.fill()}
+      if(light.sunlight>=.04){
+        ctx.fillStyle=`rgba(27,31,38,${(.055*light.sunlight).toFixed(3)})`;
+        const left=o.x+o.width*.08,right=o.x+o.width*.92;
+        if(o.src!=='buildings__city_gate_v49.png'){ctx.beginPath();ctx.moveTo(left,o.y);ctx.lineTo(right,o.y);ctx.lineTo(right+shift,o.y+depth);ctx.lineTo(left+shift,o.y+depth);ctx.closePath();ctx.fill()}
+      }
     }
     ctx.restore();
   }
@@ -121,7 +128,7 @@
     const lights=[];
     for(const o of objects||[]){
       const img=o.image;if(!img||!img.complete||!img.naturalWidth)continue;
-      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y-h;
+      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y+o.width*(o.footInset||0)-h;
       if(o.src==='props/lamp.png') lights.push([o.x+o.width*.5,top+h*.19,115,o.y-5]);
       const profile=BUILDING_LIGHTS[o.src];
       if(profile)for(const [x,y,r] of profile)lights.push([o.x+o.width*x,top+h*y,r]);
@@ -136,7 +143,7 @@
     ctx.fillRect(camera,0,width,height);ctx.restore();
     if(l.lamps<.01)return;
     const glow=haloCanvas();if(!glow)return;
-    const lights=opts.outside?[[344,522,78],[696,522,78]]:sceneLights(opts.objects);
+    const lights=opts.outside?[[344,541,78],[696,541,78]]:sceneLights(opts.objects);
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.8*l.lamps;
     for(const [x,y,r,ground] of lights){
       if(x+r<camera||x-r>camera+width)continue;

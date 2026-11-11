@@ -49,7 +49,7 @@
     state.outsideY = clamp(finite(old.outsideY, 820), 745, 1010);
     state.smithWork = Math.max(0, Math.floor(finite(old.smithWork, 0)));
     state.day = Math.max(1, Math.floor(finite(state.day, 1)));
-    state.position = clamp(finite(state.position, 960), 35, 6865);
+    state.position = clamp(finite(state.position, 960), 35, 7465);
     state.positionY = clamp(finite(state.positionY, 800), 625, 1030);
     if (!walkable(state.position, state.positionY)) state.positionY = 800;
     state.events = Array.isArray(old.events) ? old.events : [];
@@ -70,7 +70,7 @@
   }
 
   function walkable(x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 6865 || y < 625 || y > 1030) return false;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 7465 || y < 625 || y > 1030) return false;
     if (y >= 765) return true;
     if (x >= 6380 && x <= 6580 && y >= 650) return true;
     if (y >= 700 && x >= 675 && x <= 725) return true;
@@ -108,7 +108,7 @@
   }
 
   // Interact near each entrance or counter, not anywhere along a whole facade.
-  const INTERACTIONS = { 360: [145, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360], 5805: [5735, 5880] };
+  const INTERACTIONS = { 360: [145, 465], 1000: [870, 1155], 1550: [1495, 1665], 4250: [4140, 4360], 5805: [5735, 5880] };
   function nearBuilding(x, y, anchor) {
     const zone = INTERACTIONS[anchor];
     return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 835;

@@ -20,13 +20,14 @@
     ctx.drawImage(image, sx, sy, sw, sh, x, bottom - height, width, height);
   }
   function draw(ctx, canvas, art, pos, core, time, clock) {
+    const visual=typeof CityVisuals!=='undefined'&&CityVisuals.resolve?CityVisuals.resolve:image=>image;
     const scale = Math.max(canvas.width / 1920, canvas.height / 1080);
     const viewportWidth = canvas.width / scale, viewportHeight = canvas.height / scale;
-    const camera = clamp(pos.x - viewportWidth / 2, 0, Math.max(0, WIDTH - viewportWidth));
+    const camera = Math.round(clamp(pos.x - viewportWidth / 2, 0, Math.max(0, WIDTH - viewportWidth)) * scale) / scale;
     ctx.setTransform(scale, 0, 0, scale, -camera * scale, 0);
     ctx.fillStyle = '#9bb7a3'; ctx.fillRect(camera, 0, viewportWidth, viewportHeight);
     if (art.background.complete && art.background.naturalWidth)
-      ctx.drawImage(art.background, 0, 0, WIDTH, HEIGHT);
+      ctx.drawImage(visual(art.background), 0, 0, WIDTH, HEIGHT);
     CityLighting.stars(ctx, camera, viewportWidth, clock, true);
     // A short paving connection aligns the visible opening with the road.
     if (art.background.complete && art.background.naturalWidth) {
@@ -34,7 +35,7 @@
       ctx.lineTo(650, 825); ctx.lineTo(390, 825); ctx.closePath(); ctx.clip();
       for (let i = 0; i < 8; i++) {
         ctx.globalAlpha = .45 * (1 - i / 8);
-        ctx.drawImage(art.background, 700, 500 + i * 18.75, 250, 18.75,
+        ctx.drawImage(visual(art.background), 700, 500 + i * 18.75, 250, 18.75,
           390, 700 + i * 15.625, 260, 15.625);
       }
       ctx.restore();
@@ -47,7 +48,7 @@
         art.cityBack.complete && art.cityBack.naturalWidth &&
         art.cityRoad.complete && art.cityRoad.naturalWidth) {
       ctx.save(); ctx.beginPath(); ctx.rect(420, 420, 200, 320); ctx.clip();
-      ctx.drawImage(art.citySky, 600, 0, 452, 452.5, 420, 420, 200, 200);
+      ctx.drawImage(visual(art.citySky), 600, 0, 452, 452.5, 420, 420, 200, 200);
       ctx.drawImage(art.cityBack, 24, 46, 2117, 591, 410, 565, 220, 61.4);
       // Blend the city paving into the outside path instead of ending in a hard rectangle.
       ctx.drawImage(art.cityRoad, 100, 700, 400, 160, 420, 620, 200, 80);
@@ -60,11 +61,12 @@
     }
     if (art.gate.complete && art.gate.naturalWidth) {
       const width = 800, height = width * art.gate.naturalHeight / art.gate.naturalWidth;
-      ctx.drawImage(art.gate, 120, 740 - height, width, height);
+      ctx.drawImage(art.gate, 120, 740 - height + width * 37 / 1536, width, height);
     }
     if (art.tree.complete && art.tree.naturalWidth) {
       const width = 300, height = width * art.tree.naturalHeight / art.tree.naturalWidth;
-      ctx.drawImage(art.tree, 1780, 750 - height, width, height);
+      CityLighting.propShadow(ctx,1780+width*.5,750,width,clock);
+      ctx.drawImage(art.tree, 1780, 750 - height + width * 53 / 1312, width, height);
     }
     CityLighting.actorShadow(ctx,pos.x,pos.y,1,clock);
     if (art.sprite.complete && art.sprite.naturalWidth) {
