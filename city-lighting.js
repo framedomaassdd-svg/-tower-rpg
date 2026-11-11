@@ -126,7 +126,7 @@
       const profile=BUILDING_LIGHTS[o.src];
       if(profile)for(const [x,y,r] of profile)lights.push([o.x+o.width*x,top+h*y,r]);
     }
-    lights.push([2260,659,80],[2600,659,80]);
+    lights.push([2295,680,80],[2565,680,80]);
     cachedObjects=objects;cachedLights=lights;return lights;
   }
   function draw(ctx,camera,width,height,clock,opts) {
