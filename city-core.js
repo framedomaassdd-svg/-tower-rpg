@@ -49,7 +49,7 @@
     state.outsideY = clamp(finite(old.outsideY, 820), 745, 1010);
     state.smithWork = Math.max(0, Math.floor(finite(old.smithWork, 0)));
     state.day = Math.max(1, Math.floor(finite(state.day, 1)));
-    state.position = clamp(finite(state.position, 960), 35, 7465);
+    state.position = clamp(finite(state.position, 960), 35, 6865);
     state.positionY = clamp(finite(state.positionY, 800), 625, 1030);
     if (!walkable(state.position, state.positionY)) state.positionY = 800;
     state.events = Array.isArray(old.events) ? old.events : [];
@@ -70,7 +70,7 @@
   }
 
   function walkable(x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 7465 || y < 625 || y > 1030) return false;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 6865 || y < 625 || y > 1030) return false;
     if (y >= 765) return true;
     if (x >= 6380 && x <= 6580 && y >= 650) return true;
     if (y >= 700 && x >= 675 && x <= 725) return true;
@@ -108,7 +108,7 @@
   }
 
   // Interact near each entrance or counter, not anywhere along a whole facade.
-  const INTERACTIONS = { 360: [145, 465], 1000: [870, 1155], 1550: [1495, 1665], 4250: [4140, 4360], 5805: [5735, 5880] };
+  const INTERACTIONS = { 360: [145, 465], 1000: [870, 1105], 1550: [1495, 1665], 4250: [4140, 4360], 5805: [5735, 5880] };
   function nearBuilding(x, y, anchor) {
     const zone = INTERACTIONS[anchor];
     return !!zone && x >= zone[0] && x < zone[1] && y >= 740 && y <= 835;
@@ -119,24 +119,24 @@
   // Horizontal footprint as a fraction of the source sprite width; vertical extent
   // in world pixels around the visible foot.  Decorative shadows are not obstacles.
   const HIT_PROFILES = {
-    'props/lamp.png': [0.36, 0.64, 7],
-    'props/new/tree.png': [0.28, 0.72, 9],
-    'props/bench_clean.png': [0.09, 0.91, 8],
-    'props/market_set/handcart.png': [0.08, 0.94, 10],
-    'props/market_set/produce_baskets.png': [0.12, 0.9, 7],
-    'props/market_set/sacks.png': [0.15, 0.85, 7],
-    'props/market_set/guild_board.png': [0.18, 0.82, 6],
-    'props/market_set/inn_table.png': [0.12, 0.88, 9],
-    'props/market_stall_v50.png': [0.08, 0.92, 9],
-    'props/plant_pot.png': [0.23, 0.78, 6],
-    'props/barrel.png': [0.20, 0.88, 7],
-    'props/firewood.png': [0.16, 0.82, 6],
-    'props/flower_planter.png': [0.10, 0.90, 8],
-    'props/clothesline.png': [0.12, 0.88, 6],
-    'props/stall_bread.png': [0.08, 0.92, 9],
-    'props/stall_potion.png': [0.08, 0.92, 9],
-    'props/new/fence.png': [0.08, 0.92, 6],
-    'props/new/wall.png': [0.08, 0.92, 6]
+    'props/lamp.webp': [0.36, 0.64, 7],
+    'props/new/tree.webp': [0.28, 0.72, 9],
+    'props/bench_clean.webp': [0.09, 0.91, 8],
+    'props/market_set/handcart.webp': [0.08, 0.94, 10],
+    'props/market_set/produce_baskets.webp': [0.12, 0.9, 7],
+    'props/market_set/sacks.webp': [0.15, 0.85, 7],
+    'props/market_set/guild_board.webp': [0.18, 0.82, 6],
+    'props/market_set/inn_table.webp': [0.12, 0.88, 9],
+    'props/market_stall_v50.webp': [0.08, 0.92, 9],
+    'props/plant_pot.webp': [0.23, 0.78, 6],
+    'props/barrel.webp': [0.20, 0.88, 7],
+    'props/firewood.webp': [0.16, 0.82, 6],
+    'props/flower_planter.webp': [0.10, 0.90, 8],
+    'props/clothesline.webp': [0.12, 0.88, 6],
+    'props/stall_bread.webp': [0.08, 0.92, 9],
+    'props/stall_potion.webp': [0.08, 0.92, 9],
+    'props/new/fence.webp': [0.08, 0.92, 6],
+    'props/new/wall.webp': [0.08, 0.92, 6]
   };
   function hitsProp(o, x, y, footY, radius) {
     if (!o || !o.src || !o.src.startsWith('props/')) return false;

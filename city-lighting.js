@@ -68,21 +68,14 @@
   }
   // A faint, flattened ground shadow joins each facade to the pavement.
   function buildingShadows(ctx,objects,camera,width,clock) {
-    const light=sample(clock);
+    const light=sample(clock); if(light.sunlight<.04)return;
     const shift=35*light.shadowDirection, depth=18+14*Math.abs(light.shadowDirection);
-    ctx.save();
+    ctx.save();ctx.fillStyle=`rgba(27,31,38,${(.055*light.sunlight).toFixed(3)})`;
     for(const o of objects){
       if(!(o.src.startsWith('buildings/')||o.src.startsWith('buildings__'))||o.y<740||o.src.includes('alley_view'))continue;
       if(o.x+o.width<camera-60||o.x>camera+width+60)continue;
-      // Contact shadows remain at night; the open gate has two separate feet.
-      ctx.fillStyle='rgba(25,27,31,.16)';
-      const pads=o.src==='buildings__city_gate_v49.png'?[[.18,.15],[.82,.15]]:[[.50,.43]];
-      for(const [cx,rx] of pads){ctx.beginPath();ctx.ellipse(o.x+o.width*cx,o.y+1,o.width*rx,5,0,0,Math.PI*2);ctx.fill()}
-      if(light.sunlight>=.04){
-        ctx.fillStyle=`rgba(27,31,38,${(.055*light.sunlight).toFixed(3)})`;
-        const left=o.x+o.width*.08,right=o.x+o.width*.92;
-        if(o.src!=='buildings__city_gate_v49.png'){ctx.beginPath();ctx.moveTo(left,o.y);ctx.lineTo(right,o.y);ctx.lineTo(right+shift,o.y+depth);ctx.lineTo(left+shift,o.y+depth);ctx.closePath();ctx.fill()}
-      }
+      const left=o.x+o.width*.08,right=o.x+o.width*.92;
+      ctx.beginPath();ctx.moveTo(left,o.y);ctx.lineTo(right,o.y);ctx.lineTo(right+shift,o.y+depth);ctx.lineTo(left+shift,o.y+depth);ctx.closePath();ctx.fill();
     }
     ctx.restore();
   }
@@ -114,13 +107,13 @@
     g.fillStyle=grad;g.fillRect(0,0,256,256);halo=c;return halo;
   }
   const BUILDING_LIGHTS={
-    'buildings/shop.png':[[.455,.75,60],[.605,.75,60]],
-    'buildings/guild.png':[[.51,.715,65],[.735,.715,65],[.385,.74,42],[.82,.74,42],[.62,.24,38]],
-    'buildings/restaurant.png':[[.86,.70,38]],
-    'buildings/inn.png':[[.405,.76,65],[.665,.76,65]],
-    'buildings/restaurant_big.png':[[.52,.77,60],[.70,.77,60],[.16,.84,85]],
-    'buildings__blacksmith_v51.png':[[.43,.69,160],[.86,.56,65]],
-    'buildings__city_gate_v49.png':[[.28,.59,78],[.72,.59,78]]
+    'buildings/shop.webp':[[.455,.75,60],[.605,.75,60]],
+    'buildings/guild.webp':[[.51,.715,65],[.735,.715,65],[.385,.74,42],[.82,.74,42],[.62,.24,38]],
+    'buildings/restaurant.webp':[[.86,.70,38]],
+    'buildings/inn.webp':[[.405,.76,65],[.665,.76,65]],
+    'buildings/restaurant_big.webp':[[.52,.77,60],[.70,.77,60],[.16,.84,85]],
+    'buildings__blacksmith_v51.webp':[[.43,.69,160],[.86,.56,65]],
+    'buildings__city_gate_v49.webp':[[.28,.59,78],[.72,.59,78]]
   };
   let cachedObjects, cachedLights;
   function sceneLights(objects) {
@@ -128,8 +121,8 @@
     const lights=[];
     for(const o of objects||[]){
       const img=o.image;if(!img||!img.complete||!img.naturalWidth)continue;
-      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y+o.width*(o.footInset||0)-h;
-      if(o.src==='props/lamp.png') lights.push([o.x+o.width*.5,top+h*.19,115,o.y-5]);
+      const h=o.width*img.naturalHeight/img.naturalWidth, top=o.y-h;
+      if(o.src==='props/lamp.webp') lights.push([o.x+o.width*.5,top+h*.19,115,o.y-5]);
       const profile=BUILDING_LIGHTS[o.src];
       if(profile)for(const [x,y,r] of profile)lights.push([o.x+o.width*x,top+h*y,r]);
     }
@@ -143,7 +136,7 @@
     ctx.fillRect(camera,0,width,height);ctx.restore();
     if(l.lamps<.01)return;
     const glow=haloCanvas();if(!glow)return;
-    const lights=opts.outside?[[344,541,78],[696,541,78]]:sceneLights(opts.objects);
+    const lights=opts.outside?[[344,522,78],[696,522,78]]:sceneLights(opts.objects);
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.8*l.lamps;
     for(const [x,y,r,ground] of lights){
       if(x+r<camera||x-r>camera+width)continue;
