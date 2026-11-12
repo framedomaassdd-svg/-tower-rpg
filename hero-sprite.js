@@ -3,17 +3,18 @@
    HeroSprite.draw(ctx, o) draws with feet at (0,0), facing right unless o.face = -1. */
 (function (root) {
   'use strict';
-  const FW = 480, FH = 680, FEET = 662, HEIGHT = 130.05;         // same on-screen height as the old sprite
+  const FW = 480, FH = 680, FEET = 662, HEIGHT = 130.05;
+  const ORDER = [0, 1, 2, 3];   // sheet already in stride order: near foot forward → slides back → lifts behind → knee swings forward
   const WIDTH = HEIGHT * FW / FH;
   let img = null;
-  function load(url) { if (img) return img; img = new Image(); img.src = url || 'hero_sprite.webp?v=67'; return img; }
+  function load(url) { if (img) return img; img = new Image(); img.src = url || 'hero_sprite.webp?v=68'; return img; }
   const ready = () => !!img && img.complete && img.naturalWidth > 0;
   // o: {anim (seconds×fps counter), moving, run, vdir (-1 up, 1 down, 0 none), face, scale}
   function pick(o) {
     const t = Math.max(0, Math.floor(o.anim || 0));
     if (o.vdir && !o.horizontal) return { row: o.vdir < 0 ? 3 : 2, frame: o.vdir < 0 ? 0 : (o.moving ? t % 4 : 0), bob: o.moving };
-    if (!o.moving) return { row: 0, frame: 1, bob: false };      // standing: feet-together walk frame
-    return { row: o.run ? 1 : 0, frame: t % 4, bob: false };
+    if (!o.moving) return { row: 2, frame: 0, bob: false };      // standing: face the player
+    return { row: o.run ? 1 : 0, frame: ORDER[t % 4], bob: false };
   }
   function draw(ctx, o) {
     if (!ready()) return false;
