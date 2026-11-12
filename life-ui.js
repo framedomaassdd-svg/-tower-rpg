@@ -114,14 +114,21 @@
       <p>ตัวตนในโลกเดิม: <b>${esc(o.name)}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${state.guild ? ' · สมาชิกกิลด์' : ''}</p>
+      <h3>ห้องพักที่โรงแรม</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง</p>
+      ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
+        return `<button class="lg-btn ${L.roomPref === id ? 'lg-cur' : ''}" data-room="${id}">${esc(r.name)} · ${price} เหรียญ/คืน${price < r.price ? '<span class="lg-tag">ราคาพนักงาน</span>' : ''}${L.roomPref === id ? '<span class="lg-tag">เลือกอยู่</span>' : ''}<small>${esc(r.desc)}</small></button>`; }).join('')}
       <h3>ค่าสถานะ</h3><div class="lg-stats"><span>กำลัง ${state.strength}</span><span>คล่องตัว ${state.agility}</span><span>ปัญญา ${state.intelligence}</span>
         <span>ชื่อเสียง ${state.rep}</span><span>สุขภาพ ${state.health}</span><span>อาหารสำรอง ${state.food}</span></div>
       <h3>หอคอยและเมือง</h3><div class="lg-stats"><span>ชั้นที่สำรวจ ${state.floor}</span><span>อันตราย ${state.danger}/5</span><span>เสบียง ${state.supplies}</span><span>ภาษีค้าง ${state.taxDue}</span></div>
       <h3>บันทึก</h3><div class="lg-log">${esc(state.events.slice(0, 8).join('\n') || 'ยังไม่มีบันทึก')}</div>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
       <button class="lg-btn" data-a="new">เริ่มชีวิตใหม่<small>สุ่มตัวตนใหม่ ความคืบหน้าเดิมจะหายไป</small></button>
-      <button class="lg-btn lg-primary" data-a="close">ปิด</button></div>`);
+      <button class="lg-btn lg-primary" data-a="close">ปิด</button><p class="lg-muted" style="text-align:center;margin-top:10px">Tower RPG v70</p></div>`);
     block(d);
+    d.querySelectorAll('[data-room]').forEach(b => b.onclick = () => {
+      LifeSim.setRoomPref(state, b.dataset.room); log('ตั้งใจพัก' + LifeSim.ROOMS[b.dataset.room].name + 'ตั้งแต่คืนนี้');
+      d.remove(); block(null); save(); panel();
+    });
     d.querySelector('[data-a=close]').onclick = () => closeOverlay(d);
     d.querySelector('[data-a=path]').onclick = () => { d.remove(); choosePath(false); };
     d.querySelector('[data-a=new]').onclick = () => { if (confirm('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?')) { d.remove(); newLife(); } };
@@ -183,13 +190,13 @@
   function drive() {
     const started = !!(state.life && state.life.started);
     if (hudEl) hudEl.style.display = started ? '' : 'none';
-    if (!started) { window.LIFE_HIDDEN = true; return; }
+    if (!started) { window.LIFE_HIDDEN = true; window.LIFE_INFO = null; return; }
     if (state.scene !== 'town') state.scene = 'town';
     if (typeof state._log !== 'function') state._log = m => log(m);
     if (!open) process();
     const s = LifeSim.sample(state, clock);
     player = s.x; playerY = s.y; moving = s.moving; anim = s.anim; if (s.face) face = s.face;
-    window.LIFE_HIDDEN = s.hidden; window.LIFE_ACT = s.act;
+    window.LIFE_HIDDEN = s.hidden; window.LIFE_ACT = s.act; window.LIFE_INFO = s;
     const t = performance.now();
     if (t - hudAt > 250) { hudAt = t; hud(s); }
   }
@@ -198,7 +205,8 @@
     const L = state.life;
     hudEl.querySelector('.l1').textContent = 'วันที่ ' + state.day + ' · ' + CityLighting.timeText(clock) + ' ' + CityLighting.phaseText(clock);
     hudEl.querySelector('.bars').textContent = 'เงิน ' + state.money + ' · แรง ' + state.energy + ' · สุขภาพ ' + state.health + ' · อันตราย ' + state.danger + '/5';
-    hudEl.querySelector('.l3').textContent = s.place + ' · ' + s.act;
+    const where = s.room && window.Interiors && Interiors.SCENES[s.room] ? Interiors.SCENES[s.room].name : s.place;
+    hudEl.querySelector('.l3').textContent = where + ' · ' + s.act;
     const msg = state.events[0] || '';
     if (msg && msg !== lastToast) {
       lastToast = msg; toastEl.textContent = msg.replace(/^วันที่ \d+ · /, ''); toastEl.classList.add('show');

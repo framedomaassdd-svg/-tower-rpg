@@ -6,7 +6,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   // Reference pixels for the current front-oblique scene; not a metre grid.
-  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:7500,
+  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:6480,
     playerWidth:76.5,playerHeight:130.05,spriteFrameWidth:400,spriteFrameHeight:680,
     walkFeet:Object.freeze([661,658,655,658]),walkFramesPerSecond:8,
     speedX:210,speedY:140,footRadius:9,lampWidth:64});
@@ -49,7 +49,7 @@
     state.outsideY = clamp(finite(old.outsideY, 820), 745, 1010);
     state.smithWork = Math.max(0, Math.floor(finite(old.smithWork, 0)));
     state.day = Math.max(1, Math.floor(finite(state.day, 1)));
-    state.position = clamp(finite(state.position, 960), 35, 6865);
+    state.position = clamp(finite(state.position, 960), 35, 6445);
     state.positionY = clamp(finite(state.positionY, 800), 625, 1030);
     if (!walkable(state.position, state.positionY)) state.positionY = 800;
     state.events = Array.isArray(old.events) ? old.events : [];
@@ -69,7 +69,10 @@
       taxDue: 0, nextTaxDay: 31, examDay: 0, examResult: 'none', equipment: 'ไม่มี' }, defaults);
   }
 
+  // v70: the painted town (town-pano.js) owns the street geometry; the rules below are the pre-v70 layout
+  const pano = () => (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
   function walkable(x, y) {
+    if (pano()) return pano().walkable(x, y);
     if (!Number.isFinite(x) || !Number.isFinite(y) || x < 35 || x > 6865 || y < 625 || y > 1030) return false;
     if (y >= 765) return true;
     if (x >= 6380 && x <= 6580 && y >= 650) return true;
@@ -85,6 +88,7 @@
   }
 
   function depthScale(x, y) {
+    if (pano()) return pano().depthScale(x, y);
     if (y >= 765) return 1;
     if (x >= 6380 && x <= 6580) return clamp(0.65 + (y - 650) / 115 * 0.35, 0.65, 1);
     if (x >= 675 && x <= 725) return clamp(0.72 + (y - 700) / 65 * 0.28, 0.72, 1);
@@ -94,6 +98,7 @@
   }
 
   function sceneName(x, y) {
+    if (pano()) return pano().sceneName(x, y);
     if (y < 810 && x >= 665 && x <= 735) return 'ทางหลังตลาด';
     if (y < 810 && x >= 1323 && x <= 1473) return 'ซอยหลังถนน';
     if (x >= 1980 && x < 2880) return 'ลานหน้าหอคอย';

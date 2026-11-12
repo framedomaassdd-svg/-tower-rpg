@@ -136,7 +136,7 @@
     ctx.fillRect(camera,0,width,height);ctx.restore();
     if(l.lamps<.01)return;
     const glow=haloCanvas();if(!glow)return;
-    const lights=opts.outside?[[344,541,78],[696,541,78]]:sceneLights(opts.objects);
+    const lights=opts.lights||(opts.outside?[[344,541,78],[696,541,78]]:sceneLights(opts.objects));
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.8*l.lamps;
     for(const [x,y,r,ground] of lights){
       if(x+r<camera||x-r>camera+width)continue;
