@@ -40,7 +40,7 @@
     { id: 'office',  name: 'พนักงานบริษัท', stats: { strength: 2, agility: 3, intelligence: 6 }, money: 20, suggest: 'guild',
       perk: 'หัวไว: ปัญญาสูง ช่วยให้จังหวะมินิเกมกว้างขึ้นและอ่านสถานการณ์ในเหตุการณ์ได้ดีกว่า' },
     { id: 'chef',    name: 'พ่อครัว',       stats: { strength: 3, agility: 4, intelligence: 3 }, money: 15, suggest: 'kitchen',
-      perk: 'ทำกับข้าวเป็น: ค่าอาหารเย็นถูกลง 1 เหรียญ และได้ค่าแรงในครัวมากกว่าคนอื่น 3 เหรียญ' },
+      perk: 'ทำกับข้าวเป็น: ค่าอาหารเย็นถูกลง 1 เหรียญ ค่าแรงในครัว +3 และจังหวะหั่นผักกว้างกว่าคนอื่น' },
     { id: 'craft',   name: 'ช่างฝีมือ',      stats: { strength: 4, agility: 3, intelligence: 3 }, money: 15, suggest: 'smith',
       perk: 'มือช่าง: จังหวะในมินิเกมตีเหล็กกว้างกว่าคนอื่นมาก' },
     { id: 'jobless', name: 'คนว่างงาน',      stats: { strength: 3, agility: 3, intelligence: 3 }, money: 8,  suggest: 'market',
@@ -55,8 +55,8 @@
               desc: 'ขนของให้แม่ค้า ค่าแรงไม่มาก แต่ได้อาหารติดมือกลับมาทุกวัน' },
     hotel:  { name: 'พนักงานโรงแรม',     place: 'inn',    energy: 20, room: 'laundry', act: 'ซักผ้าและจัดห้องพัก',
               desc: 'ซักผ้า ปูเตียง ถูพื้นในโรงแรม ค่าแรง 8 เหรียญ งานเบา และได้ส่วนลดค่าห้องครึ่งราคาทุกคืน' },
-    kitchen:{ name: 'ผู้ช่วยครัว',         place: 'tavern', energy: 25, room: 'kitchen', act: 'ช่วยงานในครัว',
-              desc: 'เตรียมของ ล้างจาน เฝ้าเตาในครัวร้านอาหาร ค่าแรง 6 เหรียญ ได้กินข้าวเย็นฟรีและอาหารติดมือ' }
+    kitchen:{ name: 'ผู้ช่วยครัว',         place: 'tavern', energy: 25, room: 'kitchen', act: 'ช่วยงานในครัว', minigame: true,
+              desc: 'หั่นผักในครัวร้านอาหาร มีมินิเกมหั่นแครอท ค่าแรง 3 + ดาว (สูงสุด 12) ได้กินข้าวเย็นฟรีและอาหารติดมือ' }
   });
 
   function originOf(st) { return ORIGINS.find(o => o.name === st.profession) || ORIGINS[3]; }
@@ -224,6 +224,21 @@
     L.history.unshift({ day: st.day, stars }); L.history = L.history.slice(0, 30);
     return say(st, 'ตีเหล็กได้ ' + stars + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : ''));
   }
+  // kitchen: the chef's hands play the role the craftsman's play at the forge
+  function kitchenTolerance(st) {
+    const o = originOf(st), rested = st.life && st.life.focusDay === st.day ? ROOMS.luxe.focus : 1;
+    return (1 + 0.05 * (clamp(st.intelligence || 3, 1, 12) - 3)) * (o.id === 'chef' ? 1.35 : 1) * rested;
+  }
+  function finishKitchen(st, stars, core, skipped) {
+    const L = st.life, s = clamp(Math.round(stars) || 0, 0, 9), tired = st.energy < PATHS.kitchen.energy;
+    st.energy = Math.max(0, st.energy - PATHS.kitchen.energy);
+    const base = 3 + s + (originOf(st).id === 'chef' ? 3 : 0);
+    const w = payWork(st, Math.max(2, Math.round(base * (tired ? 0.5 : 1))), core, true);
+    st.food++; st.tavernWork = (st.tavernWork || 0) + 1;
+    if (s >= 6) st.rep = (st.rep || 0) + 1;
+    L.todayStars = null;
+    return say(st, (skipped ? 'ให้ลูกมือช่วย ' : '') + 'หั่นผักได้ ' + s + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ และอาหาร 1 ชุด' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : ''));
+  }
   function roomPrice(st, id) {
     const p = ROOMS[id].price;
     return st.life && st.life.path === 'hotel' ? Math.ceil(p / 2) : p;       // staff discount
@@ -324,6 +339,6 @@
   }
 
   return { PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
-    tolerance, applyWake, applyWork, finishSmith, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
+    tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

@@ -41,6 +41,20 @@
   .lg-smith-top .lg-step{color:var(--lg-gold);font-size:18px} .lg-hint{color:var(--lg-muted)} .lg-stars{color:#ffd76a;letter-spacing:1px}
   .lg-smith-canvas{flex:1;width:100%;min-height:0;border-radius:14px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .lg-smith-bar{padding-top:8px;display:flex;justify-content:center} .lg-smith-bar .lg-btn{width:auto;text-align:center;font-weight:400;font-size:14px}
+  .lg-carrot{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;background:#2a1a12;padding:max(10px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+  .lc-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 4px} .lc-title{color:var(--lg-gold);font-size:18px} .lc-sub{color:var(--lg-muted);font-size:13px}
+  .lc-pill{padding:5px 11px;border-radius:99px;background:#fff1d8;color:#3c2a20;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .lc-stage{flex:1;min-height:0;position:relative;overflow:hidden;border-radius:14px;background:radial-gradient(ellipse at center,#7a4a2c,#3b2416)}
+  .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .lc-feedback{height:26px;text-align:center;font-size:17px;font-weight:700;color:#f3e6d3} .lc-feedback.good{color:#7fe09a} .lc-feedback.okay{color:#ffc266} .lc-feedback.miss{color:#ff8b80}
+  .lc-panel{width:min(100%,640px);margin:0 auto}
+  .lc-track{position:relative;height:30px;border:3px solid #784d30;border-radius:9px;box-shadow:inset 0 3px 8px #42240b30}
+  .lc-pointer{position:absolute;top:-10px;bottom:-10px;left:0;width:5px;background:#fff;border:1.5px solid #553921;border-radius:8px;transform:translateX(-50%);box-shadow:0 1px 4px #23150a99}
+  .lc-pointer.locked{filter:drop-shadow(0 0 6px #fff)}
+  .lc-cut{display:block;width:100%;margin-top:12px;min-height:56px;border-radius:14px;border:3px solid #7b3f20;background:linear-gradient(#df9250,#ae5d2b);color:#fff9ef;font:inherit;font-size:22px;font-weight:800;box-shadow:0 4px 0 #743f20;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .lc-cut:active{transform:translateY(3px);box-shadow:0 1px 0 #743f20} .lc-cut:disabled{opacity:.6}
+  .lc-stats{display:flex;justify-content:space-between;margin-top:10px;font-size:14px;color:var(--lg-muted)} .lc-stats b{color:#f3e6d3}
+  .lc-skip{width:auto;margin:10px auto 0;text-align:center;font-weight:400;font-size:13px;padding:8px 14px}
   .lg-result{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));text-align:center}
   .lg-bigstars{font-size:44px;color:#ffd76a;letter-spacing:4px} .lg-sword{display:block;width:88%;margin:4px auto 2px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
   `;
@@ -172,12 +186,20 @@
     } });
   }
 
+  function kitchen() {
+    block(true);
+    CarrotGame.open({ tolerance: LifeSim.kitchenTolerance(state), onDone(stars, skipped) {
+      state.life.done.work = state.day; LifeSim.finishKitchen(state, stars, CityCore, skipped); block(null); update();
+    } });
+  }
+
   // ---------- per-frame driver ----------
   function process() {
     const L = state.life;
     if (L.pendingEvent && LifeSim.EVENTS[L.pendingEvent]) { event(L.pendingEvent); return; }
     for (const k of LifeSim.due(state, clock)) {
       if (k === 'work' && L.path === 'smith') { smith(); return; }
+      if (k === 'work' && L.path === 'kitchen' && window.CarrotGame) { kitchen(); return; }
       L.done[k] = state.day;
       if (k === 'wake') LifeSim.applyWake(state);
       else if (k === 'work') LifeSim.applyWork(state, CityCore);
