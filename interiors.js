@@ -1,4 +1,4 @@
-/* v70 interiors: the inn (lobby, three bedrooms, laundry) and the restaurant (hall, kitchen).
+/* v73 interiors: the inn (lobby, three bedrooms, laundry) and the restaurant (hall, kitchen).
    Each scene is one 1672×941 painting. The camera follows the hero sideways on narrow screens.
    Interiors.show(ctx, canvas, t, clock, info) draws the scene for info.room and returns true; info comes from LifeSim.sample(). */
 (function (root) {
@@ -45,6 +45,15 @@
     root.HeroSprite.draw(ctx, Object.assign({ scale: HERO_H / root.HeroSprite.HEIGHT, face: 1 }, o, { face: 1 }));
     ctx.restore();
   }
+  // A work pose from the hero's work sheets (town-npcs.js); false if those images are not loaded yet.
+  function pose(ctx, kind, x, foot, o) {
+    const N = root.TownNPCs; if (!N || !N.heroReady(kind)) return false;
+    ctx.save(); ctx.translate(x, foot);
+    N.drawHero(ctx, kind, Object.assign({ height: HERO_H * 648 / 680 }, o));
+    ctx.restore();
+    return true;
+  }
+  const WORK_POSE = { kitchen: 'chop', laundry: 'mop' };
   function shadow(ctx, x, foot) {
     ctx.fillStyle = 'rgba(40,20,10,.28)'; ctx.beginPath(); ctx.ellipse(x, foot - 2, 62, 13, 0, 0, Math.PI * 2); ctx.fill();
   }
@@ -94,11 +103,13 @@
     else if (act && act.seat) {
       const s = act.seat;
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, IW, s.cut); ctx.clip();                    // lower body is behind the table
-      hero(ctx, s.x, s.foot + Math.sin(t * 0.004) * 1.5, { vdir: 1, moving: false, anim });
+      if (!(info.eating && pose(ctx, 'eat', s.x, s.foot, { sec: t / 1000, face: 1 })))
+        hero(ctx, s.x, s.foot + Math.sin(t * 0.004) * 1.5, { vdir: 1, moving: false, anim });
       ctx.restore();
     } else if (act) {
       shadow(ctx, act.x, FLOOR);
       if (act.moving) hero(ctx, act.x, FLOOR, { moving: true, anim, face: act.face, horizontal: true });
+      else if (sc.route && WORK_POSE[info.room] && pose(ctx, WORK_POSE[info.room], act.x, FLOOR, { sec: t / 1000, face: act.face })) { /* working at a station */ }
       else if (act.look === 'back') hero(ctx, act.x, FLOOR, { vdir: -1, moving: !!sc.route, anim: t * 0.012 });   // busy at the counter
       else hero(ctx, act.x, FLOOR, { vdir: 1, moving: false, anim });
     }

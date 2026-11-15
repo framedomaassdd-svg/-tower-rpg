@@ -1,8 +1,8 @@
-/* v72 townsfolk drawn from frame sprite sheets (Phase 5 art, same style as the hero).
-   Sheet npc5_<id>.webp: 4 columns × 3 rows, cell 380×376, feet on y = 364.
-     row 0 walk (side view, facing right) · row 1 work · row 2 idle (front).
-   Everyone's position is a pure function of the town clock (0–20 = one day, 5 = 06:00), like town-residents.js,
-   so the street is right after a reload or a time-speed change. Leg frames follow distance walked, so feet never slide.
+/* v73 townsfolk and the hero's work poses, drawn from frame sprite sheets (same style as the hero).
+   Sheet npc5_<id>.webp: 4 columns × 3 rows; row 0 walk (side view, facing right) · row 1 work · row 2 idle (front).
+   Everyone's position is a pure function of the town clock (0–20 = one day, 5 = 06:00), so the street is right after
+   a reload or a time-speed change. Leg frames follow distance walked, so feet never slide.
+   A person's day is a list of stops; between stops they walk (out of a door, along the street, into a door).
    มะลิ and ธนา keep their records in town-residents.js; only their look and work-time movement live here. */
 (function (root, factory) {
   const api = factory(root);
@@ -10,93 +10,168 @@
   if (root) root.TownNPCs = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   'use strict';
-  const SHEET = { cw: 380, ch: 376, base: 364, src: 343 };        // src = standing height in sheet px
+  // Sheet layouts. src = standing height in sheet px (helmet, hat or hair top to sole; spears not counted).
+  const A = { cw: 380, ch: 376, base: 364 }, B = { cw: 440, ch: 384, base: 372 };
+  const SHEETS = Object.freeze({
+    smith: { ...A, src: 343 }, teen: { ...A, src: 343 }, elder: { ...A, src: 343 }, child: { ...A, src: 343 },
+    guard1: { ...B, src: 334 }, guard2: { ...B, src: 325 }, chef: { ...B, src: 344 }, innkeeper: { ...B, src: 347 },
+    apothecary: { ...B, src: 342 }, instructor: { ...B, src: 345 }, summoned: { ...B, src: 350 }, summoned_work: { ...B, src: 350 },
+    heroA: { ...B, src: 353 }, heroB: { ...B, src: 353 }
+  });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
+  const H = h => h / 1.2;                                           // hour of day → clock units
   const STRIDE = 0.2;                                               // one leg frame per 0.2 × height walked
+  const DOOR = 790;                                                 // y where a passage meets the street
   const hasImage = typeof Image !== 'undefined';
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id of ['smith', 'teen', 'elder', 'child']) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=72'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=73'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
 
-  // Two new residents with their own day. Clock units: out = leaves home, back = leaves work.
+  // Looping poses: which row, and how long each of the 4 frames is held (real seconds).
+  const LOOPS = Object.freeze({
+    hammer: { row: 1, times: [.30, .14, .09, .24] }, write: { row: 1, times: [.7, .6, .8, 1.0] },
+    sweep:  { row: 1, times: [.38, .3, .3, .36] },   grind: { row: 1, times: [.45, .4, .5, .9] },
+    swing:  { row: 1, times: [.42, .1, .22, .7] },   phone: { row: 1, times: [1.4, .7, 1.2, 1.1] },
+    guard:  { row: 1, times: [2.2, .5, 1.6, 1.2] },  idle:  { row: 2, times: [1.6, .45, 1.3, .14] }
+  });
+
+  // stop: x, y, until (clock), and what they do there: hidden (inside), loop (a LOOPS key), face, shuttle {A, speed, sheet}.
+  // carry on a stop: they carry their load (row 1) while walking TO it.
   const PEOPLE = Object.freeze([
-    Object.freeze({ id: 'smith', name: 'ช่างตีเหล็ก', sheet: 'smith', height: HERO * 1.03,
-      home: wx(3770), homeY: 790, work: wx(2640), y: 836, workFace: 1, out: 5.3, back: 15.0, speed: 1000, work_anim: 'hammer' }),
-    Object.freeze({ id: 'clerk', name: 'เสมียนกิลด์', sheet: 'elder', height: HERO * 0.92,      // lodges at the inn
-      home: wx(3172), homeY: 790, work: wx(1395), y: 826, workFace: -1, out: 5.6, back: 14.0, speed: 1100, work_anim: 'write' })
+    { id: 'smith', name: 'ช่างตีเหล็ก', sheet: 'smith', height: HERO * 1.03, speed: 1500, stops: [
+      { x: wx(3770), y: DOOR, until: H(6.4), hidden: true },
+      { x: wx(2640), y: 836, until: H(18), loop: 'hammer', face: 1 },
+      { x: wx(3770), y: DOOR, until: 20, hidden: true }] },
+    { id: 'clerk', name: 'เสมียนกิลด์', sheet: 'elder', height: HERO * 0.92, speed: 1450, stops: [
+      { x: wx(3172), y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
+      { x: wx(1395), y: 826, until: H(16.8), loop: 'write', face: -1 },
+      { x: wx(3172), y: DOOR, until: 20, hidden: true }] },
+    { id: 'chef', name: 'พ่อครัว', sheet: 'chef', height: HERO * 1.12, speed: 1450, stops: [
+      { x: wx(960), y: DOOR, until: H(6.0), hidden: true },
+      { x: wx(1790), y: 842, until: H(7.3), loop: 'idle' },                       // picking vegetables at the market
+      { x: wx(560), y: DOOR, until: H(21.6), hidden: true, carry: true },          // carries the crate back, cooks all day
+      { x: wx(960), y: DOOR, until: 20, hidden: true }] },
+    { id: 'innkeeper', name: 'เจ้าของโรงแรม', sheet: 'innkeeper', height: HERO * 0.95, speed: 1100, stops: [
+      { x: wx(3172), y: DOOR, until: H(6.6), hidden: true },
+      { x: wx(3235), y: 818, until: H(8.2), loop: 'sweep', face: 1 },
+      { x: wx(3172), y: DOOR, until: H(15.4), hidden: true },
+      { x: wx(3110), y: 818, until: H(16.6), loop: 'sweep', face: -1 },
+      { x: wx(3172), y: DOOR, until: 20, hidden: true }] },
+    { id: 'apothecary', name: 'หมอยา', sheet: 'apothecary', height: HERO * 0.93, speed: 1450, stops: [
+      { x: wx(3900), y: DOOR, until: H(7.2), hidden: true },
+      { x: wx(2985), y: 822, until: H(17.5), loop: 'grind', face: -1 },
+      { x: wx(3900), y: DOOR, until: 20, hidden: true }] },
+    { id: 'instructor', name: 'ครูฝึกกิลด์', sheet: 'instructor', height: HERO * 1.0, speed: 1500, stops: [
+      { x: wx(1255), y: 690, until: H(6.3), hidden: true },                       // comes down the tower steps
+      { x: wx(1185), y: 838, until: H(16), loop: 'swing', face: 1 },
+      { x: wx(1255), y: 690, until: 20, hidden: true }] },
+    { id: 'summoned', name: 'ผู้ถูกอัญเชิญอีกคน', sheet: 'summoned', height: HERO * 1.0, speed: 1500, stops: [
+      { x: wx(3172), y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
+      { x: wx(1545), y: 832, until: H(8.2), loop: 'phone', face: 1 },             // still trying his phone by the well
+      { x: wx(1960), y: 832, until: H(15.4), shuttle: { A: 80, speed: 760, sheet: 'summoned_work' } },
+      { x: wx(1450), y: 834, until: H(17.2), loop: 'phone', face: -1 },
+      { x: wx(3172), y: DOOR, until: 20, hidden: true }] }
+  ]);
+  // Two guards walk the whole street day and night, one on each half.
+  const PATROLS = Object.freeze([
+    { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 2950, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
+    { id: 'guard2', name: 'ทหารยาม', sheet: 'guard2', height: HERO * 1.0, from: 3000, to: 6150, y: 832, speed: 650, offset: 4.2, rest: 0.45 }
   ]);
   // Existing residents (town-residents.js) → sheet, size, and the stretch they carry sacks along at work.
   const RESIDENT_LOOK = Object.freeze({
     mali:  { sheet: 'teen',  height: HERO * 0.89, shuttle: 95, speed: 700 },
     thana: { sheet: 'child', height: HERO * 0.79, shuttle: 70, speed: 750 }
   });
-  // Hold times (real seconds) for looping work/idle frames.
-  const TIMING = { hammer: [.30, .14, .09, .24], write: [.7, .6, .8, 1.0], idle: [1.6, .45, 1.3, .14] };
 
-  function loop(times, sec) {
+  const finiteClock = c => Math.max(0, Math.min(19.999, Number.isFinite(c) ? c : 0));
+  function loopFrame(times, sec) {
     const total = times.reduce((a, b) => a + b, 0); let u = ((sec % total) + total) % total;
     for (let i = 0; i < times.length; i++) { if (u < times[i]) return i; u -= times[i]; }
     return times.length - 1;
   }
-  const finiteClock = c => Math.max(0, Math.min(19.999, Number.isFinite(c) ? c : 0));
 
-  // Home door → down the passage to the street lane → along the street. Returns position and distance walked.
-  function route(p, progress) {
-    const vertical = p.y - p.homeY, horizontal = Math.abs(p.work - p.home), d = (vertical + horizontal) * progress;
-    if (d < vertical) return { x: p.home, y: p.homeY + d, d };
-    return { x: p.home + Math.sign(p.work - p.home) * (d - vertical), y: p.y, d };
+  // Walk from a to b: down/up to the lane (the lower of the two y's), along it, then up/down to b.
+  function legLength(a, b) { const lane = Math.max(a.y, b.y); return (lane - a.y) + Math.abs(b.x - a.x) + (lane - b.y); }
+  function along(a, b, d) {
+    const lane = Math.max(a.y, b.y), v1 = lane - a.y, h = Math.abs(b.x - a.x);
+    if (d <= v1) return { x: a.x, y: a.y + d };
+    if (d <= v1 + h) return { x: a.x + Math.sign(b.x - a.x) * (d - v1), y: lane };
+    return { x: b.x, y: lane - (d - v1 - h) };
   }
-  function walkTime(p) { return (Math.abs(p.y - p.homeY) + Math.abs(p.work - p.home)) / p.speed; }
-
-  function scheduled(p, clock) {
-    const t = finiteClock(clock), tw = walkTime(p);
-    const base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true };
-    if (t < p.out || t >= p.back + tw) return { ...base, visible: false, x: p.home, y: p.homeY, phase: 'พักที่บ้าน' };
-    if (t < p.out + tw) { const r = route(p, (t - p.out) / tw); return { ...base, ...r, moving: true, face: Math.sign(p.work - p.home) || 1, phase: 'เดินไปทำงาน' }; }
-    if (t < p.back) return { ...base, x: p.work, y: p.y, moving: false, working: true, face: p.workFace, anim: p.work_anim, phase: 'ทำงาน' };
-    const r = route(p, 1 - (t - p.back) / tw), total = Math.abs(p.y - p.homeY) + Math.abs(p.work - p.home);
-    return { ...base, ...r, d: total - r.d, moving: true, face: Math.sign(p.home - p.work) || 1, phase: 'เดินกลับ' };
-  }
-
-  // Back and forth along `shuttle` px either side of the work spot, pausing at each end, carrying a sack.
-  // Laps start and finish at the work spot, and a whole number of them fit the shift, so there is no jump
-  // when the walk to work hands over to the shuttle or the shuttle hands over to the walk home.
-  const SHIFT = [7.5, 14];                                          // town-residents.js work hours
-  function shuttle(r, look, clock) {
-    const A = look.shuttle, walk = 2 * A / look.speed, len = SHIFT[1] - SHIFT[0];
-    const laps = Math.max(1, Math.round(len / (2 * walk + 0.7))), cycle = len / laps, pause = (cycle - 2 * walk) / 2;
-    const t = Math.max(0, finiteClock(clock) - SHIFT[0]), lap = Math.min(laps - 1, Math.floor(t / cycle));
-    let u = t - lap * cycle;
-    // [duration, from, to] in units of A around the work spot
+  // Back and forth A px either side of x between t0 and t1, pausing at each end; a whole number of laps, so it
+  // starts and ends on x (no jump when walking in or out).
+  function shuttleAt(x, y, A, speed, t0, t1, clock) {
+    const walk = 2 * A / speed, len = Math.max(0.01, t1 - t0);
+    const laps = Math.max(1, Math.round(len / (2 * walk + 0.7))), cycle = len / laps, pause = Math.max(0, (cycle - 2 * walk) / 2);
+    const t = Math.max(0, clock - t0), lap = Math.min(laps - 1, Math.floor(t / cycle));
+    let u = t - lap * cycle, off = 0, moving = false, face = 1, d = lap * 4 * A;
     const segs = [[walk / 2, 0, 1], [pause, 1, 1], [walk, 1, -1], [pause, -1, -1], [walk / 2, -1, 0]];
-    let off = 0, moving = false, face = 1, d = lap * 4 * A;
     for (const [dur, from, to] of segs) {
-      const k = Math.min(1, u / dur);
+      const k = dur > 0 ? Math.min(1, u / dur) : 1;
       off = from + (to - from) * k; moving = to !== from && u < dur; face = to < from ? -1 : to > from ? 1 : face;
       d += Math.abs(to - from) * A * k;
       if (u < dur) break;
       u -= dur;
     }
-    return { x: r.x + off * A, y: r.y, d, moving, face, carrying: true };
+    return { x: x + off * A, y, d, moving, face };
   }
+
+  function scheduled(p, clock) {
+    const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true };
+    let prev = p.stops[0], start = 0, walked = 0;
+    for (let i = 0; i < p.stops.length; i++) {
+      const s = p.stops[i];
+      if (i > 0) {                          // walking from prev to s; leaves at prev.until, but never before arriving there
+        const len = legLength(prev, s), dur = len / p.speed, t0 = Math.max(prev.until, start);
+        if (t < t0 + dur) {
+          const pos = along(prev, s, (t - t0) * p.speed);
+          return { ...base, ...pos, d: walked + (t - t0) * p.speed, moving: true, carrying: !!s.carry, face: Math.sign(s.x - prev.x) || 1,
+            phase: s.hidden ? 'กำลังกลับ' : 'กำลังเดินทาง' };
+        }
+        walked += len; start = t0 + dur;
+      }
+      if (t < Math.max(s.until, start) || i === p.stops.length - 1) {
+        if (s.hidden) return { ...base, visible: false, x: s.x, y: s.y, phase: 'อยู่ข้างใน' };
+        if (s.shuttle) {
+          const q = shuttleAt(s.x, s.y, s.shuttle.A, s.shuttle.speed, start, Math.max(s.until, start), t);
+          return { ...base, ...q, d: walked + q.d, sheet: s.shuttle.sheet || p.sheet, carrying: true, working: true, phase: 'ทำงาน' };
+        }
+        return { ...base, x: s.x, y: s.y, moving: false, face: s.face || 1, loop: s.loop || 'idle', working: !!s.loop, phase: 'ทำงาน' };
+      }
+      prev = s;
+    }
+    return { ...base, visible: false, x: prev.x, y: prev.y };
+  }
+
+  function patrol(g, clock) {
+    // there and back, with a short look-around at each end
+    const len = g.to - g.from, walk = len / g.speed, period = 2 * (walk + g.rest), c = finiteClock(clock) + g.offset;
+    const p = ((c % period) + period) % period, laps = Math.floor(c / period) * 2 * len;
+    const base = { id: g.id, name: g.name, sheet: g.sheet, height: g.height, visible: true, y: g.y, phase: 'ลาดตระเวน' };
+    if (p < walk) return { ...base, x: g.from + p * g.speed, moving: true, face: 1, d: laps + p * g.speed };
+    if (p < walk + g.rest) return { ...base, x: g.to, moving: false, face: 1, loop: 'guard' };
+    if (p < 2 * walk + g.rest) { const q = p - walk - g.rest; return { ...base, x: g.to - q * g.speed, moving: true, face: -1, d: laps + len + q * g.speed }; }
+    return { ...base, x: g.from, moving: false, face: -1, loop: 'guard' };
+  }
+
   function fromResident(r, clock) {
     const look = RESIDENT_LOOK[r.id];
     if (!look) return null;
     const base = { id: r.id, name: r.name, sheet: look.sheet, height: look.height, visible: r.visible, phase: r.phase };
     if (!r.visible) return { ...base, x: r.x, y: r.y };
-    if (r.phase === 'ทำงาน') return { ...base, ...shuttle(r, look, clock), working: true };
+    if (r.phase === 'ทำงาน') return { ...base, ...shuttleAt(r.x, r.y, look.shuttle, look.speed, 7.5, 14, finiteClock(clock)), carrying: true, working: true };
     const p = root && root.TownResidents && root.TownResidents.PEOPLE.find(q => q.id === r.id);
     const d = p ? Math.abs(r.x - p.home) + Math.abs(r.y - p.homeY) : Math.abs(r.x);
     return { ...base, x: r.x, y: r.y, d, moving: r.moving, face: r.face };
   }
 
   function snapshots(clock) {
-    const out = PEOPLE.map(p => scheduled(p, clock));
+    const out = PEOPLE.map(p => scheduled(p, clock)).concat(PATROLS.map(g => patrol(g, clock)));
     const residents = root && root.TownResidents ? root.TownResidents.snapshots(clock) : [];
     for (const r of residents) { const n = fromResident(r, clock); if (n) out.push(n); }
     return out;
@@ -105,18 +180,40 @@
   // [row, col, flip] for a snapshot; `sec` is real time in seconds (work loops keep their own rhythm).
   function frameOf(n, sec) {
     if (n.moving) return [n.carrying ? 1 : 0, Math.floor((n.d || 0) / (n.height * STRIDE)) % 4, n.face < 0];
-    if (n.carrying) return [1, 1, n.face < 0];                                   // standing with the sack
-    if (n.anim && TIMING[n.anim]) return [1, loop(TIMING[n.anim], sec), n.face < 0];
-    return [2, loop(TIMING.idle, sec + n.id.length * 1.37), false];
+    if (n.carrying) return [1, 1, n.face < 0];                                   // standing with the load
+    const L = LOOPS[n.loop] || LOOPS.idle;
+    const phase = L === LOOPS.idle ? n.id.length * 1.37 : 0;                    // blinks out of sync
+    return [L.row, loopFrame(L.times, sec + phase), L.row === 2 ? false : n.face < 0];
   }
-  // Feet at (n.x, n.y). `depth` is CityCore.depthScale at that spot.
-  function draw(ctx, n, sec, depth) {
-    const im = sheets[n.sheet]; if (!ok(im)) return false;
-    const [row, col, flip] = frameOf(n, sec), k = n.height / SHEET.src * (depth || 1);
-    ctx.save(); ctx.translate(n.x, n.y); if (flip) ctx.scale(-1, 1);
-    ctx.drawImage(im, col * SHEET.cw, row * SHEET.ch, SHEET.cw, SHEET.ch, -SHEET.cw / 2 * k, -SHEET.base * k, SHEET.cw * k, SHEET.ch * k);
+  function blit(ctx, sheetId, row, col, flip, height, x, y, depth) {
+    const im = sheets[sheetId], L = SHEETS[sheetId]; if (!ok(im) || !L) return false;
+    const k = height / L.src * (depth || 1);
+    ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(im, col * L.cw, row * L.ch, L.cw, L.ch, -L.cw / 2 * k, -L.base * k, L.cw * k, L.ch * k);
     ctx.restore();
     return true;
   }
-  return { PEOPLE, RESIDENT_LOOK, SHEET, load, snapshots, frameOf, draw };
+  // Feet at (n.x, n.y). `depth` is CityCore.depthScale at that spot.
+  function draw(ctx, n, sec, depth) { const [row, col, flip] = frameOf(n, sec); return blit(ctx, n.sheet, row, col, flip, n.height, n.x, n.y, depth); }
+
+  // ---- the hero's work poses -------------------------------------------------------------------------
+  // kind: hammer · carry · chop (heroA) · swing · mop · eat (heroB). Drawn with feet at (0,0) of the current
+  // transform; o.height = the hero's visible standing height there; o.d = distance walked, for carry while moving.
+  const HERO_POSE = Object.freeze({
+    hammer: { sheet: 'heroA', row: 0, times: [.30, .14, .09, .24] }, carry: { sheet: 'heroA', row: 1 },
+    chop:   { sheet: 'heroA', row: 2, times: [.22, .12, .16, .3] },
+    swing:  { sheet: 'heroB', row: 0, times: [.42, .1, .22, .7] },  mop: { sheet: 'heroB', row: 1, times: [.4, .3, .32, .38] },
+    eat:    { sheet: 'heroB', row: 2, times: [1.1, .6, .9, 1.2] }
+  });
+  function heroReady(kind) { const P = HERO_POSE[kind]; return !!P && ok(sheets[P.sheet]); }
+  function drawHero(ctx, kind, o) {
+    const P = HERO_POSE[kind]; if (!P) return false;
+    const col = P.times ? loopFrame(P.times, o.sec || 0) : o.moving ? Math.floor((o.d || 0) / (o.height * STRIDE)) % 4 : 1;
+    return blit(ctx, P.sheet, P.row, col, (o.face || 1) < 0, o.height, 0, 0, 1);
+  }
+  // The hero carrying loads back and forth around a work spot (visual only; LifeSim keeps the spot).
+  function heroShuttle(clock, A) { return shuttleAt(0, 0, A, 700, 0, 20, finiteClock(clock)); }
+
+  return { PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
+    load, snapshots, frameOf, draw, drawHero, heroReady, heroShuttle };
 });

@@ -56,6 +56,16 @@ function drawNpc(n) {
   CityLighting.actorShadow(ctx, n.x, n.y, depth * .8 * n.height / 124, clock);
   TownNPCs.draw(ctx, n, performance.now() / 1000, depth);
 }
+// What the hero does at a street workplace. Indoor jobs (inn laundry, kitchen) are drawn by interiors.js.
+const HERO_VISIBLE = HeroSprite.HEIGHT * 648 / 680;                  // standing height without the cell's padding
+function heroWorkPose() {
+  const L = state.life || {}, path = L.path;
+  const carrying = () => { const q = TownNPCs.heroShuttle(clock, 75); return { kind: 'carry', dx: q.x, face: q.face, moving: q.moving, d: q.d }; };
+  if (path === 'smith') return { kind: 'hammer', dx: 0, face: -1 };            // the anvil is just to the left
+  if (path === 'market') return carrying();
+  if (path === 'guild') return state.guild ? carrying() : { kind: 'swing', dx: 0, face: -1 };   // sparring toward the instructor
+  return null;
+}
 function drawPlayer(info) {
   if (!HeroSprite.ready()) return;
   const depth = CityCore.depthScale(player, playerY);
@@ -63,6 +73,15 @@ function drawPlayer(info) {
     const seat = TownPano.BENCH_SEAT, h = HeroSprite.HEIGHT;
     ctx.save(); ctx.translate(player - h * 0.52, playerY - seat - 14); ctx.rotate(Math.PI / 2);
     HeroSprite.draw(ctx, { vdir: 1, moving: false, face: 1 }); ctx.restore();
+    return;
+  }
+  const pose = !moving && info && info.working ? heroWorkPose() : null;
+  if (pose && TownNPCs.heroReady(pose.kind)) {                        // a real work pose from the hero's work sheets
+    const x = player + pose.dx;
+    CityLighting.actorShadow(ctx, x, playerY, depth, clock);
+    ctx.save(); ctx.translate(x, playerY); ctx.scale(depth, depth);
+    TownNPCs.drawHero(ctx, pose.kind, { height: HERO_VISIBLE, face: pose.face, sec: performance.now() / 1000, moving: pose.moving, d: pose.d });
+    ctx.restore();
     return;
   }
   CityLighting.actorShadow(ctx, player, playerY, depth, clock);
