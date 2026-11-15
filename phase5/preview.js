@@ -1,6 +1,6 @@
 /* Tower RPG Phase 5 integrated scene PREVIEW. Does not modify main game or save data.
  * P0: conservative fixed-camera city art and limited motion parallax.
- * P1: four real 6-part canvas rigs. Ambient NPC movement is preview-only.
+ * NPCs: frame sprite sheets in art/npc/ (4 cols x 3 rows). Ambient NPC movement is preview-only.
  */
 (() => {
 'use strict';
@@ -10,12 +10,23 @@ const WORLD_W=4344,WORLD_H=724;
 const src=window.PHASE5_ASSETS;
 const images={}, failed=[];
 const roles=[
-  {id:'smith',name:'ช่างตีเหล็ก',occupation:'ตีเหล็ก',x:2535,y:614,home:3770,work:2690,foot:615,dayStart:7,dayEnd:18,height:124,workAnim:'hammer',equip:'none',apron:false,face:1},
-  {id:'teen',name:'เด็กฝึกงานหญิง',occupation:'ช่วยร้านขนมปัง',x:1690,y:610,home:2950,work:1770,foot:612,dayStart:8,dayEnd:18,height:104,workAnim:'carry',equip:'none',apron:false,face:1},
-  {id:'elder',name:'เสมียนกิลด์',occupation:'ทำบัญชีกิลด์',x:3110,y:610,home:1010,work:3320,foot:611,dayStart:8,dayEnd:17,height:115,workAnim:'idle',equip:'none',apron:false,face:1},
-  {id:'child',name:'เด็กส่งของ',occupation:'ส่งสินค้าในเมือง',x:900,y:620,home:890,work:1950,foot:619,dayStart:9,dayEnd:19,height:90,workAnim:'carry',equip:'none',apron:false,face:1,hop:0},
+  // height = visible standing height in world px (hero ≈ 119). workFace: which way to face while working.
+  {id:'smith',name:'ช่างตีเหล็ก',occupation:'ตีเหล็ก',x:2535,y:614,home:3770,work:2640,workFace:1,foot:615,dayStart:7,dayEnd:18,height:122,face:1},
+  {id:'teen',name:'เด็กฝึกงานหญิง',occupation:'ขนแป้งให้ร้านขนมปัง',x:1690,y:610,home:2950,work:1770,foot:612,dayStart:8,dayEnd:18,height:106,face:1},
+  {id:'elder',name:'เสมียนกิลด์',occupation:'ทำบัญชีกิลด์',x:3110,y:610,home:1010,work:3320,workFace:1,foot:611,dayStart:8,dayEnd:17,height:108,face:1},
+  {id:'child',name:'เด็กส่งของ',occupation:'ส่งสินค้าในเมือง',x:900,y:620,home:890,work:1950,foot:619,dayStart:9,dayEnd:19,height:94,face:1},
   {id:'hero',name:'ผู้เล่น',occupation:'สำรวจและหางานในเมือง',x:1950,y:617,home:3170,work:1515,foot:620,dayStart:9,dayEnd:20,height:125,face:1}
 ];
+const NPC_IDS=['smith','teen','elder','child'];
+// Frame sprite sheets: 4 cols x 3 rows, cell 380x376, feet on y=364.
+// Row 0 walk (side, facing right) · Row 1 work · Row 2 idle (front).
+const NPC_SHEET={cw:380,ch:376,base:364,srcHeight:343};
+// Per-frame hold times (seconds) for the looping work/idle rows.
+const NPC_TIMING={
+  smith:[.30,.14,.09,.24],      // raise · top · strike · rebound
+  elder:[.7,.6,.8,1.0],         // write · write · pause · glasses
+  idle:[1.6,.45,1.3,.14]        // neutral · breath · neutral · blink
+};
 const roleMap=Object.fromEntries(roles.map(r=>[r.id,r]));
 const state={ready:false,paused:false,elapsed:0,worldMin:8*60+15,day:1,velocity:4,zoom:1,cam:1550,focus:'free',dragging:false,light:0,mode:0,lastTime:0,drawCount:0,errors:[],loaded:0,total:0,stamp:0};
 const layers=[
@@ -30,7 +41,7 @@ const progress=()=>{$('progress').textContent=`${state.loaded}/${state.total} �
 function requestImage(id,url){state.total++;const im=new Image();images[id]=im;im.decoding='async';im.onload=()=>{state.loaded++;progress()};im.onerror=()=>{failed.push(url);state.loaded++;progress()};im.src=url;return new Promise(resolve=>{if(im.complete){resolve()} else{im.addEventListener('load',resolve,{once:true});im.addEventListener('error',resolve,{once:true})}})}
 async function initialize(){
   const loadJobs=Object.entries(src).map(([id,url])=>requestImage(id,url));
-  for(const slug of ['smith','teen','elder','child']) window.TowerRigs[slug].load(path=>`rigs/${slug}/${path}`);
+  for(const id of NPC_IDS) loadJobs.push(requestImage('npc_'+id,`art/npc/npc_${id}.webp`));
   await Promise.all(loadJobs);
   const hero=HeroSprite.load(src.hero);
   if(!hero.complete)await new Promise(res=>{hero.onload=res;hero.onerror=res});
@@ -44,6 +55,8 @@ function dimensions(){const r=cv.getBoundingClientRect(), dpr=Math.min(window.de
   let sc=h/WORLD_H*state.zoom;sc=Math.max(.1,sc);
   return {w,h,sc,view:w/sc,top:0};
 }
+// Vertical offset: at 100% the whole world fits; when zoomed, keep the street (feet ≈ y 614) near the bottom.
+function offsetY(d){return clamp(d.h*.80-600*d.sc,d.h-WORLD_H*d.sc,0)}
 function constrainCamera(cam,view){return clamp(cam,0,Math.max(0,WORLD_W-view))}
 function sceneBg(im,layer,cam,view){
   if(!im || !im.naturalWidth)return;
@@ -64,6 +77,11 @@ function lightingAmount(){if(state.mode===1)return 0;if(state.mode===2)return 1;
 function workActive(r,h){return h>=r.dayStart&&h<r.dayEnd}
 function chooseGoal(r){const hour=state.worldMin/60;
   if(!workActive(r,hour))return {x:r.home,act:'พักผ่อน'};
+  if(r.id==='teen'){
+    // Shuttles flour sacks between the well-side store and the bakery stall.
+    const leg=Math.floor((state.worldMin-8*60)/25)%2;
+    return {x:leg?1860:1700,act:'ขนกระสอบแป้ง'};
+  }
   if(r.id==='child'){
     // Delivery route repeats; the route is based on world time, not rendered animation frames.
     const pts=[790,1380,1980,2540,3350,1830];
@@ -79,18 +97,36 @@ function update(dt){if(state.paused)return;
   for(const a of roles){
     const goal=chooseGoal(a);a.target=goal.x;
     let delta=goal.x-a.x, moving=Math.abs(delta)>2;
-    if(moving){const step=Math.min(Math.abs(delta),Math.max(24,a.height*.68)*dt);a.x+=Math.sign(delta)*step;a.face=delta>=0?1:-1;}
-    a.moving=moving;a.anim=moving?'walk':workActive(a,state.worldMin/60)?a.workAnim||'idle':'idle';
-    if(a.id==='hero'&& !moving) a.anim='idle';
-    a.activity=moving?'กำลังเดินทาง':goal.act;
-    if(a.id==='child'&&a.anim==='idle'&&workActive(a,state.worldMin/60))a.anim='carry';
+    const working=workActive(a,state.worldMin/60);
+    if(moving){const speed=a.id==='hero'?Math.max(24,a.height*.68):a.height*.85;
+      const step=Math.min(Math.abs(delta),speed*dt);a.x+=Math.sign(delta)*step;a.face=delta>=0?1:-1;
+      a.stride=(a.stride||0)+step;}
+    else if(working&&a.workFace)a.face=a.workFace;
+    if(moving!==a.moving)a.animStart=state.elapsed;
+    a.moving=moving;a.working=working;
+    a.anim=moving?'walk':working?'work':'idle';
+    a.activity=moving?(working&&(a.id==='teen'||a.id==='child')?'กำลังขนของ':'กำลังเดินทาง'):goal.act;
   }
 }
 
-function currentEquip(a){
-  if(a.id==='smith') return a.anim==='hammer' ? 'hammer' : null;
-  if((a.id==='teen' || a.id==='child') && workActive(a,state.worldMin/60)) return 'sack';
-  return (a.equip && a.equip!=='none') ? a.equip : null;
+function loopFrame(times,t){const total=times.reduce((s,v)=>s+v,0);let u=((t%total)+total)%total;
+  for(let i=0;i<times.length;i++){if(u<times[i])return i;u-=times[i]}return times.length-1}
+// Returns [row, col, flip] for the NPC's current state.
+function npcFrame(a){
+  const carrier=a.id==='teen'||a.id==='child';
+  if(a.moving){
+    // Feet advance with distance walked (one 4-frame cycle ≈ 0.8 × height), so they don't slide.
+    const col=Math.floor((a.stride||0)/(a.height*.2))%4;
+    return [carrier&&a.working?1:0,col,a.face<0];
+  }
+  if(a.anim==='work'){
+    if(a.id==='smith')return [1,loopFrame(NPC_TIMING.smith,state.elapsed),a.face<0];
+    if(a.id==='elder')return [1,loopFrame(NPC_TIMING.elder,state.elapsed),a.face<0];
+    if(carrier)return [1,1,a.face<0];          // standing with the sack (passing pose)
+  }
+  // Each NPC gets its own phase so blinks don't happen in sync.
+  const phase=NPC_IDS.indexOf(a.id)*1.37;
+  return [2,loopFrame(NPC_TIMING.idle,state.elapsed+phase),false];
 }
 
 function drawHero(r){ctx.save();ctx.translate(r.x,r.y);ctx.scale(r.face,1);
@@ -99,12 +135,14 @@ function drawHero(r){ctx.save();ctx.translate(r.x,r.y);ctx.scale(r.face,1);
   if(images.hero&&images.hero.naturalWidth)ctx.drawImage(images.hero,fi*480,row*680,480,680,-w/2,-h+4,w,h);
   ctx.restore();
 }
-function drawRig(a){const rig=window.TowerRigs[a.id];if(!rig?.ready())return;
- ctx.save();ctx.translate(a.x,a.y);ctx.scale(a.face,1);
- rig.draw(ctx,a.anim||'idle',state.elapsed,a.height,currentEquip(a),false);ctx.restore();
+function drawNpc(a){const im=images['npc_'+a.id];if(!im?.naturalWidth)return;
+ const [row,col,flip]=npcFrame(a),S=NPC_SHEET,k=a.height/S.srcHeight;
+ ctx.save();ctx.translate(a.x,a.y);if(flip)ctx.scale(-1,1);
+ ctx.drawImage(im,col*S.cw,row*S.ch,S.cw,S.ch,-S.cw/2*k,-S.base*k,S.cw*k,S.ch*k);
+ ctx.restore();
 }
 function drawPerson(a){ctx.save();ctx.fillStyle='rgba(16,17,21,.21)';ctx.beginPath();ctx.ellipse(a.x,a.y,18*a.height/125,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
- if(a.id==='hero')drawHero(a);else drawRig(a);
+ if(a.id==='hero')drawHero(a);else drawNpc(a);
 }
 function drawActors(){
   for(const a of [...roles].sort((a,b)=>a.y-b.y)){
@@ -123,7 +161,7 @@ function draw(){if(!state.ready)return;
  state.cam=constrainCamera(state.cam,view);
  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);
  ctx.fillStyle='#253b51';ctx.fillRect(0,0,w,h);
- ctx.setTransform(sc,0,0,sc,-state.cam*sc,(h-WORLD_H*sc)/2);
+ ctx.setTransform(sc,0,0,sc,-state.cam*sc,offsetY({h,sc}));
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  for(const layer of layers)sceneBg(images[layer.id],layer,state.cam,view);
  if(images.tower?.naturalWidth)ctx.drawImage(images.tower,720,0);
@@ -173,7 +211,7 @@ cv.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId)retu
  if(Math.abs(dx)>5)moved=true;
  if(moved){const rect=cv.getBoundingClientRect(),dim=dimensions();state.focus='free';$('focus').value='free';state.cam=constrainCamera(pointer.cam-dx*dim.w/(rect.width*dim.sc),dim.view);draw()}});
 cv.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const old=pointer;pointer=null;
- if(moved)return;const rect=cv.getBoundingClientRect(),dim=dimensions();const worldX=state.cam+(e.clientX-rect.left)*dim.w/(rect.width*dim.sc);const worldY=(e.clientY-rect.top)*dim.h/(rect.height*dim.sc)-(dim.h-WORLD_H*dim.sc)/(2*dim.sc);
+ if(moved)return;const rect=cv.getBoundingClientRect(),dim=dimensions();const worldX=state.cam+(e.clientX-rect.left)*dim.w/(rect.width*dim.sc);const worldY=(e.clientY-rect.top)*dim.h/(rect.height*dim.sc)-offsetY(dim)/dim.sc;
  const chosen=roles.filter(a=>Math.abs(a.x-worldX)<Math.max(25,a.height/3)&&worldY>=a.y-a.height&&worldY<a.y+15).sort((a,b)=>Math.abs(a.x-worldX)-Math.abs(b.x-worldX))[0];
  if(chosen){state.selected=chosen.id;$('detailName').textContent=chosen.name;$('detail').hidden=false;draw()}
 });
