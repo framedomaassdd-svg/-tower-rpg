@@ -1,4 +1,4 @@
-/* v73 interiors: the inn (lobby, three bedrooms, laundry) and the restaurant (hall, kitchen).
+/* v74 interiors: the inn (lobby, three bedrooms, laundry) and the restaurant (hall, kitchen).
    Each scene is one 1672×941 painting. The camera follows the hero sideways on narrow screens.
    Interiors.show(ctx, canvas, t, clock, info) draws the scene for info.room and returns true; info comes from LifeSim.sample(). */
 (function (root) {
@@ -58,6 +58,18 @@
     ctx.fillStyle = 'rgba(40,20,10,.28)'; ctx.beginPath(); ctx.ellipse(x, foot - 2, 62, 13, 0, 0, Math.PI * 2); ctx.fill();
   }
   function sleeper(ctx, bed, t) {
+    // real sleeping frames: lying on the back, head on the pillow (sheet's head is on the left, so it is mirrored)
+    const k = HERO_H * 648 / 680 / 353;
+    if (root.TownNPCs && root.TownNPCs.heroReady('sleep')) {
+      ctx.save();
+      if (bed.clip) {                                   // under the blanket: only the head and shoulders show above its fold
+        const left = Math.max(bed.clip[0], bed.head - 63);
+        ctx.beginPath(); ctx.rect(left, bed.clip[1], bed.clip[0] + bed.clip[2] - left, bed.clip[3]); ctx.clip();
+      }
+      const ok = pose(ctx, 'sleep', bed.head - 150 * k + 62, bed.y + 68 * k + 25, { sec: t / 1000, face: -1 });
+      ctx.restore();
+      if (ok) return;
+    }
     if (!root.HeroSprite || !root.HeroSprite.ready()) return;
     ctx.save();
     if (bed.clip) { ctx.beginPath(); ctx.rect(bed.clip[0], bed.clip[1], bed.clip[2], bed.clip[3]); ctx.clip(); }

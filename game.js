@@ -1,4 +1,4 @@
-/* v72 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
+/* v74 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
    this file keeps the clock, the save, and draws either the painted street (town-pano.js) or an interior (interiors.js).
    Top-level names here are shared with life-ui.js: state, clock, player, playerY, face, moving, anim, log, update, save, $. */
 const c = document.querySelector('canvas'), ctx = c.getContext('2d');
@@ -69,7 +69,13 @@ function heroWorkPose() {
 function drawPlayer(info) {
   if (!HeroSprite.ready()) return;
   const depth = CityCore.depthScale(player, playerY);
-  if (info && info.lie) {                                             // asleep on the street bench
+  if (info && info.lie && TownNPCs.heroReady('bench')) {             // dozing on the street bench (the sheet draws the bench)
+    ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
+    TownNPCs.drawHero(ctx, 'bench', { height: HERO_VISIBLE, face: 1, sec: performance.now() / 1000 });
+    ctx.restore();
+    return;
+  }
+  if (info && info.lie) {                                             // asleep on the street bench (fallback before the sheet loads)
     const seat = TownPano.BENCH_SEAT, h = HeroSprite.HEIGHT;
     ctx.save(); ctx.translate(player - h * 0.52, playerY - seat - 14); ctx.rotate(Math.PI / 2);
     HeroSprite.draw(ctx, { vdir: 1, moving: false, face: 1 }); ctx.restore();
@@ -85,6 +91,12 @@ function drawPlayer(info) {
     return;
   }
   CityLighting.actorShadow(ctx, player, playerY, depth, clock);
+  if (moving && (state.energy < 30 || state.health < 35) && TownNPCs.heroReady('tired')) {   // worn out: hunched, dragging his feet
+    ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
+    TownNPCs.drawHero(ctx, 'tired', { height: HERO_VISIBLE, face, moving: true, d: Math.abs(player) + Math.abs(playerY) });
+    ctx.restore();
+    return;
+  }
   ctx.save(); ctx.translate(player, playerY); ctx.scale(face * depth, depth);
   if (moving) HeroSprite.draw(ctx, { anim, moving: true, face: 1, run: state.timeSpeed > 1, horizontal: true });
   else if (info && info.working) HeroSprite.draw(ctx, { anim: performance.now() * 0.012, moving: true, vdir: -1, face: 1 });   // busy, back to the street
@@ -98,7 +110,7 @@ function drawTown(t) {
   ctx.setTransform(scale, 0, 0, scale, -camera * scale, 0);
   TownPano.draw(ctx, camera, w, h, t);
   const actors = [];
-  for (const n of TownNPCs.snapshots(clock)) if (n.visible) actors.push({ y: n.y, draw: () => drawNpc(n) });
+  for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible) actors.push({ y: n.y, draw: () => drawNpc(n) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   actors.sort((a, b) => a.y - b.y);
   for (const a of actors) a.draw();

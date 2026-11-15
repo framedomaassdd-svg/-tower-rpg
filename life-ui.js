@@ -32,10 +32,10 @@
   .lg-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px 12px;font-size:14px}
   .lg-log{font-size:13px;color:var(--lg-muted);white-space:pre-line}
   .lg-event{align-items:flex-end}
-  .lg-event .lg-card{display:grid;grid-template-columns:96px 1fr;gap:14px;max-width:760px}
-  .lg-event canvas{width:96px;height:96px;border-radius:14px;background:#3a3040}
+  .lg-event .lg-card{display:grid;grid-template-columns:120px 1fr;gap:14px;max-width:760px}
+  .lg-event canvas{width:120px;height:150px;border-radius:14px;background:#3a3040}
   .lg-event .who{font-weight:700;color:var(--lg-gold)} .lg-event .lg-actions{grid-column:1/-1}
-  @media(max-width:520px){.lg-event .lg-card{grid-template-columns:64px 1fr}.lg-event canvas{width:64px;height:64px}#hud{font-size:12px}#hud canvas{width:40px;height:40px}}
+  @media(max-width:520px){.lg-event .lg-card{grid-template-columns:76px 1fr}.lg-event canvas{width:76px;height:95px}#hud{font-size:12px}#hud canvas{width:40px;height:40px}}
   .lg-smith{flex-direction:column;align-items:stretch;justify-content:flex-start;background:#120d0b;padding:max(10px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
   .lg-smith-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:15px;padding:4px 4px 8px}
   .lg-smith-top .lg-step{color:var(--lg-gold);font-size:18px} .lg-hint{color:var(--lg-muted)} .lg-stars{color:#ffd76a;letter-spacing:1px}
@@ -73,10 +73,23 @@
     g.imageSmoothingEnabled = true;
     g.drawImage(img, ox + frameW * fx, oy + frameH * fy, frameW * fw, frameH * fh, 0, 0, cv.width, cv.height);
   }
-  const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33], NPC_BOX = [0.29, 0.03, 0.42, 0.43];
-  // Event portraits: the head of the front-facing idle frame (row 2, col 0) of the townsfolk sheets in town-npcs.js.
-  const NPC_SHEET_OF = { merchant: 'teen', worker: 'child' };
-  function npcImage(id) { const im = new Image(); im.src = 'npc5_' + (NPC_SHEET_OF[id] || id) + '.webp?v=72'; return im; }
+  const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33];
+  // Visual-novel busts: face_<who>.webp holds 4 expressions side by side — 0 neutral · 1 smile · 2 surprised · 3 worried.
+  const FACE_OF = { merchant: 'mali', worker: 'thana' }, faces = {};
+  function faceImage(who) { who = FACE_OF[who] || who; if (!faces[who]) { faces[who] = new Image(); faces[who].src = 'face_' + who + '.webp?v=74'; } return faces[who]; }
+  // Draws expression `n` to fill the canvas: crops the sides of wide busts, or the bottom of tall ones.
+  function drawFace(cv, who, n) {
+    const im = faceImage(who);
+    const go = () => {
+      const g = cv.getContext('2d'), d = Math.min(window.devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+      cv.width = Math.round((r.width || 46) * d); cv.height = Math.round((r.height || 46) * d);
+      const fw = im.naturalWidth / 4, fh = im.naturalHeight, want = cv.width / cv.height;
+      let sw = fw, sh = fh; if (fw / fh > want) sw = fh * want; else sh = fw / want;
+      g.clearRect(0, 0, cv.width, cv.height); g.imageSmoothingEnabled = true;
+      g.drawImage(im, fw * n + (fw - sw) / 2, 0, sw, sh, 0, 0, cv.width, cv.height);
+    };
+    if (im.complete && im.naturalWidth) go(); else im.addEventListener('load', go, { once: true });
+  }
 
   function el(html, cls) { const d = document.createElement('div'); d.className = 'lg-overlay ' + (cls || ''); d.innerHTML = html; document.body.appendChild(d); return d; }
   function closeOverlay(d) { d.remove(); block(null); try { update(); } catch (e) {} }
@@ -156,21 +169,21 @@
     L.pendingEvent = id; save();
     const d = el(`<div class="lg-card"><canvas></canvas><div><div class="who">${esc(ev.speaker)} · <span class="lg-muted">${esc(ev.title)}</span></div><p class="line"></p></div><div class="lg-actions"></div></div>`, 'lg-event');
     block(d);
-    { const cv = d.querySelector('canvas'), im = npcImage(ev.portrait), S = TownNPCs.SHEET, go = () => portrait(cv, im, S.cw, S.ch, NPC_BOX, 0, 2 * S.ch);
-      if (im.complete) go(); else im.onload = go; }
+    const cv = d.querySelector('canvas'), mood = n => drawFace(cv, ev.portrait, n);
     const line = d.querySelector('.line'), actions = d.querySelector('.lg-actions');
     let i = 0;
     function showLine() {
-      line.textContent = ev.lines[i];
+      line.textContent = ev.lines[i]; mood((ev.faces || [])[i] || 0);
       actions.innerHTML = '<button class="lg-btn lg-primary">ต่อไป</button>';
       actions.querySelector('button').onclick = () => { i++; if (i < ev.lines.length) showLine(); else showChoices(); };
     }
     function showChoices() {
-      line.textContent = 'คุณจะทำอย่างไร';
+      line.textContent = 'คุณจะทำอย่างไร'; mood(0);
       actions.innerHTML = LifeSim.choicesFor(state, id).map(c =>
         `<button class="lg-btn" data-i="${c.index}" ${c.enabled ? '' : 'disabled'}>${esc(c.label)}<small>${esc(c.enabled ? c.odds : 'ทำไม่ได้: วันนี้ยังไม่ได้ตีอาวุธ')}</small></button>`).join('');
       actions.querySelectorAll('button').forEach(b => b.onclick = () => {
-        const res = LifeSim.resolveChoice(state, id, +b.dataset.i);
+        const hp = state.health, res = LifeSim.resolveChoice(state, id, +b.dataset.i);
+        mood(state.health < hp ? 3 : 1);                                   // worried if it hurt, smiling otherwise
         L.pendingEvent = null; save();
         line.textContent = res ? res.replace(ev.title + ': ', '') : '';
         actions.innerHTML = '<button class="lg-btn lg-primary">ตกลง</button>';
@@ -237,7 +250,7 @@
       lastToast = msg; toastEl.textContent = msg.replace(/^วันที่ \d+ · /, ''); toastEl.classList.add('show');
       clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3800);
     }
-    if (!hudEl._drawn && window.HeroSprite && HeroSprite.portrait(hudEl.querySelector('canvas'))) hudEl._drawn = true;
+    if (!hudEl._drawn) { hudEl._drawn = true; drawFace(hudEl.querySelector('canvas'), 'hero', 0); }
     if (!hudEl._drawn && sprite.complete && sprite.naturalWidth) { hudEl._drawn = true; portrait(hudEl.querySelector('canvas'), sprite, 400, 680, PLAYER_BOX); }
   }
   function init() {
@@ -257,5 +270,5 @@
       wait();
     }
   }
-  window.LifeUI = { init, drive, panel, newLife, _state: () => ({ open: !!open }) };
+  window.LifeUI = { init, drive, panel, newLife, event, _state: () => ({ open: !!open }) };
 })();
