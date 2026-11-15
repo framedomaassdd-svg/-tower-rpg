@@ -1,4 +1,4 @@
-/* v70 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
+/* v72 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
    this file keeps the clock, the save, and draws either the painted street (town-pano.js) or an interior (interiors.js).
    Top-level names here are shared with life-ui.js: state, clock, player, playerY, face, moving, anim, log, update, save, $. */
 const c = document.querySelector('canvas'), ctx = c.getContext('2d');
@@ -6,11 +6,7 @@ const $ = id => document.getElementById(id);
 const ART_V = '?v=62';
 const sprite = new Image();                       // old 8-frame hero, only a fallback for the HUD portrait
 const sceneObjects = [];                          // kept for life-ui (the smithy minigame looks up an optional backdrop here)
-const residentImages = { merchant: new Image(), worker: new Image() };
-residentImages.merchant.src = 'npc_merchant_v48.webp' + ART_V;
-residentImages.worker.src = 'npc_worker_v48.webp' + ART_V;
-const guardImage = new Image(); guardImage.src = 'townsfolk_guard_v63.webp?v=63';
-HeroSprite.load();
+HeroSprite.load(); TownNPCs.load();
 
 const defaults = { day: 1, money: 10, energy: 100, floor: 5, supplies: 10, danger: 1, rep: 0, guild: false, jobDay: 0, work: 0, strength: 3, agility: 3,
   health: 100, food: 2, marketWork: 0, tavernWork: 0, guildWork: 0, hotelWork: 0, joinedBefore: false, position: 620, positionY: 820, paused: false,
@@ -54,25 +50,11 @@ function nextDay() {
   update();
 }
 
-// ---- street actors
-const GUARD_BEATS = [
-  { from: 300, to: 2950, y: 846, speed: 650, offset: 0.0 },
-  { from: 3000, to: 6150, y: 832, speed: 650, offset: 4.2 }
-];
-function guards() {
-  return GUARD_BEATS.map(b => {
-    const len = b.to - b.from, period = 2 * len / b.speed, p = ((clock + b.offset) % period + period) % period;
-    const fwd = p < period / 2, d = fwd ? p * b.speed : (period - p) * b.speed;
-    return { x: b.from + d, y: b.y, face: fwd ? 1 : -1, frame: Math.floor(clock * 42) % 4 };
-  });
-}
-function drawSheetActor(image, a) {
-  if (!image.complete || !image.naturalWidth) return;
-  const depth = CityCore.depthScale(a.x, a.y);
-  CityLighting.actorShadow(ctx, a.x, a.y, depth * .8, clock);
-  ctx.save(); ctx.translate(a.x, a.y); ctx.scale(a.face * depth, depth);
-  ctx.drawImage(image, a.frame * 543, 0, 543, 724, -50, -129, 100, 133);
-  ctx.restore();
+// ---- street actors (townsfolk sheets in town-npcs.js; the old guard patrol is retired until it has art in the new style)
+function drawNpc(n) {
+  const depth = CityCore.depthScale(n.x, n.y);
+  CityLighting.actorShadow(ctx, n.x, n.y, depth * .8 * n.height / 124, clock);
+  TownNPCs.draw(ctx, n, performance.now() / 1000, depth);
 }
 function drawPlayer(info) {
   if (!HeroSprite.ready()) return;
@@ -97,8 +79,7 @@ function drawTown(t) {
   ctx.setTransform(scale, 0, 0, scale, -camera * scale, 0);
   TownPano.draw(ctx, camera, w, h, t);
   const actors = [];
-  for (const r of TownResidents.snapshots(clock)) if (r.visible) actors.push({ y: r.y, draw: () => drawSheetActor(residentImages[r.image], r) });
-  for (const g of guards()) actors.push({ y: g.y, draw: () => drawSheetActor(guardImage, g) });
+  for (const n of TownNPCs.snapshots(clock)) if (n.visible) actors.push({ y: n.y, draw: () => drawNpc(n) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   actors.sort((a, b) => a.y - b.y);
   for (const a of actors) a.draw();
@@ -148,8 +129,7 @@ addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
 // ---- wait for the art, then start
-const imageSet = [TownPano.art.west, TownPano.art.east, TownPano.art.glowW, TownPano.art.glowE, HeroSprite.load(),
-  residentImages.merchant, residentImages.worker, guardImage, ...Interiors.images()];
+const imageSet = [...Object.values(TownPano.art), HeroSprite.load(), ...TownNPCs.load(), ...Interiors.images()];
 Promise.all(imageSet.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
   img.addEventListener('load', resolve, { once: true }); img.addEventListener('error', resolve, { once: true });
 }))).then(() => {

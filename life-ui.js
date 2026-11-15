@@ -64,17 +64,19 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const block = v => { open = v; window.LIFE_BLOCK = !!v; };
 
-  function portrait(cv, img, frameW, frameH, box) {
+  function portrait(cv, img, frameW, frameH, box, ox = 0, oy = 0) {
     const g = cv.getContext('2d'), d = Math.min(window.devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
     cv.width = Math.round((r.width || 46) * d); cv.height = Math.round((r.height || 46) * d);
     g.clearRect(0, 0, cv.width, cv.height);
     if (!img || !img.complete || !img.naturalWidth) return;
     const [fx, fy, fw, fh] = box; // fractions of one frame
     g.imageSmoothingEnabled = true;
-    g.drawImage(img, frameW * fx, frameH * fy, frameW * fw, frameH * fh, 0, 0, cv.width, cv.height);
+    g.drawImage(img, ox + frameW * fx, oy + frameH * fy, frameW * fw, frameH * fh, 0, 0, cv.width, cv.height);
   }
-  const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33], NPC_BOX = [0.25, 0.03, 0.5, 0.38];
-  function npcImage(id) { try { return residentImages[id]; } catch (e) { return null; } }
+  const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33], NPC_BOX = [0.29, 0.03, 0.42, 0.43];
+  // Event portraits: the head of the front-facing idle frame (row 2, col 0) of the townsfolk sheets in town-npcs.js.
+  const NPC_SHEET_OF = { merchant: 'teen', worker: 'child' };
+  function npcImage(id) { const im = new Image(); im.src = 'npc5_' + (NPC_SHEET_OF[id] || id) + '.webp?v=72'; return im; }
 
   function el(html, cls) { const d = document.createElement('div'); d.className = 'lg-overlay ' + (cls || ''); d.innerHTML = html; document.body.appendChild(d); return d; }
   function closeOverlay(d) { d.remove(); block(null); try { update(); } catch (e) {} }
@@ -154,7 +156,8 @@
     L.pendingEvent = id; save();
     const d = el(`<div class="lg-card"><canvas></canvas><div><div class="who">${esc(ev.speaker)} · <span class="lg-muted">${esc(ev.title)}</span></div><p class="line"></p></div><div class="lg-actions"></div></div>`, 'lg-event');
     block(d);
-    portrait(d.querySelector('canvas'), npcImage(ev.portrait), 543, 724, NPC_BOX);
+    { const cv = d.querySelector('canvas'), im = npcImage(ev.portrait), S = TownNPCs.SHEET, go = () => portrait(cv, im, S.cw, S.ch, NPC_BOX, 0, 2 * S.ch);
+      if (im.complete) go(); else im.onload = go; }
     const line = d.querySelector('.line'), actions = d.querySelector('.lg-actions');
     let i = 0;
     function showLine() {

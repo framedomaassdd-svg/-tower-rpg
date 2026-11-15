@@ -1,17 +1,28 @@
-/* v70 painted town. One continuous street painting, stored as two halves (town_west + town_east, 2172×724 each)
-   and a matching pair of night-glow overlays (lit windows, street lamps, forge).
+/* v72 painted town (Phase 5 layers). The same street painting as v70, split into depth layers so the
+   distance moves slower than the street: sky · clouds (slow drift) · mountains · aqueduct · forest, then the tower,
+   three background fill pieces, the buildings and the road. One night-glow overlay (lit windows, lamps, forge).
+   Layer images are 4344 px wide in painting space, the same space as v70, so every place below is unchanged.
    World space: 1 image px = S world px, the painting fills the 1080-high reference frame, the kerb sits at y ≈ 798. */
 (function (root) {
   'use strict';
-  const V = '?v=70';
+  const V = '?v=72';
   const HALF_W = 2172, IMG_H = 724, S = 1080 / IMG_H;
   const WORLD_W = Math.round(2 * HALF_W * S);              // 6480
   const wx = imageX => Math.round(imageX * S);              // painting x → world x
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
-  const art = { west: load('town_west.webp'), east: load('town_east.webp'), glowW: load('town_glow_west.webp'), glowE: load('town_glow_east.webp') };
+  const IMG_W = 2 * HALF_W;
+  const L = n => load('town5_' + n + '.webp');
+  const art = { sky: L('sky'), clouds: L('clouds'), mountains: L('mountains'), aqueduct: L('aqueduct'), forest: L('forest'),
+    tower: L('tower'), westGate: L('westGate'), arch: L('arch'), eastAlley: L('eastAlley'), buildings: L('buildings'), road: L('road'), glow: L('glow') };
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
-  const ready = () => ok(art.west) && ok(art.east);
+  const ready = () => ok(art.buildings) && ok(art.road);
+  // Distant layers: painting-space y, parallax rate (1 = moves with the street). Clouds also sway slowly.
+  const DISTANCE = [
+    { id: 'sky', y: 0, rate: 0.14 }, { id: 'clouds', y: 0, rate: 0.18, sway: 140 },
+    { id: 'mountains', y: 125, rate: 0.37 }, { id: 'aqueduct', y: 204, rate: 0.49 }, { id: 'forest', y: 267, rate: 0.68 }
+  ];
+  const FILL = [{ id: 'tower', x: 720, y: 0 }, { id: 'westGate', x: 6, y: 277 }, { id: 'arch', x: 1193, y: 325 }, { id: 'eastAlley', x: 3806, y: 348 }];
 
   // ---- where things are (painting x → world x)
   const GATE = [35, 200];                                   // city gate lane at the west end
@@ -42,15 +53,29 @@
   }
 
   // ---- drawing
-  function halves(ctx, a, b, camera, w) {
-    const pw = HALF_W * S;
-    if (ok(a) && camera < pw + 2) ctx.drawImage(a, 0, 0, pw + 1, 1080);          // +1 hides the seam between the halves
-    if (ok(b) && camera + w > pw - 2) ctx.drawImage(b, pw, 0, pw, 1080);
+  // A distant layer is a window into a wider-than-needed strip: crop it so it slides at `rate` around the town centre.
+  // The crop is clamped to the painted edges, so no mirrored or empty sky is ever shown.
+  function distant(ctx, layer, camera, w, t) {
+    const im = art[layer.id]; if (!ok(im)) return;
+    const cam = camera / S, view = Math.min(w / S, IMG_W);
+    const anchor = Math.max(0, HALF_W - view / 2), cap = Math.max(0, im.naturalWidth - view);
+    const sway = layer.sway ? layer.sway * Math.sin(t * 0.00001) : 0;          // ~10 min there and back
+    const sx = Math.max(0, Math.min(cap, anchor + (cam - anchor) * layer.rate + sway));
+    ctx.drawImage(im, sx, 0, view, im.naturalHeight, cam * S, layer.y * S, view * S, im.naturalHeight * S);
+  }
+  function part(ctx, im, x, y, camera, w) {
+    if (!ok(im)) return;
+    const X = x * S, W = im.naturalWidth * S;
+    if (X + W < camera || X > camera + w) return;
+    ctx.drawImage(im, X, y * S, W, im.naturalHeight * S);
   }
   const SMOKE = [[wx(300), 250], [wx(2522), 300], [wx(3205), 150], [wx(1920), 320]];
   function draw(ctx, camera, w, h, t) {
     ctx.fillStyle = '#3f6fc0'; ctx.fillRect(camera, 0, w, h);
-    halves(ctx, art.west, art.east, camera, w);
+    for (const layer of DISTANCE) distant(ctx, layer, camera, w, t);
+    for (const f of FILL) part(ctx, art[f.id], f.x, f.y, camera, w);
+    part(ctx, art.buildings, 0, 0, camera, w);
+    part(ctx, art.road, 0, 547, camera, w);
     ctx.save();
     for (const [x, y] of SMOKE) {
       if (x < camera - 120 || x > camera + w + 120) continue;
@@ -64,10 +89,10 @@
   }
   // lit windows and lamps; call after the day/night tint. `amount` is 0–1 (CityLighting.sample(clock).lamps)
   function drawNight(ctx, camera, w, amount, t) {
-    if (amount <= 0.01 || !ok(art.glowW) || !ok(art.glowE)) return;
+    if (amount <= 0.01 || !ok(art.glow)) return;
     ctx.save(); ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = Math.min(1, amount) * (0.94 + 0.06 * Math.sin(t * 0.004));  // faint flicker
-    halves(ctx, art.glowW, art.glowE, camera, w);
+    part(ctx, art.glow, 0, 0, camera, w);
     ctx.restore();
   }
   root.TownPano = { art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, BENCH_SEAT, WORLD_W, GATE, ARCH, S, wx };
