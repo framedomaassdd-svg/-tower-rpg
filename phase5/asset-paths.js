@@ -1,0 +1,20 @@
+window.PHASE5_ASSETS = {
+  "sky": "art/sky.png",
+  "clouds": "art/clouds.png",
+  "mountains": "art/mountains.png",
+  "aqueduct": "art/aqueduct.png",
+  "forest": "art/forest.png",
+  "tower": "art/tower.png",
+  "buildings": "art/buildings.png",
+  "road": "art/road.png",
+  "glow": "art/glow.png",
+  "westGate": "art/westGate.png",
+  "arch": "art/arch.png",
+  "eastAlley": "art/eastAlley.png",
+  "westLamp": "art/westLamp.png",
+  "archLamp": "art/archLamp.png",
+  "bakeryLamp": "art/bakeryLamp.png",
+  "eastLamp": "art/eastLamp.png",
+  "wellFront": "art/wellFront.png",
+  "hero": "art/hero.webp"
+};

@@ -1,0 +1,359 @@
+{
+  "release": "2026-11-15-P0P1-StandalonePreview",
+  "src": "TowerRPG_P0_City_Reviewed.zip + TowerRPG_P1_Characters_Equipment.zip",
+  "sourceGameCommitUsedInArt": "d17ebff5d3af5b94175d1f9cbc04771f14ccc804",
+  "safeDropInFolder": "phase5",
+  "rootGameOverwritten": false,
+  "assetEntries": [
+    {
+      "path": "art/aqueduct.png",
+      "bytes": 846720,
+      "sha256": "517a38b7acb98ba878fccfced8e4d111a4f73752b174df95e74624d581486b97"
+    },
+    {
+      "path": "art/arch.png",
+      "bytes": 64436,
+      "sha256": "0e9c7c7f922142605fec989e5f10a843ad85d51e24ed6ec6e36e80d8c4fc48ac"
+    },
+    {
+      "path": "art/archLamp.png",
+      "bytes": 9361,
+      "sha256": "71d8b865568fc6df6800cea50c4e2e9d1b576ef53a116a6ee7fc0b52295d9938"
+    },
+    {
+      "path": "art/bakeryLamp.png",
+      "bytes": 9775,
+      "sha256": "5949c8fd153e69309f17b4f475a6a453cd332cb8cd54b5877f84608d1df43c49"
+    },
+    {
+      "path": "art/buildings.png",
+      "bytes": 4716207,
+      "sha256": "756905a1f1781a97d5ecb3dc4d96b16a7c8e67561253526a96740ebfa5b5e3b2"
+    },
+    {
+      "path": "art/clouds.png",
+      "bytes": 4204545,
+      "sha256": "5a6fd996ae9d8b32f1514e550f94627ab580646b69d998d61bd9262a146c382f"
+    },
+    {
+      "path": "art/eastAlley.png",
+      "bytes": 24828,
+      "sha256": "62636f1389642c2bb1246d8327986aa4221e69ba8d3ca707f9f922d0647f8dc3"
+    },
+    {
+      "path": "art/eastLamp.png",
+      "bytes": 9777,
+      "sha256": "42689a3112d6d43d38169dbdbed48d01fccfaa5b8ff74ba7ddccaa53ff6d53ec"
+    },
+    {
+      "path": "art/forest.png",
+      "bytes": 3070288,
+      "sha256": "1b77ca0c0e611142cdbd5cbd88c4b7ebe43af40470252eb87b6077ac643be3ab"
+    },
+    {
+      "path": "art/glow.png",
+      "bytes": 552865,
+      "sha256": "e60ba328321b389a5c8cadca70fb8ade6fcdd972ab5602a88895720033998aa9"
+    },
+    {
+      "path": "art/hero.webp",
+      "bytes": 942172,
+      "sha256": "edbcaf19eee2cd0520e6e1bc96468ef037ff4bcb47a00e509b11b1469faf78f7"
+    },
+    {
+      "path": "art/mountains.png",
+      "bytes": 2148767,
+      "sha256": "bb73da08b62395df42958a230e3ab2aee926b1baea815aef436e7891b5801b48"
+    },
+    {
+      "path": "art/road.png",
+      "bytes": 2016530,
+      "sha256": "b090098d8f71127a6200c773a4ea2ccd3a554d32f4224ca23ab6a3358134b037"
+    },
+    {
+      "path": "art/sky.png",
+      "bytes": 11379,
+      "sha256": "dc1823b01d975f9d74a88e8abd31b8388cf97f3468075534cc2bf205c8a2a65d"
+    },
+    {
+      "path": "art/tower.png",
+      "bytes": 413022,
+      "sha256": "2208c42e277328cbf9fe19c798d4f1b614ee010b5d362f84e304de28ca508e1c"
+    },
+    {
+      "path": "art/wellFront.png",
+      "bytes": 13845,
+      "sha256": "e558a5c16b11a8676c5085f267792516395298aaeec8545374f6b4c4381779b4"
+    },
+    {
+      "path": "art/westGate.png",
+      "bytes": 73037,
+      "sha256": "b99a06aa4606fc27f851e15686b7a43b82674d18516f333856618b33517f9f66"
+    },
+    {
+      "path": "art/westLamp.png",
+      "bytes": 9237,
+      "sha256": "90d48c8e342c6033328e0349167a4dba329bd7ec22996f43f50053cf267b42ca"
+    },
+    {
+      "path": "asset-paths.js",
+      "bytes": 596,
+      "sha256": "6d6995895d1685140f6fe6570fa51525ac168f9c90ac1c241f463653d67640e2"
+    },
+    {
+      "path": "hero-sprite.js",
+      "bytes": 2441,
+      "sha256": "e6755ec6f6db529adb340ff5bf985e36edf5f2f6c4739a7ade811dc4a7161536"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5990,
+      "sha256": "76e263e4d6b8953812a8982ddd477dad623a392c9b27028d6be0395d65bdb162"
+    },
+    {
+      "path": "preview.js",
+      "bytes": 12669,
+      "sha256": "8b0114030b60d840c453db0ad84b7613e5c9319613dedd7a67e8476b8fe3a2e4"
+    },
+    {
+      "path": "rigs/child/assets/apron_overlay.png",
+      "bytes": 149554,
+      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
+    },
+    {
+      "path": "rigs/child/assets/smith_farm.png",
+      "bytes": 46955,
+      "sha256": "8fbb1111006bc52d99a3e8ea06e90f2e23f4198dbe7bfe429d311c12c66aea67"
+    },
+    {
+      "path": "rigs/child/assets/smith_head.png",
+      "bytes": 145322,
+      "sha256": "dcefcdaea2e4b6fe05e437e5c70b6d2624f5472aa7557865f4b76df9aede7286"
+    },
+    {
+      "path": "rigs/child/assets/smith_shin.png",
+      "bytes": 101026,
+      "sha256": "566bb82f85585736d94d684f15f84ba618e68c2c3bf9c58fff5ab5fe9cc55b5d"
+    },
+    {
+      "path": "rigs/child/assets/smith_thigh.png",
+      "bytes": 78940,
+      "sha256": "0bb50df2bc33e0412c59282e381646968cc328d2262e1759e530d3f1ff150e03"
+    },
+    {
+      "path": "rigs/child/assets/smith_torso.png",
+      "bytes": 229278,
+      "sha256": "1dfd062f9ea474fc95c2f40088e3e298379d5693b1b52b9b112646c026aaf7e9"
+    },
+    {
+      "path": "rigs/child/assets/smith_uarm.png",
+      "bytes": 60511,
+      "sha256": "4f3bdae21841b008d083a19e031ddc9c3b237fcc6027313f3537a2d62be7f7aa"
+    },
+    {
+      "path": "rigs/child/reference/props__market_set__sacks.webp",
+      "bytes": 34244,
+      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
+    },
+    {
+      "path": "rigs/child/reference/smith_hammer.webp",
+      "bytes": 24554,
+      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
+    },
+    {
+      "path": "rigs/child/reference/smith_sword_done.webp",
+      "bytes": 35036,
+      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
+    },
+    {
+      "path": "rigs/child/rig.js",
+      "bytes": 13199,
+      "sha256": "2a59c5528beb152311af2b7dda036490797b0c30f8e307a9e28540bf7f7ed691"
+    },
+    {
+      "path": "rigs/child/rig_manifest.json",
+      "bytes": 3249,
+      "sha256": "e14549ddd3f8fb86a9d58d71f34dc0fce8c29b09175244f2f2cab55e7e5789aa"
+    },
+    {
+      "path": "rigs/elder/assets/apron_overlay.png",
+      "bytes": 149554,
+      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
+    },
+    {
+      "path": "rigs/elder/assets/smith_farm.png",
+      "bytes": 62038,
+      "sha256": "9123a1f884db3b5bc2ac934dec2eb9ce6d40d3640ccfc4640a05c991084355bb"
+    },
+    {
+      "path": "rigs/elder/assets/smith_head.png",
+      "bytes": 174504,
+      "sha256": "7461a6674ec6958860808e596bed180ad1e2da7d08e12a29ab76b642cde961a1"
+    },
+    {
+      "path": "rigs/elder/assets/smith_shin.png",
+      "bytes": 93634,
+      "sha256": "0d529de1b718a6139b3cb703f37e10797f1bea0a611c3b6fb82879412da8e2c4"
+    },
+    {
+      "path": "rigs/elder/assets/smith_thigh.png",
+      "bytes": 71308,
+      "sha256": "7d08318c1c227efb09bde399f99bf728df7431d4e8a5104a34df8784faf30c91"
+    },
+    {
+      "path": "rigs/elder/assets/smith_torso.png",
+      "bytes": 204328,
+      "sha256": "5ec4e7715e390beac92816649b0a85aa4875408899fe32ddf76d79334214b40b"
+    },
+    {
+      "path": "rigs/elder/assets/smith_uarm.png",
+      "bytes": 58077,
+      "sha256": "531bfc2b6162e8dd800e611dc98ad4d282ce33b41db82e18b7580edcef6b0c6f"
+    },
+    {
+      "path": "rigs/elder/reference/props__market_set__sacks.webp",
+      "bytes": 34244,
+      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
+    },
+    {
+      "path": "rigs/elder/reference/smith_hammer.webp",
+      "bytes": 24554,
+      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
+    },
+    {
+      "path": "rigs/elder/reference/smith_sword_done.webp",
+      "bytes": 35036,
+      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
+    },
+    {
+      "path": "rigs/elder/rig.js",
+      "bytes": 13198,
+      "sha256": "d2ddcc68f3c6cb2d00d75f6b5bf052ab97e95b6987e1dba0bdf270639bdab13f"
+    },
+    {
+      "path": "rigs/elder/rig_manifest.json",
+      "bytes": 3249,
+      "sha256": "0c75a4c45d3e343b6cb4182efa55d25b88e599bad3aaf7c3ae9cf3f438bde936"
+    },
+    {
+      "path": "rigs/smith/assets/apron_overlay.png",
+      "bytes": 149554,
+      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
+    },
+    {
+      "path": "rigs/smith/assets/smith_farm.png",
+      "bytes": 58519,
+      "sha256": "25080bb74d98250fc29e743cfb646c5a90829673993eaf4a31a48d81ef461a74"
+    },
+    {
+      "path": "rigs/smith/assets/smith_head.png",
+      "bytes": 160297,
+      "sha256": "bed8a42d93084f02f2561bc38e9e09a7cf15bd891429ed776ea8f2494e1a9b92"
+    },
+    {
+      "path": "rigs/smith/assets/smith_shin.png",
+      "bytes": 101655,
+      "sha256": "b7b43e75c984a4993f20c17a68598786bbc5bedb8d4e519a78c63d4b53595546"
+    },
+    {
+      "path": "rigs/smith/assets/smith_thigh.png",
+      "bytes": 72201,
+      "sha256": "31706ee4c91582c77bdd2909ffc493186e86faec61574f39cb6729e3155b9749"
+    },
+    {
+      "path": "rigs/smith/assets/smith_torso.png",
+      "bytes": 212471,
+      "sha256": "51ab9a0fbeb1d6eb65252731b075d1727a8ad63acfca2b3cf276563811381fa9"
+    },
+    {
+      "path": "rigs/smith/assets/smith_uarm.png",
+      "bytes": 60364,
+      "sha256": "2e3e7d1fe22c9e6a6f5fc72571b43b196de6cc15928d6e27c5868cd06e4369cf"
+    },
+    {
+      "path": "rigs/smith/reference/props__market_set__sacks.webp",
+      "bytes": 34244,
+      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
+    },
+    {
+      "path": "rigs/smith/reference/smith_hammer.webp",
+      "bytes": 24554,
+      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
+    },
+    {
+      "path": "rigs/smith/reference/smith_sword_done.webp",
+      "bytes": 35036,
+      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
+    },
+    {
+      "path": "rigs/smith/rig.js",
+      "bytes": 13197,
+      "sha256": "075caf1cb5cfea20ac3b0c867d520508d17883ea3e62f15e84d3525c632c635e"
+    },
+    {
+      "path": "rigs/smith/rig_manifest.json",
+      "bytes": 3251,
+      "sha256": "f7d17618fedfca7f1d13f175d600c98f0bcd4412a3e5605ae94cfe58ad578f3e"
+    },
+    {
+      "path": "rigs/teen/assets/apron_overlay.png",
+      "bytes": 149554,
+      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
+    },
+    {
+      "path": "rigs/teen/assets/smith_farm.png",
+      "bytes": 54373,
+      "sha256": "5f33b30ec12a58deea5e480f5737c37aeabb501045d39ec5d89100953f67e590"
+    },
+    {
+      "path": "rigs/teen/assets/smith_head.png",
+      "bytes": 176402,
+      "sha256": "4cd8afc3cee3318aaec7d533a2afa201a1e6d03fd143629bd07e9f1264b96cdc"
+    },
+    {
+      "path": "rigs/teen/assets/smith_shin.png",
+      "bytes": 99945,
+      "sha256": "49dabd1200bfa974b33ffdfa7a73c47dccecf3cd43b5a1f76308de6e05480ba1"
+    },
+    {
+      "path": "rigs/teen/assets/smith_thigh.png",
+      "bytes": 74916,
+      "sha256": "b470fb6313e5dd56cc9b8c58394c836aa42cdd7ae84e79d8f185602245300d68"
+    },
+    {
+      "path": "rigs/teen/assets/smith_torso.png",
+      "bytes": 241489,
+      "sha256": "59af0d4e6fe6ab286e29b4e35a4e2efba279dcef3e55d2465298ec907e57aab4"
+    },
+    {
+      "path": "rigs/teen/assets/smith_uarm.png",
+      "bytes": 60540,
+      "sha256": "1a37c769db3b6c3f1e45be11972d5975c9a43f2b5da79d8330086828323fe1ad"
+    },
+    {
+      "path": "rigs/teen/reference/props__market_set__sacks.webp",
+      "bytes": 34244,
+      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
+    },
+    {
+      "path": "rigs/teen/reference/smith_hammer.webp",
+      "bytes": 24554,
+      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
+    },
+    {
+      "path": "rigs/teen/reference/smith_sword_done.webp",
+      "bytes": 35036,
+      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
+    },
+    {
+      "path": "rigs/teen/rig.js",
+      "bytes": 13199,
+      "sha256": "06503c2faefdc73e06af7c6542054fcb7af657a81ca2bc69d1d2b10d386e4133"
+    },
+    {
+      "path": "rigs/teen/rig_manifest.json",
+      "bytes": 3250,
+      "sha256": "821eb92820022a2c1a69945089155eaee5a903c7e96103faae14ce5d89ee78c0"
+    }
+  ]
+}
