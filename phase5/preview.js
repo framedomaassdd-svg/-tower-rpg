@@ -10,10 +10,10 @@ const WORLD_W=4344,WORLD_H=724;
 const src=window.PHASE5_ASSETS;
 const images={}, failed=[];
 const roles=[
-  {id:'smith',name:'ช่างตีเหล็ก',occupation:'ตีเหล็ก',x:2535,y:614,home:3770,work:2620,foot:615,dayStart:7,dayEnd:18,height:124,workAnim:'hammer',equip:'hammer',apron:true,face:1},
-  {id:'teen',name:'เด็กฝึกงานหญิง',occupation:'ช่วยร้านขนมปัง',x:1690,y:610,home:2950,work:1770,foot:612,dayStart:8,dayEnd:18,height:104,workAnim:'carry',equip:'none',face:1},
-  {id:'elder',name:'เสมียนกิลด์',occupation:'ทำบัญชีกิลด์',x:3110,y:610,home:1010,work:3320,foot:611,dayStart:8,dayEnd:17,height:115,workAnim:'idle',equip:'none',face:1},
-  {id:'child',name:'เด็กส่งของ',occupation:'ส่งสินค้าในเมือง',x:900,y:620,home:890,work:1950,foot:619,dayStart:9,dayEnd:19,height:90,workAnim:'carry',equip:'none',face:1,hop:0},
+  {id:'smith',name:'ช่างตีเหล็ก',occupation:'ตีเหล็ก',x:2535,y:614,home:3770,work:2690,foot:615,dayStart:7,dayEnd:18,height:124,workAnim:'hammer',equip:'none',apron:false,face:1},
+  {id:'teen',name:'เด็กฝึกงานหญิง',occupation:'ช่วยร้านขนมปัง',x:1690,y:610,home:2950,work:1770,foot:612,dayStart:8,dayEnd:18,height:104,workAnim:'carry',equip:'none',apron:false,face:1},
+  {id:'elder',name:'เสมียนกิลด์',occupation:'ทำบัญชีกิลด์',x:3110,y:610,home:1010,work:3320,foot:611,dayStart:8,dayEnd:17,height:115,workAnim:'idle',equip:'none',apron:false,face:1},
+  {id:'child',name:'เด็กส่งของ',occupation:'ส่งสินค้าในเมือง',x:900,y:620,home:890,work:1950,foot:619,dayStart:9,dayEnd:19,height:90,workAnim:'carry',equip:'none',apron:false,face:1,hop:0},
   {id:'hero',name:'ผู้เล่น',occupation:'สำรวจและหางานในเมือง',x:1950,y:617,home:3170,work:1515,foot:620,dayStart:9,dayEnd:20,height:125,face:1}
 ];
 const roleMap=Object.fromEntries(roles.map(r=>[r.id,r]));
@@ -86,6 +86,13 @@ function update(dt){if(state.paused)return;
     if(a.id==='child'&&a.anim==='idle'&&workActive(a,state.worldMin/60))a.anim='carry';
   }
 }
+
+function currentEquip(a){
+  if(a.id==='smith') return a.anim==='hammer' ? 'hammer' : null;
+  if((a.id==='teen' || a.id==='child') && workActive(a,state.worldMin/60)) return 'sack';
+  return (a.equip && a.equip!=='none') ? a.equip : null;
+}
+
 function drawHero(r){ctx.save();ctx.translate(r.x,r.y);ctx.scale(r.face,1);
   const fi=r.moving?Math.floor(state.elapsed*7)%4:0,row=r.moving?0:2;
   const w=125*480/680,h=125;
@@ -94,7 +101,7 @@ function drawHero(r){ctx.save();ctx.translate(r.x,r.y);ctx.scale(r.face,1);
 }
 function drawRig(a){const rig=window.TowerRigs[a.id];if(!rig?.ready())return;
  ctx.save();ctx.translate(a.x,a.y);ctx.scale(a.face,1);
- rig.draw(ctx,a.anim||'idle',state.elapsed,a.height,a.equip,a.apron);ctx.restore();
+ rig.draw(ctx,a.anim||'idle',state.elapsed,a.height,currentEquip(a),false);ctx.restore();
 }
 function drawPerson(a){ctx.save();ctx.fillStyle='rgba(16,17,21,.21)';ctx.beginPath();ctx.ellipse(a.x,a.y,18*a.height/125,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
  if(a.id==='hero')drawHero(a);else drawRig(a);

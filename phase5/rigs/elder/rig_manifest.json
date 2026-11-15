@@ -166,7 +166,7 @@
   "status": "assembled and checked in P1 delivery",
   "equipment": {
     "hammer": {
-      "file": "reference/smith_hammer.webp",
+      "file": "../common/smith_hammer.webp",
       "gripPx": [
         385,
         135
@@ -177,7 +177,7 @@
       ]
     },
     "sword": {
-      "file": "reference/smith_sword_done.webp",
+      "file": "../common/smith_sword_done.webp",
       "gripPx": [
         160,
         145
@@ -185,18 +185,6 @@
       "size": [
         900,
         286
-      ]
-    },
-    "apron": {
-      "file": "assets/apron_overlay.png",
-      "attachTo": "torso",
-      "offset": [
-        1,
-        -3
-      ],
-      "size": [
-        261,
-        421
       ]
     }
   },

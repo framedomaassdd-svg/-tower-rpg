@@ -87,7 +87,7 @@
     ]
   }
 };
-  const PROPS = { apron: 'assets/apron_overlay.png', sword: 'reference/smith_sword_done.webp', hammer: 'reference/smith_hammer.webp', sack: 'reference/props__market_set__sacks.webp' };
+  const PROPS = { sword: '../common/smith_sword_done.webp', hammer: '../common/smith_hammer.webp', sack: '../common/props__market_set__sacks.webp' };
   for (const k in PARTS) { const p = PARTS[k]; if (p.end) p.fix = Math.atan2(p.end[0] - p.pivot[0], p.end[1] - p.pivot[1]); else p.fix = 0; }
 
   let img = null, dark = {}, urlFn = s => s;
@@ -196,16 +196,25 @@
   function drawProp(ctx, P, T) {
     const hand = T.handN, im = img[P.prop];
     if (!ok(im)) return;
-    ctx.save(); ctx.translate(hand.at[0], hand.at[1]);
+    ctx.save();
+    ctx.translate(hand.at[0], hand.at[1]);
     if (P.prop === 'hammer' || P.prop === 'sword') {
       const fa = Math.atan2(Math.cos(hand.deg * D), Math.sin(hand.deg * D));
-      ctx.rotate(fa - 50 * D - (P.prop === 'hammer' ? Math.PI : 0));
-      const w = P.prop === 'hammer' ? 230 : 310, h = w * im.naturalHeight / im.naturalWidth;
-      const grip = P.prop === 'hammer' ? [385/520,135/262] : [160/900,145/286];
-      ctx.drawImage(im, -w*grip[0], -h*grip[1], w, h);
-    } else {                                 // sack held in front of the chest
+      if (P.prop === 'hammer') {
+        ctx.translate(-10, -6);
+        ctx.rotate(fa - 62 * D - Math.PI);
+        const w = 208, h = w * im.naturalHeight / im.naturalWidth;
+        const grip = [385 / 520, 135 / 262];
+        ctx.drawImage(im, -w * grip[0], -h * grip[1], w, h);
+      } else {
+        ctx.rotate(fa - 50 * D);
+        const w = 310, h = w * im.naturalHeight / im.naturalWidth;
+        const grip = [160 / 900, 145 / 286];
+        ctx.drawImage(im, -w * grip[0], -h * grip[1], w, h);
+      }
+    } else { // sack carried in front of the torso
       const w = 170, h = w * im.naturalHeight / im.naturalWidth;
-      ctx.drawImage(im, -w * 0.35, -h * 0.75, w, h);
+      ctx.drawImage(im, -w * 0.42, -h * 0.56, w, h);
     }
     ctx.restore();
   }
@@ -213,18 +222,28 @@
   // draw: feet at (0,0), facing right, total standing height = height (in ctx units)
   function draw(ctx, anim, t, height, equipment, apron) {
     if (!ready()) return false;
-    const P = (POSES[anim] || POSES.idle)(t || 0);if(equipment)P.prop=equipment==='none'?null:equipment;const T = solve(P), k = height / standHeight();
+    const P = (POSES[anim] || POSES.idle)(t || 0);
+    if (equipment) P.prop = equipment === 'none' ? null : equipment;
+    const T = solve(P), k = height / standHeight();
     ctx.save(); ctx.scale(k, k);
     if (P.lie) { ctx.translate(standHeight() / 2, -118 - (P.breath || 0) * 2); ctx.rotate(-Math.PI / 2); ctx.translate(0, -T.ground); }
     else ctx.translate(0, -T.ground - (P.lift || 0));
+    // Far side behind body
     drawPart(ctx, 'uarm', T.uarmF, true); drawPart(ctx, 'farm', T.farmF, true);
     drawPart(ctx, 'shin', T.shinF, true); drawPart(ctx, 'thigh', T.thighF, true);
+    // Near-side legs
     drawPart(ctx, 'shin', T.shinN); drawPart(ctx, 'thigh', T.thighN);
+    // Body first
+    drawPart(ctx, 'torso', T.torso);
+    // Front-carried prop
     if (P.prop === 'sack') drawProp(ctx, P, T);
+    // Near arm should stay in front of torso as one continuous limb
     drawPart(ctx, 'uarm', T.uarmN);
-    drawPart(ctx, 'torso', T.torso); if(apron && ok(img.apron)){ctx.save();ctx.transform(...T.torso);ctx.drawImage(img.apron,1,-3);ctx.restore();} drawPart(ctx, 'head', T.head);
-    if (P.prop === 'hammer' || P.prop === 'sword') drawProp(ctx, P, T);
     drawPart(ctx, 'farm', T.farmN);
+    // Handheld tools/weapons: in front of torso but behind face
+    if (P.prop === 'hammer' || P.prop === 'sword') drawProp(ctx, P, T);
+    // Face always stays readable
+    drawPart(ctx, 'head', T.head);
     ctx.restore();
     return true;
   }

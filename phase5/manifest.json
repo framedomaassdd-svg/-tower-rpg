@@ -1,5 +1,5 @@
 {
-  "release": "2026-11-15-P0P1-StandalonePreview",
+  "release": "Tower RPG Phase 5 P0+P1 hotfix 2026-11-15-b",
   "src": "TowerRPG_P0_City_Reviewed.zip + TowerRPG_P1_Characters_Equipment.zip",
   "sourceGameCommitUsedInArt": "d17ebff5d3af5b94175d1f9cbc04771f14ccc804",
   "safeDropInFolder": "phase5",
@@ -116,11 +116,6 @@
       "sha256": "8b0114030b60d840c453db0ad84b7613e5c9319613dedd7a67e8476b8fe3a2e4"
     },
     {
-      "path": "rigs/child/assets/apron_overlay.png",
-      "bytes": 149554,
-      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
-    },
-    {
       "path": "rigs/child/assets/smith_farm.png",
       "bytes": 46955,
       "sha256": "8fbb1111006bc52d99a3e8ea06e90f2e23f4198dbe7bfe429d311c12c66aea67"
@@ -151,21 +146,6 @@
       "sha256": "4f3bdae21841b008d083a19e031ddc9c3b237fcc6027313f3537a2d62be7f7aa"
     },
     {
-      "path": "rigs/child/reference/props__market_set__sacks.webp",
-      "bytes": 34244,
-      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
-    },
-    {
-      "path": "rigs/child/reference/smith_hammer.webp",
-      "bytes": 24554,
-      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
-    },
-    {
-      "path": "rigs/child/reference/smith_sword_done.webp",
-      "bytes": 35036,
-      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
-    },
-    {
       "path": "rigs/child/rig.js",
       "bytes": 13199,
       "sha256": "2a59c5528beb152311af2b7dda036490797b0c30f8e307a9e28540bf7f7ed691"
@@ -174,11 +154,6 @@
       "path": "rigs/child/rig_manifest.json",
       "bytes": 3249,
       "sha256": "e14549ddd3f8fb86a9d58d71f34dc0fce8c29b09175244f2f2cab55e7e5789aa"
-    },
-    {
-      "path": "rigs/elder/assets/apron_overlay.png",
-      "bytes": 149554,
-      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
     },
     {
       "path": "rigs/elder/assets/smith_farm.png",
@@ -211,21 +186,6 @@
       "sha256": "531bfc2b6162e8dd800e611dc98ad4d282ce33b41db82e18b7580edcef6b0c6f"
     },
     {
-      "path": "rigs/elder/reference/props__market_set__sacks.webp",
-      "bytes": 34244,
-      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
-    },
-    {
-      "path": "rigs/elder/reference/smith_hammer.webp",
-      "bytes": 24554,
-      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
-    },
-    {
-      "path": "rigs/elder/reference/smith_sword_done.webp",
-      "bytes": 35036,
-      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
-    },
-    {
       "path": "rigs/elder/rig.js",
       "bytes": 13198,
       "sha256": "d2ddcc68f3c6cb2d00d75f6b5bf052ab97e95b6987e1dba0bdf270639bdab13f"
@@ -234,11 +194,6 @@
       "path": "rigs/elder/rig_manifest.json",
       "bytes": 3249,
       "sha256": "0c75a4c45d3e343b6cb4182efa55d25b88e599bad3aaf7c3ae9cf3f438bde936"
-    },
-    {
-      "path": "rigs/smith/assets/apron_overlay.png",
-      "bytes": 149554,
-      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
     },
     {
       "path": "rigs/smith/assets/smith_farm.png",
@@ -271,21 +226,6 @@
       "sha256": "2e3e7d1fe22c9e6a6f5fc72571b43b196de6cc15928d6e27c5868cd06e4369cf"
     },
     {
-      "path": "rigs/smith/reference/props__market_set__sacks.webp",
-      "bytes": 34244,
-      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
-    },
-    {
-      "path": "rigs/smith/reference/smith_hammer.webp",
-      "bytes": 24554,
-      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
-    },
-    {
-      "path": "rigs/smith/reference/smith_sword_done.webp",
-      "bytes": 35036,
-      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
-    },
-    {
       "path": "rigs/smith/rig.js",
       "bytes": 13197,
       "sha256": "075caf1cb5cfea20ac3b0c867d520508d17883ea3e62f15e84d3525c632c635e"
@@ -294,11 +234,6 @@
       "path": "rigs/smith/rig_manifest.json",
       "bytes": 3251,
       "sha256": "f7d17618fedfca7f1d13f175d600c98f0bcd4412a3e5605ae94cfe58ad578f3e"
-    },
-    {
-      "path": "rigs/teen/assets/apron_overlay.png",
-      "bytes": 149554,
-      "sha256": "b2cbd019c42d69a5147592c5258dae446e72196ef7698091a3cd18f8d933e54a"
     },
     {
       "path": "rigs/teen/assets/smith_farm.png",
@@ -331,21 +266,6 @@
       "sha256": "1a37c769db3b6c3f1e45be11972d5975c9a43f2b5da79d8330086828323fe1ad"
     },
     {
-      "path": "rigs/teen/reference/props__market_set__sacks.webp",
-      "bytes": 34244,
-      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
-    },
-    {
-      "path": "rigs/teen/reference/smith_hammer.webp",
-      "bytes": 24554,
-      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
-    },
-    {
-      "path": "rigs/teen/reference/smith_sword_done.webp",
-      "bytes": 35036,
-      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
-    },
-    {
       "path": "rigs/teen/rig.js",
       "bytes": 13199,
       "sha256": "06503c2faefdc73e06af7c6542054fcb7af657a81ca2bc69d1d2b10d386e4133"
@@ -354,6 +274,21 @@
       "path": "rigs/teen/rig_manifest.json",
       "bytes": 3250,
       "sha256": "821eb92820022a2c1a69945089155eaee5a903c7e96103faae14ce5d89ee78c0"
+    },
+    {
+      "path": "rigs/common/smith_hammer.webp",
+      "bytes": 24554,
+      "sha256": "868ba91333a9bb474c2891ca541ce6995ca782ae375c7fe298da01a458e1ffeb"
+    },
+    {
+      "path": "rigs/common/smith_sword_done.webp",
+      "bytes": 35036,
+      "sha256": "fe0f51d5c673179bc01281dd13bc14796c1441f0fc00ed624b6f0c818eae1dae"
+    },
+    {
+      "path": "rigs/common/props__market_set__sacks.webp",
+      "bytes": 34244,
+      "sha256": "bcc7ae6ef5239c9ab72313107a2b0fc8048a4c626a97057b589adcee8d9c7ff8"
     }
   ]
 }
