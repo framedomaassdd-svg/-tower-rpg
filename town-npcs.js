@@ -310,6 +310,41 @@
   // The hero carrying loads back and forth around a work spot (visual only; LifeSim keeps the spot).
   function heroShuttle(clock, A) { return shuttleAt(0, 0, A, 700, 0, 20, finiteClock(clock)); }
 
+  // v84: work props standing on the street right where the hammer, ladle or washboard lands (the painted ones sit too deep).
+  // h = height in world px (image scaled to it), x/foot = bottom centre, z = draw order among people (lower = further back).
+  const PROPS = Object.freeze([
+    { id: 'anvil',    x: 4466, foot: 803, z: 799, h: HERO * 0.5 },                    // the smith hammers it from the left
+    { id: 'cauldron', x: 8012, foot: 812, z: 807, h: HERO * 0.46, zone: 'slum', fire: true }, // ป้าโรงทาน stirs from the left
+    { id: 'tub',      x: 8418, foot: 816, z: 811, h: HERO * 0.34, zone: 'slum' }        // แม่ซักผ้า's washboard stands in it
+  ]);
+  const propImg = {};
+  function propReady(id) {
+    if (!hasImage) return false;
+    if (!propImg[id]) { propImg[id] = new Image(); propImg[id].src = 'prop_' + id + '.webp?v=84'; }
+    return ok(propImg[id]);
+  }
+  function drawProp(ctx, id, x, foot, h, t, fire) {
+    if (!propReady(id)) return;
+    const im = propImg[id], w = h * im.naturalWidth / im.naturalHeight;
+    ctx.drawImage(im, x - w / 2, foot - h, w, h);
+    if (fire) {                                                   // flickering firelight and steam
+      const f = 0.55 + 0.25 * Math.sin(t * 0.017) + 0.2 * Math.sin(t * 0.041 + 1);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const gr = ctx.createRadialGradient(x, foot - h * 0.18, 1, x, foot - h * 0.18, h * 0.45);
+      gr.addColorStop(0, 'rgba(255,170,60,' + (0.45 * f).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,120,30,0)');
+      ctx.fillStyle = gr; ctx.fillRect(x - h * 0.5, foot - h * 0.65, h, h * 0.65); ctx.restore();
+      ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.5, h * 0.035); ctx.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        const k = ((t * 0.00045) + i / 3) % 1, sx = x + (i - 1) * h * 0.18;
+        ctx.globalAlpha = Math.sin(k * Math.PI) * 0.4; ctx.beginPath();
+        for (let j = 0; j <= 8; j++) { const q = j / 8, yy = foot - h * 0.95 - k * h * 0.6 - q * h * 0.4; ctx[j ? 'lineTo' : 'moveTo'](sx + Math.sin(q * 5 + t * 0.003 + i) * h * 0.06, yy); }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  function props() { return PROPS; }
+
   return { blit, PEOPLE: ALL_PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
-    load, snapshots, frameOf, draw, drawHero, heroReady, heroShuttle };
+    load, snapshots, frameOf, draw, drawHero, heroReady, heroShuttle, props, drawProp, propReady };
 });

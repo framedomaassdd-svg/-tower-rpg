@@ -172,6 +172,7 @@ function drawTown(t) {
   drawBirds(camera, w, t);
   const actors = [];
   for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible && (n.zone || 'town') === zone) actors.push({ y: n.y, draw: () => drawNpc(n) });
+  for (const p of TownNPCs.props()) if ((p.zone || 'town') === zone) actors.push({ y: p.z, draw: () => TownNPCs.drawProp(ctx, p.id, p.x, p.foot, p.h, t, p.fire) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   actors.sort((a, b) => a.y - b.y);
   for (const a of actors) a.draw();

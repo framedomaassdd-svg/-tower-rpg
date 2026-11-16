@@ -15,8 +15,9 @@
     restaurant: { file: 'restaurant_hall',    name: 'ร้านอาหาร',     seat: { x: 757, foot: 716, cut: 577, table: 578, h: 205 } },
     kitchen:    { file: 'restaurant_kitchen', name: 'ห้องครัว',      route: [345, 670, 1055, 1385] },
     // v79 (newer paintings, file names int_*). work: a hero pose at x; npcs: townsfolk sheets (h = × hero height)
-    forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', k: 1.12, work: { kind: 'hammer', x: 1010, face: -1 },
-                  npcs: [{ sheet: 'smith', x: 560, loop: 'hammer', face: 1, h: 1.03 }] },
+    forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', k: 1.12, work: { kind: 'hammer', x: 1040, face: -1 },
+                  npcs: [{ sheet: 'smith', x: 430, loop: 'hammer', face: 1, h: 1.03 }],
+                  props: [{ id: 'anvil', x: 575, foot: 810, w: 0.5 }, { id: 'anvil', x: 895, foot: 810, w: 0.5 }] },   // one anvil each
     bakery:     { file: 'int_bakery',     name: 'ร้านขนมปัง', k: 1.28, stand: { x: 1180, look: 'back' } },
     guild:      { file: 'int_guild',      name: 'ห้องโถงกิลด์', k: 1.22, stand: { x: 800, look: 'back' },
                   npcs: [{ sheet: 'elder', x: 330, loop: 'write', face: 1, h: 0.8 / 1.22, foot: 640, behind: 528 }] },
@@ -24,7 +25,8 @@
                   npcs: [{ sheet: 'apothecary', x: 1040, loop: 'grind', face: -1, h: 0.93 }] },
     junk:       { file: 'int_junk',       name: 'ร้านรับซื้อของเก่า', k: 1.34, stand: { x: 1250, look: 'back' } },
     soup:       { file: 'int_soup',       name: 'โรงทาน', k: 1.2, seat: { x: 1230, foot: 585, cut: 488, table: 484, h: 200 },
-                  npcs: [{ sheet: 'granny', x: 560, foot: 735, loop: 'stir', face: -1, h: 0.82 }] },
+                  npcs: [{ sheet: 'granny', x: 560, foot: 735, loop: 'stir', face: 1, h: 0.82 }],
+                  props: [{ id: 'cauldron', x: 693, foot: 742, w: 0.46 * 0.82 / 0.88, fire: true, front: true }] },
     tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };
@@ -176,6 +178,9 @@
     }
 
     const anim = t * 0.008, K = sc.k || 1;
+    const prop = front => { const N = root.TownNPCs; if (!N || !sc.props) return;          // work props, sized like on the street
+      for (const p of sc.props) if (!!p.front === front) N.drawProp(ctx, p.id, p.x, p.foot, p.w * HERO_H * 648 / 680 * K, t, p.fire); };
+    prop(false);
     people(ctx, sc, t);
     const patch = SLEEP[info.room] && sleepImg[info.room], asleep = !!(act && act.sleep);
     if (asleep && !wasAsleep) sleepSince = t; wasAsleep = asleep;
@@ -201,6 +206,7 @@
       else hero(ctx, act.x, FLOOR, { vdir: 1, moving: false, anim, k: K });
     }
 
+    prop(true);
     // light: evening warmth, and a dark room while asleep
     let lamps = 0, tint = null;
     try { const l = root.CityLighting.sample(clock); lamps = l.lamps; tint = l; } catch (e) {}
