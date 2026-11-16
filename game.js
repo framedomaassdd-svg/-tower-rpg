@@ -62,7 +62,7 @@ function heroWorkPose() {
   const L = state.life || {}, path = L.path;
   const carrying = () => { const q = TownNPCs.heroShuttle(clock, 75); return { kind: 'carry', dx: q.x, face: q.face, moving: q.moving, d: q.d }; };
   if (path === 'smith') return { kind: 'hammer', dx: 0, face: -1 };            // the anvil is just to the left
-  if (path === 'market' || path === 'scrap') return carrying();
+  if (path === 'market' || path === 'scrap' || path === 'cargo') return carrying();
   if (path === 'guild') return state.guild ? carrying() : { kind: 'swing', dx: 0, face: -1 };   // sparring toward the instructor
   return null;
 }
@@ -165,7 +165,7 @@ function drawTown(t) {
   const camera = Math.round(cam0 * scale) / scale;
   const kl = laneZoom(info), kd = kl ? 0 : doorZoom(info), k = kl || kd, zoom = 1 + (kl ? 1.7 : 1.1) * k;
   // the lane mouth (or the hero at a door) slides toward the centre of the screen as we zoom into it
-  const fx = ((kl ? LifeSim.LANE.x : player) - camera) * scale, fy = (kl ? LifeSim.LANE.top + 20 : playerY - 70) * scale;
+  const fx = (player - camera) * scale, fy = (kl ? LifeSim.LANE.top + 20 : playerY - 70) * scale;
   const tx = fx + (c.width / 2 - fx) * k, ty = fy + (c.height * 0.55 - fy) * k;
   ctx.setTransform(scale * zoom, 0, 0, scale * zoom, tx - (fx + camera * scale) * zoom, ty - fy * zoom);
   TownPano.draw(ctx, camera, w, h, t, zone);

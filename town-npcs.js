@@ -19,7 +19,9 @@
     wagons: { cw: 480, ch: 320, base: 310, src: 281 },
     heroA: { ...B, src: 353 }, heroB: { ...B, src: 353 }, heroC: { ...B, src: 353 },
     kids: { ...B, src: 311 }, farmer: { ...B, src: 344 }, animals: { ...B, src: 265 },    // animals: src = the sitting cat
-    washer: { ...B, src: 348 }, thug: { ...B, src: 345 }, streetkid: { ...B, src: 340 }, granny: { ...B, src: 346 }
+    washer: { ...B, src: 348 }, thug: { ...B, src: 345 }, streetkid: { ...B, src: 340 }, granny: { ...B, src: 346 },
+    laborer: { ...B, src: 344 }, foreman: { ...B, src: 336 }, caravan: { ...B, src: 344 },
+    wagons2: { cw: 480, ch: 320, base: 310, src: 281 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -30,7 +32,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=79'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=87'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -43,6 +45,7 @@
     guard:  { row: 1, times: [2.2, .5, 1.6, 1.2] },  offer: { row: 1, times: [2.4, .4, 1.6, 1.0] },
     scrub:  { row: 1, times: [.35, .3, .35, .5] },   stir:  { row: 1, times: [.8, .7, .9, 1.6] },
     juggle: { row: 1, times: [.22, .22, .22, .22] }, knuckle: { row: 1, times: [1.8, .5, .35, 2.2] },
+    order:  { row: 1, times: [1.1, 1.6, 1.4, 1.8] }, haggle: { row: 1, times: [1.3, 1.0, .8, 1.5] },
     idle:   { row: 2, times: [1.6, .45, 1.3, .14] }
   });
 
@@ -132,6 +135,43 @@
       { x: 4250, y: ROAD + 12, until: H(15.6) },                                 // hay for the forge's horse
       { x: OFF, y: ROAD + 12, until: 20, hidden: true }] }
   ];
+  // ลานเกวียน (zone 'carts', outside the west gate): porters carry sacks from the carts up to the warehouse dock,
+  // the foreman calls the work, a caravan merchant haggles by his tents. Porters carry only toward the dock.
+  const CARTS_YARD = [
+    { id: 'porter1', name: 'กรรมกรลานเกวียน', sheet: 'laborer', height: HERO * 1.0, speed: 1300, stops: [
+      { x: 13283, y: DOOR, until: H(6.4), hidden: true },                      // sleeps over the stable
+      { x: 14080, y: 838, until: H(12), shuttle: { A: 150, speed: 520, oneWay: 1 } },
+      { x: 11715, y: 846, until: H(13), loop: 'idle' },                         // lunch by the caravan fire
+      { x: 14080, y: 838, until: H(17.5), shuttle: { A: 150, speed: 520, oneWay: 1 } },
+      { x: 13283, y: DOOR, until: 20, hidden: true }] },
+    { id: 'porter2', name: 'กรรมกรลานเกวียน', sheet: 'laborer', height: HERO * 0.97, speed: 1250, stops: [
+      { x: 13283, y: DOOR, until: H(6.8), hidden: true },
+      { x: 13560, y: 852, until: H(17.2), shuttle: { A: 190, speed: 480, oneWay: -1 } },   // from the caravan wagon to the stable store
+      { x: 13283, y: DOOR, until: 20, hidden: true }] },
+    { id: 'foreman', name: 'หัวหน้าคนงาน', sheet: 'foreman', height: HERO * 0.97, speed: 1100, stops: [
+      { x: 12545, y: DOOR, until: H(6.5), hidden: true },
+      { x: 13900, y: 826, until: H(11.5), loop: 'order', face: 1 },            // calling the work at the dock
+      { x: 12700, y: 818, until: H(14), loop: 'order', face: -1 },             // tallies by the office
+      { x: 13900, y: 826, until: H(17.6), loop: 'order', face: 1 },
+      { x: 12545, y: DOOR, until: 20, hidden: true }] },
+    { id: 'caravan', name: 'พ่อค้าคาราวาน', sheet: 'caravan', height: HERO * 1.0, speed: 1000, stops: [
+      { x: 11715, y: 820, until: H(7), loop: 'idle', face: 1 },
+      { x: 11960, y: 828, until: H(12), loop: 'haggle', face: -1 },            // selling at his spice tent
+      { x: 13760, y: 840, until: H(14.5), loop: 'haggle', face: 1 },           // bargaining with the foreman's men
+      { x: 11960, y: 828, until: H(19.5), loop: 'haggle', face: -1 },
+      { x: 11715, y: 820, until: 20, loop: 'idle', face: 1 }] },
+    // carts: the ox caravan rolls in from the country road in the morning; the mule cart comes and goes
+    { id: 'oxwagon', name: 'เกวียนคาราวาน', sheet: 'wagons2', vrow: 0, height: HERO * 1.4, speed: 1800, stops: [
+      { x: 10900, y: ROAD, until: H(6.6), hidden: true },
+      { x: 13480, y: ROAD, until: H(15.8) },                                    // unloading by the stable
+      { x: 10900, y: ROAD, until: 20, hidden: true }] },
+    { id: 'mulecart', name: 'เกวียนล่อขนลัง', sheet: 'wagons2', vrow: 1, height: HERO * 1.4 * 179 / 281, speed: 2200, stops: [
+      { x: 10900, y: ROAD + 14, until: H(8.4), hidden: true },
+      { x: 14330, y: ROAD + 14, until: H(11.8) },                               // crates for the warehouse
+      { x: 10900, y: ROAD + 14, until: H(13.2), hidden: true },
+      { x: 14330, y: ROAD + 14, until: H(16.6) },
+      { x: 10900, y: ROAD + 14, until: 20, hidden: true }] }
+  ];
   // Two guards walk the whole street day and night, one on each half.
   const PATROLS = Object.freeze([
     { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3200, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
@@ -177,7 +217,8 @@
   }
 
   for (const p of SLUM) p.zone = 'slum';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS);
+  for (const p of CARTS_YARD) p.zone = 'carts';
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;
@@ -196,8 +237,8 @@
         if (s.hidden) return { ...base, visible: false, x: s.x, y: s.y, phase: 'อยู่ข้างใน' };
         if (s.shuttle) {
           const q = shuttleAt(s.x, s.y, s.shuttle.A, s.shuttle.speed, start, Math.max(s.until, start), t);
-          const play = !!s.shuttle.play;
-          return { ...base, ...q, d: walked + q.d, sheet: s.shuttle.sheet || p.sheet, carrying: !play, run: play, working: !play, phase: play ? 'วิ่งเล่น' : 'ทำงาน' };
+          const play = !!s.shuttle.play, carry = s.shuttle.oneWay ? q.face === s.shuttle.oneWay : !play;
+          return { ...base, ...q, d: walked + q.d, sheet: s.shuttle.sheet || p.sheet, carrying: carry, run: play, working: !play, phase: play ? 'วิ่งเล่น' : 'ทำงาน' };
         }
         return { ...base, x: s.x, y: s.y, moving: false, face: s.face || 1, loop: s.loop || 'idle', working: !!s.loop, phase: 'ทำงาน' };
       }

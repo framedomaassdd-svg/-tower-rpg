@@ -11,13 +11,14 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
     market: { x: PX.market, y: 792, name: 'ตลาดขนมปัง' },
     guild:  { x: PX.guild, y: 792, name: 'ลานฝึกกิลด์' },
     slumyard: { x: PX.slumyard || 10014, y: 792, name: 'ลานฝึกตรอก' },
+    cargo:  { x: PX.cargo || 14050, y: 792, name: 'ลานเกวียน' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
     bench:  { x: PX.bench, y: 792, name: 'ม้านั่งในสวน' },
     tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
@@ -77,6 +78,8 @@
               desc: 'ซักผ้า ปูเตียง ถูพื้นในโรงแรม ค่าแรง 8 เหรียญ งานเบา และได้ส่วนลดค่าห้องครึ่งราคาทุกคืน' },
     kitchen:{ name: 'ผู้ช่วยครัว',         place: 'tavern', energy: 25, room: 'kitchen', act: 'ช่วยงานในครัว', minigame: true,
               desc: 'หั่นผักในครัวร้านอาหาร มีมินิเกมหั่นแครอท ค่าแรง 3 + ดาว (สูงสุด 12) ได้กินข้าวเย็นฟรีและอาหารติดมือ' },
+    cargo:  { name: 'กรรมกรลานเกวียน',    place: 'cargo',  energy: 35,
+              desc: 'ออกประตูเมืองไปแบกกระสอบลงจากเกวียนขึ้นโกดัง งานหนัก ค่าแรง 9 เหรียญ วันที่คาราวานพ่อค้าเข้าเมือง (ทุก 3 วัน) ได้เพิ่มอีก 4 เหรียญ และมีโอกาสกำลังเพิ่ม' },
     scrap:  { name: 'เก็บของเก่าในตรอก',  place: 'scrap',  energy: 25,
               desc: 'คัดของเก่าและเข็นของที่ลานท้ายตรอกล่าง ไม่ต้องสอบเข้า ค่าแรง 6 เหรียญ ทุก 4 วันจะเจอของดีขายให้ร้านรับซื้อได้อีก 5 เหรียญ' }
   });
@@ -120,22 +123,34 @@
   // ตรอกล่าง is its own scene, reached only through the alley at the east end of town: the hero walks up the
   // alley lane in town (camera zooms in), the scene cuts, and he walks down out of the lane on the slum side.
   const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1, slumyard: 1 };
-  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : 'town';
+  // v87: ลานเกวียน (outside the city) is a third scene, reached through the city gate: up the gate lane in town,
+  // out of the outer gate on the yard side. Between the slum and the yard the hero crosses town.
+  const CARTS_PLACES = { cargo: 1 };
+  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
+  const CROSS = Object.freeze({ slum: { town: LANE.x, other: LANE.x, act: 'เดินเข้าตรอกล่าง' },
+                                carts: { town: 328, other: 15046, act: 'ออกประตูเมืองไปลานเกวียน' } });
   function route(t0, from, to, act) {
     const za = zoneOf(from), zb = zoneOf(to);
     if (za === zb) return [Object.assign(walk(t0, from, to, act), { zone: za })];
-    const a = PLACES[from], b = PLACES[to];
+    const a = PLACES[from], b = PLACES[to], segs = [];
     const leg = (t, x0, x1, zone) => ({ kind: 'walk', t0: t, t1: t + Math.abs(x1 - x0) / SPEED, x0, x1, y: STREET_Y, place: to, act, zone });
-    const s1 = leg(t0, a.x, LANE.x, za);
-    const into = { kind: 'lane', lane: 'in', t0: s1.t1, t1: s1.t1 + LANE.dur, x0: LANE.x, x1: LANE.x, y: STREET_Y, y1: LANE.top,
-      place: to, act: zb === 'slum' ? 'เดินเข้าตรอกล่าง' : 'เดินกลับเข้าเมือง', zone: za };
-    const out = { kind: 'lane', lane: 'out', t0: into.t1, t1: into.t1 + LANE.dur, x0: LANE.x, x1: LANE.x, y: LANE.top, y1: STREET_Y,
-      place: to, act: into.act, zone: zb };
-    return [s1, into, out, leg(out.t1, LANE.x, b.x, zb)];
+    const hops = [za, 'town', zb].filter((z, i, l) => i === 0 || z !== l[i - 1]);
+    let x = a.x, t = t0;
+    for (let i = 1; i < hops.length; i++) {
+      const p = hops[i - 1], q = hops[i], c = CROSS[p === 'town' ? q : p];
+      const px = p === 'town' ? c.town : c.other, qx = q === 'town' ? c.town : c.other;
+      const say = q === 'town' ? 'เดินกลับเข้าเมือง' : c.act;
+      const w = leg(t, x, px, p); segs.push(w);
+      const into = { kind: 'lane', lane: 'in', t0: w.t1, t1: w.t1 + LANE.dur, x0: px, x1: px, y: STREET_Y, y1: LANE.top, place: to, act: say, zone: p };
+      const out = { kind: 'lane', lane: 'out', t0: into.t1, t1: into.t1 + LANE.dur, x0: qx, x1: qx, y: LANE.top, y1: STREET_Y, place: to, act: say, zone: q };
+      segs.push(into, out); x = qx; t = out.t1;
+    }
+    segs.push(leg(t, x, b.x, zb));
+    return segs;
   }
   const end = segs => segs[segs.length - 1];
-  const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานฝึกกิลด์', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
+  const WORK_ACT = { cargo: 'แบกกระสอบขึ้นโกดังที่ลานเกวียน', smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานฝึกกิลด์', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
   // Dinner: the restaurant, or the soup kitchen when there is no money for a meal. Fixed once dinner has happened.
   function dinnerPrice(st) { return st.life.path === 'kitchen' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
   function dinnerPlace(st) {
@@ -283,6 +298,14 @@
       const w = payWork(st, tired ? 7 : 14, core, false);
       st.supplies = Math.min(30, (st.supplies || 0) + 2); st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
       return say(st, 'ขนเสบียงให้กิลด์ ได้ ' + w + ' เหรียญ · เสบียงเมือง +2');
+    }
+    if (L.path === 'cargo') {
+      const caravan = st.day % 3 === 0;
+      const w = payWork(st, (tired ? 5 : 9) + (caravan && !tired ? 4 : 0), core, true);
+      st.cargoWork = (st.cargoWork || 0) + 1; st.rep = (st.rep || 0) + 1;
+      if (!tired && st.cargoWork % 4 === 0 && st.strength < 12) st.strength++;
+      return say(st, (tired ? 'เหนื่อยจนแบกได้ครึ่งวัน ' : '') + (caravan ? 'คาราวานเข้าเมือง ของเยอะ! ' : '') + 'แบกกระสอบที่ลานเกวียน ได้ ' + w + ' เหรียญ'
+        + (!tired && st.cargoWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : ''));
     }
     if (L.path === 'hotel') {
       const w = payWork(st, tired ? 4 : 8, core, true);
@@ -474,6 +497,34 @@
         { label: 'ขอตัวก่อน วันนี้เหนื่อย', odds: () => 'ไม่มีผล',
           resolve() { return 'เธอพยักหน้าเข้าใจ แล้วแบกตะกร้าขึ้นบันไดไปช้า ๆ'; } }
       ]
+    },
+    // v87 ลานเกวียน
+    foreman_rush: {
+      title: 'เกวียนมาเกินคิว', speaker: 'หัวหน้าคนงาน', portrait: 'foreman', faces: [2, 3, 0],
+      lines: ['เฮ้ย! คาราวานมาก่อนเวลาสองคัน ของเต็มลานแล้ว!', 'ถ้าขนขึ้นโกดังไม่ทันก่อนค่ำ ฝนตกมาแป้งเสียหมดแน่',
+        'ใครอยู่ช่วยต่ออีกชั่วโมง ข้าจ่ายเพิ่มให้ ว่าไง ไอ้หนุ่มต่างโลก?'],
+      choices: [
+        { label: 'อยู่ช่วยต่อ', odds: st => 'แรง −15 · เงิน +5' + (st.energy < 25 ? ' (เหนื่อยมากแล้ว สุขภาพอาจลด)' : ''),
+          resolve(st) { const worn = st.energy < 25; st.energy = Math.max(0, st.energy - 15); st.money += 5; st.rep = (st.rep || 0) + 1;
+            if (worn) st.health = Math.max(1, st.health - 6);
+            return 'แบกจนไหล่ระบม แต่ของขึ้นโกดังทันก่อนฝน หัวหน้าตบไหล่แล้วยัดเหรียญใส่มือ (เงิน +5 · แรง −15' + (worn ? ' · สุขภาพ −6' : '') + ')'; } },
+        { label: 'ขอตัวกลับก่อน', odds: () => 'ไม่มีผล',
+          resolve() { return 'หัวหน้าบ่นอุบอิบ แล้วเป่านกหวีดเรียกคนอื่นแทน'; } }
+      ]
+    },
+    caravan_offer: {
+      title: 'เครื่องเทศจากแดนไกล', speaker: 'พ่อค้าคาราวาน', portrait: 'caravan', faces: [1, 0, 2],
+      lines: ['สหาย! เจ้าแบกกระสอบของข้าอย่างระวังทุกใบ ข้าเห็นนะ', 'ข้าเดินทางผ่านมาแล้วสิบเมือง ไม่มีที่ไหนมีหอคอยแบบนี้เลย',
+        'นี่ ซองเครื่องเทศจากทะเลทรายของข้า ต้มน้ำดื่มแล้วหายเหนื่อย ขายให้เจ้าราคาเพื่อน แค่ 3 เหรียญ'],
+      choices: [
+        { label: 'ซื้อ 3 เหรียญ', available: st => st.money >= 3, odds: () => 'เงิน −3 · แรง +25 · สุขภาพ +5',
+          resolve(st) { st.money -= 3; st.energy = Math.min(100, st.energy + 25); st.health = Math.min(100, st.health + 5);
+            return 'กลิ่นหอมแปลก ๆ อุ่นถึงท้อง ความเหนื่อยหายไปครึ่งหนึ่ง (แรง +25 · สุขภาพ +5)'; } },
+        { label: 'ถามเรื่องเมืองอื่น', odds: () => 'ปัญญา +1',
+          resolve(st) { if (st.intelligence < 12) st.intelligence++; return 'เขาเล่าเรื่องเมืองทราย ตลาดลอยน้ำ และหอคอยที่พังไปแล้วในแดนตะวันออก (ปัญญา +1)'; } },
+        { label: 'ไม่เป็นไร ขอบคุณ', odds: () => 'ไม่มีผล',
+          resolve() { return 'เขาหัวเราะเสียงดัง "ไว้คราวหน้านะสหาย!"'; } }
+      ]
     }
   };
   function tollOdds(st) { return clamp(0.15 + 0.04 * (st.strength + st.agility) + 0.03 * Math.min(10, st.rep || 0) + (st.life.slumFriend ? 0.15 : 0), 0.1, 0.9); }
@@ -487,6 +538,10 @@
     const L = st.life, r = typeof rng === 'function' ? rng : Math.random;
     if (!L.seen.includes('first_night')) return 'first_night';
     if (st.danger >= 3 && st.day - L.lastEventDay >= 2 && r() < 0.45) return 'alarm';
+    if (L.path === 'cargo' && L.workedDay === st.day && st.day - L.lastEventDay >= 2) {
+      const yard = ['foreman_rush', 'caravan_offer'].filter(k => !L.seen.includes(k) || k === 'foreman_rush');
+      if (yard.length && r() < 0.45) return yard[Math.floor(r() * yard.length) % yard.length];
+    }
     if (!slumToday(st)) return null;
     if (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup' && !L.seen.includes('soup_granny')) return 'soup_granny';
     if (st.day - L.lastEventDay < 2) return null;

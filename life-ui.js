@@ -76,7 +76,7 @@
   const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33];
   // Visual-novel busts: face_<who>.webp holds 4 expressions side by side — 0 neutral · 1 smile · 2 surprised · 3 worried.
   const FACE_OF = { merchant: 'mali', worker: 'thana' }, faces = {};
-  function faceImage(who) { who = FACE_OF[who] || who; if (!faces[who]) { faces[who] = new Image(); faces[who].src = 'face_' + who + '.webp?v=74'; } return faces[who]; }
+  function faceImage(who) { who = FACE_OF[who] || who; if (!faces[who]) { faces[who] = new Image(); faces[who].src = 'face_' + who + '.webp?v=87'; } return faces[who]; }
   // Draws expression `n` to fill the canvas: crops the sides of wide busts, or the bottom of tall ones.
   function drawFace(cv, who, n) {
     const im = faceImage(who);
