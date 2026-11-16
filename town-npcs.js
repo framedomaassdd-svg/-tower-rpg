@@ -1,4 +1,4 @@
-/* v74 townsfolk and the hero's work poses, drawn from frame sprite sheets (same style as the hero).
+/* v75 townsfolk and the hero's work poses, drawn from frame sprite sheets (same style as the hero).
    Sheet npc5_<id>.webp: 4 columns × 3 rows; row 0 walk (side view, facing right) · row 1 work · row 2 idle (front).
    Everyone's position is a pure function of the town clock (0–20 = one day, 5 = 06:00), so the street is right after
    a reload or a time-speed change. Leg frames follow distance walked, so feet never slide.
@@ -46,56 +46,56 @@
   // carry on a stop: they carry their load (row 1) while walking TO it.
   const PEOPLE = Object.freeze([
     { id: 'smith', name: 'ช่างตีเหล็ก', sheet: 'smith', height: HERO * 1.03, speed: 1500, stops: [
-      { x: wx(3770), y: DOOR, until: H(6.4), hidden: true },
-      { x: wx(2640), y: 836, until: H(18), loop: 'hammer', face: 1 },
-      { x: wx(3770), y: DOOR, until: 20, hidden: true }] },
+      { x: 6162, y: DOOR, until: H(6.4), hidden: true },                         // east house
+      { x: 4415, y: 800, until: H(18), loop: 'hammer', face: 1 },               // left of the anvil
+      { x: 6162, y: DOOR, until: 20, hidden: true }] },
     { id: 'clerk', name: 'เสมียนกิลด์', sheet: 'elder', height: HERO * 0.92, speed: 1450, stops: [
-      { x: wx(3172), y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
-      { x: wx(1395), y: 826, until: H(16.8), loop: 'write', face: -1 },
-      { x: wx(3172), y: DOOR, until: 20, hidden: true }] },
+      { x: 5543, y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
+      { x: 2706, y: 826, until: H(16.8), loop: 'write', face: -1 },            // right of the arch
+      { x: 5543, y: DOOR, until: 20, hidden: true }] },
     { id: 'chef', name: 'พ่อครัว', sheet: 'chef', height: HERO * 1.12, speed: 1450, stops: [
-      { x: wx(960), y: DOOR, until: H(6.0), hidden: true },
-      { x: wx(1790), y: 842, until: H(7.3), loop: 'idle' },                       // picking vegetables at the market
-      { x: wx(560), y: DOOR, until: H(21.6), hidden: true, carry: true },          // carries the crate back, cooks all day
-      { x: wx(960), y: DOOR, until: 20, hidden: true }] },
+      { x: 1557, y: DOOR, until: H(5.4), hidden: true },
+      { x: 3445, y: 842, until: H(7.6), loop: 'idle' },                       // picking vegetables at the market
+      { x: 897, y: DOOR, until: H(21.6), hidden: true, carry: true },          // carries the crate back, cooks all day
+      { x: 1557, y: DOOR, until: 20, hidden: true }] },
     { id: 'innkeeper', name: 'เจ้าของโรงแรม', sheet: 'innkeeper', height: HERO * 0.95, speed: 1100, stops: [
-      { x: wx(3172), y: DOOR, until: H(6.6), hidden: true },
-      { x: wx(3235), y: 818, until: H(8.2), loop: 'sweep', face: 1 },
-      { x: wx(3172), y: DOOR, until: H(15.4), hidden: true },
-      { x: wx(3110), y: 818, until: H(16.6), loop: 'sweep', face: -1 },
-      { x: wx(3172), y: DOOR, until: 20, hidden: true }] },
+      { x: 5543, y: DOOR, until: H(6.6), hidden: true },
+      { x: 5650, y: 818, until: H(8.2), loop: 'sweep', face: 1 },
+      { x: 5543, y: DOOR, until: H(15.4), hidden: true },
+      { x: 5440, y: 818, until: H(16.6), loop: 'sweep', face: -1 },
+      { x: 5543, y: DOOR, until: 20, hidden: true }] },
     { id: 'apothecary', name: 'หมอยา', sheet: 'apothecary', height: HERO * 0.93, speed: 1450, stops: [
-      { x: wx(3900), y: DOOR, until: H(7.2), hidden: true },
-      { x: wx(2985), y: 822, until: H(17.5), loop: 'grind', face: -1 },
-      { x: wx(3900), y: DOOR, until: 20, hidden: true }] },
+      { x: 4803, y: DOOR, until: H(7.6), hidden: true },                         // lives above the shop
+      { x: 4935, y: 822, until: H(17.5), loop: 'grind', face: -1 },
+      { x: 4803, y: DOOR, until: 20, hidden: true }] },
     { id: 'instructor', name: 'ครูฝึกกิลด์', sheet: 'instructor', height: HERO * 1.0, speed: 1500, stops: [
-      { x: wx(1255), y: 690, until: H(6.3), hidden: true },                       // comes down the tower steps
-      { x: wx(1185), y: 838, until: H(16), loop: 'swing', face: 1 },
-      { x: wx(1255), y: 690, until: 20, hidden: true }] },
+      { x: 2501, y: 690, until: H(6.3), hidden: true },                       // comes down the tower steps
+      { x: 2296, y: 838, until: H(16), loop: 'swing', face: 1 },
+      { x: 2501, y: 690, until: 20, hidden: true }] },
     { id: 'summoned', name: 'ผู้ถูกอัญเชิญอีกคน', sheet: 'summoned', height: HERO * 1.0, speed: 1500, stops: [
-      { x: wx(3172), y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
-      { x: wx(1545), y: 832, until: H(8.2), loop: 'phone', face: 1 },             // still trying his phone by the well
-      { x: wx(1960), y: 832, until: H(15.4), shuttle: { A: 80, speed: 760, sheet: 'summoned_work' } },
-      { x: wx(1450), y: 834, until: H(17.2), loop: 'phone', face: -1 },
-      { x: wx(3172), y: DOOR, until: 20, hidden: true }] }
+      { x: 5543, y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
+      { x: 2930, y: 832, until: H(8.4), loop: 'phone', face: 1 },             // still trying his phone by the well
+      { x: 3300, y: 832, until: H(15.4), shuttle: { A: 80, speed: 760, sheet: 'summoned_work' } },
+      { x: 2640, y: 834, until: H(17.2), loop: 'phone', face: -1 },
+      { x: 5543, y: DOOR, until: 20, hidden: true }] }
   ]);
   // A farm woman walks in through the west gate and sells apples by the well; two kids play tag (their dog trails them).
   const MORE = [
     { id: 'farmer', name: 'แม่ค้าผลไม้', sheet: 'farmer', height: HERO * 0.93, speed: 1300, stops: [
-      { x: 40, y: 840, until: H(6.9), hidden: true },
-      { x: wx(1655), y: 846, until: H(15.2), loop: 'offer', face: 1 },
-      { x: 40, y: 840, until: 20, hidden: true }] },
-    { id: 'kids', name: 'เด็ก ๆ', sheet: 'kids', height: HERO * 0.74, speed: 1000, stops: [
-      { x: wx(1090), y: DOOR, until: H(8), hidden: true },
-      { x: wx(2250), y: 856, until: H(11.5), shuttle: { A: 150, speed: 1500, play: true } },
-      { x: wx(1090), y: DOOR, until: H(13), hidden: true },
-      { x: wx(1720), y: 858, until: H(17.2), shuttle: { A: 130, speed: 1500, play: true } },
-      { x: wx(1090), y: DOOR, until: 20, hidden: true }] }
+      { x: 328, y: 770, until: H(6.9), hidden: true },                           // through the city gate
+      { x: 3075, y: 846, until: H(15.2), loop: 'offer', face: 1 },
+      { x: 328, y: 770, until: 20, hidden: true }] },
+    { id: 'kids', name: 'เด็ก ๆ', sheet: 'kids', height: HERO * 0.74, speed: 1400, stops: [
+      { x: 2005, y: DOOR, until: H(8), hidden: true },
+      { x: 2960, y: 858, until: H(11.5), shuttle: { A: 130, speed: 1500, play: true } },
+      { x: 2005, y: DOOR, until: H(13), hidden: true },
+      { x: 3900, y: 856, until: H(17.2), shuttle: { A: 150, speed: 1500, play: true } },
+      { x: 2005, y: DOOR, until: 20, hidden: true }] }
   ];
   // Two guards walk the whole street day and night, one on each half.
   const PATROLS = Object.freeze([
-    { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 2950, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
-    { id: 'guard2', name: 'ทหารยาม', sheet: 'guard2', height: HERO * 1.0, from: 3000, to: 6150, y: 832, speed: 650, offset: 4.2, rest: 0.45 }
+    { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3200, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
+    { id: 'guard2', name: 'ทหารยาม', sheet: 'guard2', height: HERO * 1.0, from: 3260, to: 6300, y: 832, speed: 650, offset: 4.2, rest: 0.45 }
   ]);
   // Existing residents (town-residents.js) → sheet, size, and the stretch they carry sacks along at work.
   const RESIDENT_LOOK = Object.freeze({
@@ -188,11 +188,11 @@
   }
 
   // ---- animals (one sheet: row 0 cat · row 1 dog walk · row 2 pigeons) ----
-  const PIGEONS = [-70, 15, 80].map((dx, i) => ({ id: 'pigeon' + i, x: wx(1545) + dx, y: 852 + i * 6 }));
+  const PIGEONS = [-70, 15, 80].map((dx, i) => ({ id: 'pigeon' + i, x: 2975 + dx, y: 852 + i * 6 }));
   function cat(clock) {
     const h = finiteClock(clock) * 1.2, night = h < 6 || h >= 21;
     const col = night ? 2 : [0, 1, 0, 2, 2, 3][Math.floor(finiteClock(clock) * 4) % 6];      // sit · lick · sit · nap · nap · stretch
-    return { id: 'cat', name: 'แมว', sheet: 'animals', height: HERO * 0.32, visible: true, x: wx(3302), y: 808, face: -1, still: [0, col] };
+    return { id: 'cat', name: 'แมว', sheet: 'animals', height: HERO * 0.32, visible: true, x: 5870, y: 808, face: -1, still: [0, col] };
   }
   function dog(clock) {
     // trails the kids along their own path, a moment behind them

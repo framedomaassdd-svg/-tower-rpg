@@ -11,7 +11,7 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 731, guild: 1872, market: 2581, smith: 4110, inn: 4732, bench: 6022 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 6330 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },

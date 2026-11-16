@@ -1,44 +1,56 @@
-/* v72 painted town (Phase 5 layers). The same street painting as v70, split into depth layers so the
-   distance moves slower than the street: sky · clouds (slow drift) · mountains · aqueduct · forest, then the tower,
-   three background fill pieces, the buildings and the road. One night-glow overlay (lit windows, lamps, forge).
-   Layer images are 4344 px wide in painting space, the same space as v70, so every place below is unchanged.
-   World space: 1 image px = S world px, the painting fills the 1080-high reference frame, the kerb sits at y ≈ 798. */
+/* v75 town built from separate pieces (same art style as the characters):
+   sky (tiles sideways, slow parallax) · the tower (parallax, seen through the arch) · one image per building ·
+   a tiling street (sidewalk + kerb + cobbles). Every building was scaled by its door so doors are ≈ 1.3× the hero.
+   Night: each building has a matching glow image (lit windows, lamps, the forge fire), added with 'screen'.
+   World space is unchanged: 6480 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=72';
-  const HALF_W = 2172, IMG_H = 724, S = 1080 / IMG_H;
-  const WORLD_W = Math.round(2 * HALF_W * S);              // 6480
-  const wx = imageX => Math.round(imageX * S);              // painting x → world x
+  const V = '?v=75';
+  const WORLD_W = 6480, BASE = 794;
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
-  const IMG_W = 2 * HALF_W;
-  const L = n => load('town5_' + n + '.webp');
-  const art = { sky: L('sky'), clouds: L('clouds'), mountains: L('mountains'), aqueduct: L('aqueduct'), forest: L('forest'),
-    tower: L('tower'), westGate: L('westGate'), arch: L('arch'), eastAlley: L('eastAlley'), buildings: L('buildings'), road: L('road'), glow: L('glow') };
-  const ok = i => !!i && i.complete && i.naturalWidth > 0;
-  const ready = () => ok(art.buildings) && ok(art.road);
-  // Distant layers: painting-space y, parallax rate (1 = moves with the street). Clouds also sway slowly.
-  const DISTANCE = [
-    { id: 'sky', y: 0, rate: 0.14 }, { id: 'clouds', y: 0, rate: 0.18, sway: 140 },
-    { id: 'mountains', y: 125, rate: 0.37 }, { id: 'aqueduct', y: 204, rate: 0.49 }, { id: 'forest', y: 267, rate: 0.68 }
-  ];
-  const FILL = [{ id: 'tower', x: 720, y: 0 }, { id: 'westGate', x: 6, y: 277 }, { id: 'arch', x: 1193, y: 325 }, { id: 'eastAlley', x: 3806, y: 348 }];
 
-  // ---- where things are (painting x → world x)
-  const GATE = [35, 200];                                   // city gate lane at the west end
-  const ARCH = [wx(1180), wx(1330)];                        // steps up to the tower
-  const PLACES = Object.freeze({
-    tavern: wx(490),      // restaurant terrace
-    guild:  wx(1255),     // plaza in front of the tower arch
-    market: wx(1730),     // bakery stall beside the well
-    smith:  wx(2755),     // just right of the anvil
-    inn:    wx(3172),     // inn door
-    bench:  wx(4037)      // street bench near the east houses
+  // id, image, left x, top y, width, height (world px); flip = mirrored copy of another building
+  const BUILDINGS = Object.freeze([
+    { id: 'gate', x: -8, y: 338, w: 673, h: 456 },
+    { id: 'tavern', x: 669, y: 371, w: 579, h: 423 },
+    { id: 'houseB', x: 1252, y: 376, w: 468, h: 418 },
+    { id: 'houseA', x: 1723, y: 346, w: 422, h: 448 },
+    { id: 'arch', x: 2149, y: 342, w: 702, h: 452 },
+    { id: 'well', x: 2855, y: 567, w: 239, h: 227 },
+    { id: 'bakery', x: 3098, y: 333, w: 590, h: 461 },
+    { id: 'garden', x: 3693, y: 513, w: 434, h: 281 },
+    { id: 'forge', x: 4130, y: 386, w: 558, h: 408 },
+    { id: 'apothecary', x: 4692, y: 415, w: 418, h: 379 },
+    { id: 'inn', x: 5114, y: 167, w: 904, h: 627 },
+    { id: 'houseE', img: 'houseA', flip: true, x: 6021, y: 346, w: 422, h: 448 }
+  ]);
+  const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp') };
+  for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
+  const ok = i => !!i && i.complete && i.naturalWidth > 0;
+  const ready = () => ok(art.road) && ok(art.inn);
+
+  // Doors and spots other scripts use (world x)
+  const SPOTS = Object.freeze({
+    gateDoor: 328, tavernDoor: 897, terrace: 1115, houseB: 1557, houseA: 2005,
+    stairs: 2501, plazaLeft: 2296, plazaRight: 2706, well: 2975, bakeryDoor: 3236, stall: 3445,
+    gardenBench: 3886, anvil: 4488, forgeFire: 4367, apothecaryDoor: 4803, apothecaryWindow: 4935,
+    innDoor: 5543, innCafe: 5818, houseE: 6162
   });
-  const BENCH_SEAT = 52;                                    // seat height above the foot line, world px
+  const GATE = [240, 420];                                   // the lane up through the city gate
+  const ARCH = [2380, 2620];                                 // the steps up toward the tower
+  const PLACES = Object.freeze({
+    tavern: SPOTS.tavernDoor,
+    guild:  SPOTS.stairs,                                    // training plate in front of the arch
+    market: SPOTS.stall,
+    smith:  4562,                                            // just right of the anvil
+    inn:    SPOTS.innDoor,
+    bench:  6330                                             // street bench past the last house
+  });
+  const BENCH_SEAT = 52;
   const NAMES = [
-    [wx(150), 'ประตูเมือง'], [wx(680), 'ร้านอาหาร'], [wx(1070), 'ย่านที่พัก'], [wx(1440), 'ลานหน้าหอคอย'], [wx(1640), 'บ่อน้ำกลางเมือง'],
-    [wx(2000), 'ตลาดขนมปัง'], [wx(2400), 'สวนริมทาง'], [wx(2860), 'โรงตีเหล็ก'], [wx(3090), 'ร้านยา'], [wx(3580), 'โรงแรม'], [Infinity, 'ย่านที่พักตะวันออก']
+    [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2150, 'ย่านที่พัก'], [2855, 'ลานหน้าหอคอย'], [3098, 'บ่อน้ำกลางเมือง'],
+    [3690, 'ตลาดขนมปัง'], [4130, 'สวนริมทาง'], [4690, 'โรงตีเหล็ก'], [5110, 'ร้านยา'], [6020, 'โรงแรม'], [Infinity, 'ย่านที่พักตะวันออก']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
@@ -52,30 +64,37 @@
     return Math.max(0.62, Math.min(1, 0.62 + (y - 650) / 115 * 0.38));
   }
 
-  // ---- drawing
-  // A distant layer is a window into a wider-than-needed strip: crop it so it slides at `rate` around the town centre.
-  // The crop is clamped to the painted edges, so no mirrored or empty sky is ever shown.
-  function distant(ctx, layer, camera, w, t) {
-    const im = art[layer.id]; if (!ok(im)) return;
-    const cam = camera / S, view = Math.min(w / S, IMG_W);
-    const anchor = Math.max(0, HALF_W - view / 2), cap = Math.max(0, im.naturalWidth - view);
-    const sway = layer.sway ? layer.sway * Math.sin(t * 0.00001) : 0;          // ~10 min there and back
-    const sx = Math.max(0, Math.min(cap, anchor + (cam - anchor) * layer.rate + sway));
-    ctx.drawImage(im, sx, 0, view, im.naturalHeight, cam * S, layer.y * S, view * S, im.naturalHeight * S);
+  // ---- drawing (ctx is already in world space; camera = left edge of the view, w = view width)
+  // Street: image rows from ROAD_ROW down (two slab rows, the kerb, cobbles), tiled sideways.
+  const ROAD_ROW = 70, ROAD_Y = 786, ROAD_S = 0.31;
+  function tiled(ctx, im, sx, sy, sh, x0, y, s, camera, w, rate) {
+    const tw = im.naturalWidth * s, off = camera * (1 - rate);
+    let x = off + Math.floor((camera - off) / tw) * tw;
+    for (; x < camera + w; x += tw) ctx.drawImage(im, sx, sy, im.naturalWidth, sh, x - 0.5, y, tw + 1, sh * s);
   }
-  function part(ctx, im, x, y, camera, w) {
-    if (!ok(im)) return;
-    const X = x * S, W = im.naturalWidth * S;
-    if (X + W < camera || X > camera + w) return;
-    ctx.drawImage(im, X, y * S, W, im.naturalHeight * S);
+  // Sky: whole image, 1 px = 1 world px, its bottom (a row of treetops) at y 830, drifting at 30% of the camera.
+  const SKY_BOTTOM = 830, SKY_RATE = 0.3;
+  // Tower: anchored behind the arch steps; moves a little slower than the street.
+  const TOWER = { x: SPOTS.stairs, base: 626, h: 635, rate: 0.85 };
+  function tower(ctx, camera, w) {
+    const im = art.tower; if (!ok(im)) return;
+    const tw = TOWER.h * im.naturalWidth / im.naturalHeight, mid = camera + w / 2;
+    const x = TOWER.x + (mid - TOWER.x) * (1 - TOWER.rate) - tw / 2;
+    if (x > camera + w || x + tw < camera) return;
+    ctx.drawImage(im, x, TOWER.base - TOWER.h, tw, TOWER.h);
   }
-  const SMOKE = [[wx(300), 250], [wx(2522), 300], [wx(3205), 150], [wx(1920), 320]];
+  function building(ctx, b, im, camera, w) {
+    if (!ok(im) || b.x > camera + w || b.x + b.w < camera) return;
+    if (b.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
+    else ctx.drawImage(im, b.x, b.y, b.w, b.h);
+  }
+  const SMOKE = [[746, 385], [1631, 379], [2091, 349], [3586, 351], [4581, 390], [5219, 188], [4760, 427], [6076, 349]];
   function draw(ctx, camera, w, h, t) {
-    ctx.fillStyle = '#3f6fc0'; ctx.fillRect(camera, 0, w, h);
-    for (const layer of DISTANCE) distant(ctx, layer, camera, w, t);
-    for (const f of FILL) part(ctx, art[f.id], f.x, f.y, camera, w);
-    part(ctx, art.buildings, 0, 0, camera, w);
-    part(ctx, art.road, 0, 547, camera, w);
+    ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
+    if (ok(art.sky)) tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
+    tower(ctx, camera, w);
+    if (ok(art.road)) tiled(ctx, art.road, 0, ROAD_ROW, art.road.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
+    for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w);
     ctx.save();
     for (const [x, y] of SMOKE) {
       if (x < camera - 120 || x > camera + w + 120) continue;
@@ -89,11 +108,15 @@
   }
   // lit windows and lamps; call after the day/night tint. `amount` is 0–1 (CityLighting.sample(clock).lamps)
   function drawNight(ctx, camera, w, amount, t) {
-    if (amount <= 0.01 || !ok(art.glow)) return;
+    if (amount <= 0.01) return;
     ctx.save(); ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = Math.min(1, amount) * (0.94 + 0.06 * Math.sin(t * 0.004));  // faint flicker
-    part(ctx, art.glow, 0, 0, camera, w);
+    for (let pass = 0; pass < 2; pass++) {                   // two passes: lit windows read clearly through the night tint
+      for (const b of BUILDINGS) building(ctx, b, art['glow_' + (b.img || b.id)], camera, w);
+      ctx.globalAlpha *= 0.7;
+    }
     ctx.restore();
   }
-  root.TownPano = { art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, BENCH_SEAT, WORLD_W, GATE, ARCH, S, wx };
+  const S = 1080 / 724, wx = x => Math.round(x * S);       // kept for older callers
+  root.TownPano = { art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
