@@ -108,7 +108,8 @@
     if (!ok(im) || b.x > camera + w || b.x + b.w < camera) return;
     if (b.sway && t !== undefined) {                     // upper part drawn in strips, bent a little more toward the top
       const S = b.sway, N = 24, cut = S.top, iw = im.naturalWidth, ih = im.naturalHeight;
-      const gust = Math.sin(t * 0.0011) * 0.7 + Math.sin(t * 0.0029 + 1.3) * 0.3;
+      const wv = root.Ambient ? root.Ambient.wind(t) : 0.5;               // stronger sway when the wind gusts
+      const gust = (Math.sin(t * 0.0011) * 0.7 + Math.sin(t * 0.0029 + 1.3) * 0.3) * (0.5 + wv * 1.3);
       for (let i = 0; i < N; i++) {
         const f0 = cut * i / N, f1 = cut * (i + 1) / N, k = 1 - (f0 + f1) / 2 / cut;
         const dx = S.amp * gust * k * k;
@@ -128,10 +129,12 @@
       // backdrop smaller and hazed so its rooftops read as far away behind the real shacks
       ctx.fillStyle = '#9fb8dc'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
       if (ok(art.slumBg)) tiled(ctx, art.slumBg, 0, 0, art.slumBg.naturalHeight, 0, SKY_BOTTOM - art.slumBg.naturalHeight * 0.82, 0.82, camera, w, SKY_RATE);
+      if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t, 0.8);
       ctx.fillStyle = 'rgba(246,224,196,0.42)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
       if (ok(art.slumRoad)) road(art.slumRoad);
     } else {
       if (ok(art.sky)) tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
+      if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t);
       tower(ctx, camera, w);
       if (ok(art.road)) road(art.road);
     }

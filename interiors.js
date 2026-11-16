@@ -29,9 +29,12 @@
                   props: [{ id: 'cauldron', x: 693, foot: 742, w: 0.46 * 0.82 / 0.88, fire: true, front: true }] },
     // v85 training yards: the guild's (behind the tower arch) and the alley one (through the scrap yard)
     yard:       { file: 'int_yard',       name: 'ลานฝึกกิลด์', k: 1.0, work: { kind: 'swing', x: 820, face: -1 },
-                  npcs: [{ sheet: 'instructor', x: 400, loop: 'swing', face: 1, h: 1.0 }] },
+                  npcs: [{ sheet: 'instructor', x: 400, loop: 'swing', face: 1, h: 1.0 }],
+                  ambient: { leaves: [{ x0: 0, x1: 480, y0: 20, y1: 200, gy: 860, petals: 0.3 }, { x0: 430, x1: 1600, y0: 110, y1: 160, gy: 860, petals: 1 }],
+                             flowers: [[505, 200, 0], [1570, 200, 1], [770, 600, 1]] } },
     slumyard:   { file: 'int_slumyard',   name: 'ลานฝึกตรอก', k: 1.0, work: { kind: 'swing', x: 1060, face: 1 },
-                  npcs: [{ sheet: 'thug', x: 460, loop: 'knuckle', face: 1, h: 1.04 }, { sheet: 'streetkid', x: 250, loop: 'juggle', face: 1, h: 0.72 }] },
+                  npcs: [{ sheet: 'thug', x: 460, loop: 'knuckle', face: 1, h: 1.04 }, { sheet: 'streetkid', x: 250, loop: 'juggle', face: 1, h: 0.72 }],
+                  ambient: { leaves: [{ x0: 0, x1: 380, y0: 10, y1: 130, gy: 860, petals: 0 }], flowers: [[900, 560, 0]] } },
     tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };
@@ -212,6 +215,10 @@
     }
 
     prop(true);
+    if (sc.ambient && root.Ambient) {                            // outdoor yards: leaves on the wind, butterflies by the flowers
+      for (const a of sc.ambient.leaves || []) root.Ambient.flurry(ctx, a, camX, vw, t, 10, 60);
+      (sc.ambient.flowers || []).forEach(([x, y, k], i) => root.Ambient.butterfly(ctx, x, y, 80, k, t, i + 4));
+    }
     // light: evening warmth, and a dark room while asleep
     let lamps = 0, tint = null;
     try { const l = root.CityLighting.sample(clock); lamps = l.lamps; tint = l; } catch (e) {}

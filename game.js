@@ -176,6 +176,7 @@ function drawTown(t) {
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   actors.sort((a, b) => a.y - b.y);
   for (const a of actors) a.draw();
+  if (window.Ambient) Ambient.street(ctx, camera, w, t, zone, 1 - CityLighting.sample(clock).lamps);   // leaves, petals, butterflies
   CityLighting.draw(ctx, camera, w, h, clock, { lights: [] });       // day/night tint over street and people
   const lamps = CityLighting.sample(clock).lamps;
   if (lamps > 0.01) {                                                 // the painting is very bright, so nights need a second, deeper pass
