@@ -222,6 +222,7 @@
       else if (k === 'dinner') { LifeSim.applyDinner(state, CityCore); const ev = LifeSim.pickEvent(state); update(); if (ev) { event(ev); return; } }
       else if (k === 'home') LifeSim.applyHome(state);
       else if (k === 'rest') LifeSim.applyRest(state);
+      else if (k === 'errand') LifeSim.applyErrand(state);
       update();
     }
   }

@@ -21,8 +21,21 @@
     bench:  { x: PX.bench, y: 792, name: 'ม้านั่งริมถนน' },
     tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
     soup:   { x: PX.soup, y: 812, name: 'โรงทาน' },
-    scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' }
+    scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' },
+    // doors used for short errands after work (each has an interior in interiors.js)
+    bakery: { x: 3236, y: 792, name: 'ร้านขนมปัง' },
+    apothecary: { x: 4803, y: 792, name: 'ร้านยา' },
+    guildhall: { x: PX.guild, y: 792, name: 'ห้องโถงกิลด์' },
+    junk:   { x: 8932, y: 792, name: 'ร้านรับซื้อของเก่า' }
   });
+  // place → room (interior) and what the errand is
+  const ERRANDS = Object.freeze({
+    bakery:     { place: 'bakery', room: 'bakery', act: 'รับค่าแรงที่ร้านขนมปัง', dur: 0.3 },
+    guildhall:  { place: 'guildhall', room: 'guild', act: 'รายงานตัวที่ห้องโถงกิลด์', dur: 0.3 },
+    junk:       { place: 'junk', room: 'junk', act: 'ขายของดีให้ร้านรับซื้อของเก่า', dur: 0.35 },
+    apothecary: { place: 'apothecary', room: 'apothecary', act: 'ซื้อยาที่ร้านยา', dur: 0.4 }
+  });
+  const MEDICINE = { price: 3, health: 15 };
   const STREET_Y = 812;
   const SPEED = 2520;            // world px per clock unit (≈ a brisk walk at ×1)
   const WAKE = 5;                // 06:00
@@ -53,7 +66,7 @@
       perk: 'ทนลำบาก: ถ้าต้องนอนข้างนอก ก็ยังฟื้นแรงได้มากกว่าคนอื่น' }
   ]);
   const PATHS = Object.freeze({
-    smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true,
+    smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true, room: 'forge', act: 'ตีเหล็กในโรงตีเหล็ก',
               desc: 'ไปช่วยงานโรงตีเหล็กทุกวัน มีมินิเกมตีเหล็ก ค่าแรงขึ้นกับฝีมือ และอาวุธที่ตีจะถูกส่งไปให้นักสู้ในหอคอย' },
     guild:  { name: 'ฝึกเพื่อเข้ากิลด์',   place: 'guild',  energy: 20,
               desc: 'ฝึกร่างกายที่ลานกิลด์ทุกวัน ยังไม่มีค่าแรง จนกว่าจะสอบผ่าน (กำลัง + คล่องตัว ≥ 8) แล้วรับงานขนเสบียง' },
@@ -105,7 +118,7 @@
   }
   // ตรอกล่าง is its own scene, reached only through the alley at the east end of town: the hero walks up the
   // alley lane in town (camera zooms in), the scene cuts, and he walks down out of the lane on the slum side.
-  const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1 };
+  const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1 };
   const zoneOf = place => SLUM_PLACES[place] ? 'slum' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
   function route(t0, from, to, act) {
@@ -134,7 +147,7 @@
     const today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
     const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งริมถนน';
-    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true } : { lie: true };
+    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
@@ -144,17 +157,24 @@
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
       { milestone: 'work', room: path.room || null, hidden: !!path.room, working: true });
     segs.push(atWork);
+    let from = work, free = atWork.t1;
+    const E = L.errand && L.errand.day === st.day && ERRANDS[L.errand.kind];
+    if (E) {
+      const go = end(route(free, work, E.place, 'เดินไป' + PLACES[E.place].name).map(x => (segs.push(x), x)));
+      const at = stay(go.t1, go.t1 + E.dur, E.place, E.act, { milestone: 'errand', room: E.room, hidden: true });
+      segs.push(at); from = E.place; free = at.t1;
+    }
     const eatAt = dinnerPlace(st), soup = eatAt === 'soup';
-    const toTavern = end(route(atWork.t1, work, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น').map(x => (segs.push(x), x)));
+    const toTavern = end(route(free, from, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น').map(x => (segs.push(x), x)));
     const dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), eatAt, soup ? 'รับซุปฟรีที่โรงทาน' : 'กินข้าวเย็นที่ร้านอาหาร',
-      soup ? { milestone: 'dinner', eating: true } : { milestone: 'dinner', room: 'restaurant', hidden: true, eating: true });
+      { milestone: 'dinner', room: soup ? 'soup' : 'restaurant', hidden: true, eating: true });
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
     const back = end(route(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
     if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
-    } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, milestone: 'home' }));
+    } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, room: 'tenement', milestone: 'home' }));
     else segs.push(stay(back.t1, 20, 'bench', asleep('bench'), { lie: true, milestone: 'home' }));
     for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
     return segs;
@@ -201,7 +221,29 @@
       if (room.focus) L.focusDay = st.day;
     } else st.energy = Math.max(st.energy, o.id === 'jobless' ? 80 : 50);
     L.todayStars = null; L.dayStart = { day: st.day, place: L.sleptAt, room: L.roomSlept }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
+    L.errand = { day: st.day, kind: pickErrand(st) };
     if (st.health < 30) { L.restDay = st.day; return say(st, 'ร่างกายไม่ไหว (สุขภาพ ' + st.health + ') วันนี้ขอพักฟื้น'); }
+    return null;
+  }
+  // One short stop between work and dinner, fixed at wake so the day's plan never shifts under the hero.
+  function pickErrand(st) {
+    const L = st.life;
+    if (st.health < 60 && st.money >= MEDICINE.price) return 'apothecary';
+    if (L.path === 'scrap' && ((st.scrapWork || 0) + 1) % 4 === 0) return 'junk';
+    if (L.path === 'market') return 'bakery';
+    if (L.path === 'guild' && st.guild) return 'guildhall';
+    return null;
+  }
+  function applyErrand(st) {
+    const L = st.life, k = L.errand && L.errand.day === st.day ? L.errand.kind : null;
+    if (k === 'apothecary') {
+      if (st.money < MEDICINE.price) return say(st, 'ไปถึงร้านยาแต่เงินไม่พอซื้อยา');
+      st.money -= MEDICINE.price; st.health = Math.min(100, st.health + MEDICINE.health);
+      return say(st, 'ซื้อยาบำรุงจากหมอยา ' + MEDICINE.price + ' เหรียญ (สุขภาพ +' + MEDICINE.health + ')');
+    }
+    if (k === 'junk') return say(st, 'เอาของดีจากกองขยะไปขายที่ร้านรับซื้อของเก่า');
+    if (k === 'bakery') return say(st, 'แวะรับค่าแรงจากแม่ค้าในร้านขนมปัง');
+    if (k === 'guildhall') return say(st, 'รายงานตัวที่ห้องโถงกิลด์ ดูใบประกาศงานบนกระดาน');
     return null;
   }
   function payWork(st, wage, core, ordinary) {
@@ -460,7 +502,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { applyErrand, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

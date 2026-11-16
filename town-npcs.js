@@ -16,6 +16,7 @@
     smith: { ...A, src: 343 }, teen: { ...A, src: 343 }, elder: { ...A, src: 343 }, child: { ...A, src: 343 },
     guard1: { ...B, src: 334 }, guard2: { ...B, src: 325 }, chef: { ...B, src: 344 }, innkeeper: { ...B, src: 347 },
     apothecary: { ...B, src: 342 }, instructor: { ...B, src: 345 }, summoned: { ...B, src: 350 }, summoned_work: { ...B, src: 350 },
+    wagons: { cw: 480, ch: 320, base: 310, src: 281 },
     heroA: { ...B, src: 353 }, heroB: { ...B, src: 353 }, heroC: { ...B, src: 353 },
     kids: { ...B, src: 311 }, farmer: { ...B, src: 344 }, animals: { ...B, src: 265 },    // animals: src = the sitting cat
     washer: { ...B, src: 348 }, thug: { ...B, src: 345 }, streetkid: { ...B, src: 340 }, granny: { ...B, src: 346 }
@@ -29,7 +30,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=76'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=79'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -117,6 +118,20 @@
       { x: 8995, y: 824, until: H(22.3), loop: 'knuckle', face: -1 },          // and the junk shop at night
       { x: 10873, y: DOOR, until: 20, hidden: true }] }
   ];
+  // Carts on the road (sheet 'wagons': row 0 horse wagon, row 1 donkey hay cart). They drive in through the
+  // city gate, stop to unload, and drive back out. Stops carry y = road lane; legs are straight along it.
+  const ROAD = 905, OFF = -420;
+  const CARTS = [
+    { id: 'wagon', name: 'เกวียนพ่อค้า', sheet: 'wagons', vrow: 0, height: HERO * 1.32, speed: 4200, stops: [
+      { x: OFF, y: ROAD, until: H(6.3), hidden: true },
+      { x: 3330, y: ROAD, until: H(8.4) },                                     // unloading flour at the bakery
+      { x: 5420, y: ROAD, until: H(10.2) },                                    // then supplies for the inn
+      { x: OFF, y: ROAD, until: 20, hidden: true }] },
+    { id: 'haycart', name: 'เกวียนฟาง', sheet: 'wagons', vrow: 1, height: HERO * 0.98, speed: 2600, stops: [
+      { x: OFF, y: ROAD + 12, until: H(12.4), hidden: true },
+      { x: 4250, y: ROAD + 12, until: H(15.6) },                                 // hay for the forge's horse
+      { x: OFF, y: ROAD + 12, until: 20, hidden: true }] }
+  ];
   // Two guards walk the whole street day and night, one on each half.
   const PATROLS = Object.freeze([
     { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3200, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
@@ -162,9 +177,9 @@
   }
 
   for (const p of SLUM) p.zone = 'slum';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM);
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS);
   function scheduled(p, clock) {
-    const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town' };
+    const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;
     for (let i = 0; i < p.stops.length; i++) {
       const s = p.stops[i];
@@ -249,6 +264,7 @@
 
   // [row, col, flip] for a snapshot; `sec` is real time in seconds (work loops keep their own rhythm).
   function frameOf(n, sec) {
+    if (n.vrow !== undefined) return [n.vrow, n.moving ? Math.floor((n.d || 0) / 46) % 4 : 1, n.face < 0];
     if (n.still) return [n.still[0], n.still[1], n.face < 0];
     if (n.dogWalk) return [1, n.moving ? Math.floor((n.d || 0) / (n.height * 0.35)) % 4 : 1, n.face < 0];
     if (n.startled !== undefined) {                                             // pigeons

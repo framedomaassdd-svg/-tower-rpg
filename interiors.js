@@ -1,4 +1,5 @@
-/* v74 interiors: the inn (lobby, three bedrooms, laundry) and the restaurant (hall, kitchen).
+/* v79 interiors: the inn (lobby, three bedrooms, laundry), the restaurant (hall, kitchen), the forge, the bakery,
+   the guild hall, the apothecary, and in ตรอกล่าง the soup kitchen, the junk shop and a tenement room.
    Each scene is one 1672×941 painting. The camera follows the hero sideways on narrow screens.
    Interiors.show(ctx, canvas, t, clock, info) draws the scene for info.room and returns true; info comes from LifeSim.sample(). */
 (function (root) {
@@ -12,11 +13,24 @@
     bed_luxe:   { file: 'inn_room_luxe',      name: 'ห้องหรู',       bed: { head: 1500, y: 512, clip: [1372, 420, 190, 160] }, stand: { x: 900, look: 'front' } },
     laundry:    { file: 'inn_laundry',        name: 'ห้องซักผ้าโรงแรม', route: [420, 800, 1130, 1420] },
     restaurant: { file: 'restaurant_hall',    name: 'ร้านอาหาร',     seat: { x: 757, foot: 716, cut: 577 } },
-    kitchen:    { file: 'restaurant_kitchen', name: 'ห้องครัว',      route: [345, 670, 1055, 1385] }
+    kitchen:    { file: 'restaurant_kitchen', name: 'ห้องครัว',      route: [345, 670, 1055, 1385] },
+    // v79 (newer paintings, file names int_*). work: a hero pose at x; npcs: townsfolk sheets (h = × hero height)
+    forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', work: { kind: 'hammer', x: 1010, face: -1 },
+                  npcs: [{ sheet: 'smith', x: 560, loop: 'hammer', face: 1, h: 1.03 }] },
+    bakery:     { file: 'int_bakery',     name: 'ร้านขนมปัง', stand: { x: 1180, look: 'back' } },
+    guild:      { file: 'int_guild',      name: 'ห้องโถงกิลด์', stand: { x: 800, look: 'back' },
+                  npcs: [{ sheet: 'elder', x: 330, loop: 'write', face: 1, h: 0.8, foot: 640, behind: 528 }] },
+    apothecary: { file: 'int_apothecary', name: 'ร้านยา', stand: { x: 640, look: 'back' },
+                  npcs: [{ sheet: 'apothecary', x: 1040, loop: 'grind', face: -1, h: 0.93 }] },
+    junk:       { file: 'int_junk',       name: 'ร้านรับซื้อของเก่า', stand: { x: 1250, look: 'back' } },
+    soup:       { file: 'int_soup',       name: 'โรงทาน', seat: { x: 1230, foot: 585, cut: 488 },
+                  npcs: [{ sheet: 'granny', x: 610, loop: 'stir', face: -1, h: 0.88 }] },
+    tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260] },
+                  stand: { x: 800, look: 'front' } }
   };
   const hasImage = typeof Image !== 'undefined';
   const img = {};
-  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + V; img[k] = i; } }
+  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : V); img[k] = i; } }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   const images = () => Object.values(img);
 
@@ -63,10 +77,12 @@
     if (root.TownNPCs && root.TownNPCs.heroReady('sleep')) {
       ctx.save();
       if (bed.clip) {                                   // under the blanket: only the head and shoulders show above its fold
-        const left = Math.max(bed.clip[0], bed.head - 63);
-        ctx.beginPath(); ctx.rect(left, bed.clip[1], bed.clip[0] + bed.clip[2] - left, bed.clip[3]); ctx.clip();
+        if (bed.headLeft) { ctx.beginPath(); ctx.rect(bed.clip[0], bed.clip[1], bed.clip[2], bed.clip[3]); ctx.clip(); }
+        else { const left = Math.max(bed.clip[0], bed.head - 63);
+          ctx.beginPath(); ctx.rect(left, bed.clip[1], bed.clip[0] + bed.clip[2] - left, bed.clip[3]); ctx.clip(); }
       }
-      const ok = pose(ctx, 'sleep', bed.head - 150 * k + 62, bed.y + 68 * k + 25, { sec: t / 1000, face: -1 });
+      const ok = bed.headLeft ? pose(ctx, 'sleep', bed.head + 150 * k - 62, bed.y + 68 * k + 25, { sec: t / 1000, face: 1 })
+        : pose(ctx, 'sleep', bed.head - 150 * k + 62, bed.y + 68 * k + 25, { sec: t / 1000, face: -1 });
       ctx.restore();
       if (ok) return;
     }
@@ -76,6 +92,17 @@
     ctx.translate(bed.head - HERO_H, bed.y + Math.sin(t * 0.0016) * 1.5); ctx.rotate(Math.PI / 2);    // lying down, head on the pillow
     root.HeroSprite.draw(ctx, { scale: HERO_H / root.HeroSprite.HEIGHT, vdir: 1, moving: false, face: 1 });
     ctx.restore();
+  }
+  // townsfolk inside a room (their own sheets via TownNPCs); `behind` clips them at a counter top
+  function people(ctx, sc, t) {
+    const N = root.TownNPCs; if (!N || !sc.npcs) return;
+    for (const p of sc.npcs) {
+      const h = HERO_H * 648 / 680 * p.h, [row, col, flip] = N.frameOf({ id: p.sheet, loop: p.loop, face: p.face, height: h }, t / 1000);
+      ctx.save();
+      if (p.behind) { ctx.beginPath(); ctx.rect(0, 0, IW, p.behind); ctx.clip(); }
+      const f = p.foot || FLOOR; if (!p.behind) shadow(ctx, p.x, f); N.blit(ctx, p.sheet, row, col, flip, h, p.x, f, 1);
+      ctx.restore();
+    }
   }
   function zzz(ctx, x, y, t) {
     ctx.save(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
@@ -99,6 +126,7 @@
     // what the hero is doing
     let act = null;
     if (info.sleep) act = { sleep: true, focus: sc.bed ? sc.bed.head - 190 : IW / 2 };
+    else if (sc.work) act = { x: sc.work.x, work: sc.work, focus: sc.work.x };
     else if (sc.route) { const r = onRoute(sc.route, (t - enteredAt) / 1000); act = { x: r.x, moving: r.moving, face: r.face, look: 'back', focus: r.x }; }
     else if (sc.seat) act = { seat: sc.seat, focus: sc.seat.x };
     else if (sc.stand) act = { x: sc.stand.x, look: sc.stand.look, moving: false, face: 1, focus: sc.stand.x };
@@ -111,7 +139,10 @@
     ctx.drawImage(im, 0, 0, IW, IH);
 
     const anim = t * 0.008;
+    people(ctx, sc, t);
     if (act && act.sleep && sc.bed) sleeper(ctx, sc.bed, t);
+    else if (act && act.work) { shadow(ctx, act.x, FLOOR);
+      if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012 }); }
     else if (act && act.seat) {
       const s = act.seat;
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, IW, s.cut); ctx.clip();                    // lower body is behind the table
