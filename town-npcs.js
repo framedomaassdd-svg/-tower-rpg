@@ -294,6 +294,6 @@
   // The hero carrying loads back and forth around a work spot (visual only; LifeSim keeps the spot).
   function heroShuttle(clock, A) { return shuttleAt(0, 0, A, 700, 0, 20, finiteClock(clock)); }
 
-  return { PEOPLE: ALL_PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
+  return { blit, PEOPLE: ALL_PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
     load, snapshots, frameOf, draw, drawHero, heroReady, heroShuttle };
 });

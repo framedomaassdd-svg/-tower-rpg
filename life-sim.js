@@ -365,15 +365,90 @@
           resolve(st, r) { if (r() < 0.5) { st.danger = Math.min(5, st.danger + 1); return 'เช้ามามีข่าวว่ามีคนบาดเจ็บหลายคน (อันตราย +1)'; }
             return 'กองกำลังกิลด์จัดการได้ก่อนรุ่งเช้า'; } }
       ]
+    },
+    // ---- ตรอกล่าง (only when the day touched the poor district: soup dinner, scrap work, or sleeping in the tenement)
+    soup_granny: {
+      title: 'ซุปชามแรกจากโรงทาน', speaker: 'ป้าโรงทาน', portrait: 'granny', faces: [1, 0, 1], once: true,
+      lines: ['มา ๆ หนุ่มน้อย ชามนี้ป้าตักเนื้อให้เยอะหน่อย ดูหน้าตาซีดเชียว',
+        'คนที่นี่ไม่ได้ขี้เกียจหรอกนะ แค่โชคไม่ดี มาจากที่อื่นแล้วไม่มีใครรู้จัก',
+        'กินให้อิ่ม พรุ่งนี้จะได้มีแรงสู้ต่อ'],
+      choices: [
+        { label: 'อยู่ช่วยป้าล้างชามจนดึก', odds: () => 'เหนื่อยหน่อย แต่ได้น้ำใจคนในตรอก',
+          resolve(st) { st.energy = Math.max(0, st.energy - 10); st.rep = (st.rep || 0) + 2; st.life.slumFriend = true;
+            return 'คุณล้างชามจนมือเปื่อย ป้ายิ้มแล้วบอกคนในตรอกว่าคุณเป็นคนดี (ชื่อเสียง +2 · แรง −10)'; } },
+        { label: 'ถามป้าเรื่องงานในตรอก', odds: () => 'ได้รู้จักงานเก็บของเก่า',
+          resolve(st) { return 'ป้าบอกว่าลานท้ายตรอกรับคนคัดของเก่าทุกวัน ไม่ต้องสอบอะไรเลย (เลือกแนวทาง "เก็บของเก่าในตรอก" ได้จากปุ่มชีวิต)'; } },
+        { label: 'ขอบคุณแล้วรีบกลับไปพัก', odds: () => 'ปลอดภัย',
+          resolve(st) { st.health = Math.min(100, st.health + 5); return 'ซุปร้อน ๆ ทำให้หลับสบาย (สุขภาพ +5)'; } }
+      ]
+    },
+    thug_toll: {
+      title: 'ค่าผ่านทาง', speaker: 'นักเลงตรอก', portrait: 'thug', faces: [0, 1, 0],
+      lines: ['เฮ้ย หยุดก่อน หน้าใหม่ใช่ไหม', 'ตรอกนี้ข้าดูแลอยู่ จะเดินผ่านทุกวันก็ต้องมีค่าผ่านทางหน่อย', 'สามเหรียญ ไม่มากหรอก จ่ายมาซะดี ๆ'],
+      choices: [
+        { label: 'จ่ายไป 3 เหรียญ', available: st => st.money >= 3, odds: () => 'เสียเงิน แต่จบเรื่อง',
+          resolve(st) { st.money -= 3; return 'นักเลงยัดเหรียญใส่กระเป๋าแล้วหลีกทางให้ (เงิน −3)'; } },
+        { label: 'ยืนหยัด ไม่จ่าย', odds: st => 'โอกาสเขาถอยเอง ' + pct(tollOdds(st)) + ' (ขึ้นกับกำลัง คล่องตัว และชื่อเสียงในตรอก)',
+          resolve(st, r) { if (r() < tollOdds(st)) { st.rep = (st.rep || 0) + 1; st.life.tollFree = true;
+              return 'เขาจ้องอยู่นานแล้วหัวเราะ "ใจถึงดีนี่" แล้วไม่เคยเรียกเก็บอีกเลย (ชื่อเสียง +1)'; }
+            st.health = Math.max(1, st.health - 15); st.money = Math.max(0, st.money - 2);
+            return 'โดนต่อยจนล้มแล้วโดนล้วงไป 2 เหรียญ (สุขภาพ −15)'; } },
+        { label: 'วิ่งหนีเข้าตรอกซอย', odds: st => 'โอกาสหนีพ้น ' + pct(clamp(0.3 + 0.07 * st.agility, 0.1, 0.9)),
+          resolve(st, r) { if (r() < clamp(0.3 + 0.07 * st.agility, 0.1, 0.9)) return 'คุณลัดเลาะตรอกแคบจนเขาตามไม่ทัน';
+            st.health = Math.max(1, st.health - 10); return 'สะดุดกองไม้ล้มลง เขาตามมาทันแล้วเตะซ้ำ (สุขภาพ −10)'; } }
+      ]
+    },
+    street_kid: {
+      title: 'มือเล็ก ๆ ในกระเป๋า', speaker: 'เด็กจรจัด', portrait: 'streetkid', faces: [3, 0, 1],
+      lines: ['(คุณรู้สึกมีอะไรขยับในกระเป๋า หันไปเจอเด็กมอมแมมคนหนึ่งยืนตัวแข็ง)', 'ข...ขอโทษครับ ผมหิวมากเลย ไม่ได้กินอะไรมาสองวันแล้ว',
+        'ถ้าพี่ไม่บอกทหาร ผมจะบอกที่ซ่อนของดีในลานขยะให้นะ!'],
+      choices: [
+        { label: 'แบ่งอาหารสำรองให้ 1 ชุด', available: st => st.food > 0, odds: () => 'เด็กจะจำน้ำใจนี้',
+          resolve(st) { st.food--; st.money += 4; st.life.slumFriend = true;
+            return 'เด็กกินหมดในพริบตา แล้วพาไปขุดกล่องเหรียญเก่าที่ฝังไว้ใต้กองไม้ (อาหาร −1 · เงิน +4)'; } },
+        { label: 'ดุแล้วปล่อยไป', odds: () => 'ไม่ได้อะไร ไม่เสียอะไร',
+          resolve() { return 'เด็กวิ่งหายเข้าตรอกไป ทิ้งไว้แค่รอยเท้าเปื้อนดิน'; } },
+        { label: 'จับส่งทหารยาม', odds: () => 'ได้ชื่อเสียงในเมือง แต่คนในตรอกจะไม่ชอบ',
+          resolve(st) { st.rep = Math.max(0, (st.rep || 0) + 1); st.life.slumFriend = false;
+            return 'ทหารพาเด็กไปที่ป้อม ชาวตรอกมองคุณด้วยสายตาเย็นชา (ชื่อเสียงในเมือง +1)'; } }
+      ]
+    },
+    washer_help: {
+      title: 'ตะกร้าผ้าใบใหญ่', speaker: 'แม่ซักผ้า', portrait: 'washer', faces: [3, 0, 1],
+      lines: ['ขอโทษนะคะ... ช่วยยกตะกร้านี้ขึ้นชั้นสามให้หน่อยได้ไหม ลูกฉันไม่สบาย ฉันทิ้งไว้นานไม่ได้',
+        'ห้องเช่าที่นี่ทั้งชื้นทั้งหนาว เด็ก ๆ ป่วยกันบ่อย', 'ถ้าช่วย เดี๋ยวฉันซักเสื้อให้ฟรีนะ ใส่ผ้าสะอาดแล้วจะได้ไม่ป่วยเหมือนพวกเรา'],
+      choices: [
+        { label: 'ช่วยยกขึ้นไป', odds: () => 'แรง −10 · ได้เสื้อสะอาด',
+          resolve(st) { st.energy = Math.max(0, st.energy - 10); st.health = Math.min(100, st.health + 8); st.life.slumFriend = true;
+            return 'เธอซักเสื้อให้จนหอมสะอาด นอนคืนนี้ไม่คันไม่เปียกชื้น (สุขภาพ +8 · แรง −10)'; } },
+        { label: 'ให้เงินซื้อยา 2 เหรียญ', available: st => st.money >= 2, odds: () => 'เงิน −2 · ชื่อเสียง +2',
+          resolve(st) { st.money -= 2; st.rep = (st.rep || 0) + 2; return 'เธอรีบวิ่งไปร้านยาฝั่งเมือง พร้อมขอบคุณไม่หยุด (เงิน −2 · ชื่อเสียง +2)'; } },
+        { label: 'ขอตัวก่อน วันนี้เหนื่อย', odds: () => 'ไม่มีผล',
+          resolve() { return 'เธอพยักหน้าเข้าใจ แล้วแบกตะกร้าขึ้นบันไดไปช้า ๆ'; } }
+      ]
     }
   };
+  function tollOdds(st) { return clamp(0.15 + 0.04 * (st.strength + st.agility) + 0.03 * Math.min(10, st.rep || 0) + (st.life.slumFriend ? 0.15 : 0), 0.1, 0.9); }
+  function slumToday(st) {
+    const L = st.life;
+    return L.path === 'scrap' || L.homeTonight === 'tenement' || (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup');
+  }
   function defendOdds(st) { return clamp(0.2 + 0.05 * (st.strength + st.agility) + 0.02 * (st.intelligence - 3) - (st.health < 50 ? 0.15 : 0), 0.1, 0.9); }
   function weaponOdds(st) { return clamp(0.35 + 0.06 * (st.life.todayStars || 0), 0.1, 0.9); }
   function pickEvent(st, rng) {
     const L = st.life, r = typeof rng === 'function' ? rng : Math.random;
     if (!L.seen.includes('first_night')) return 'first_night';
     if (st.danger >= 3 && st.day - L.lastEventDay >= 2 && r() < 0.45) return 'alarm';
-    return null;
+    if (!slumToday(st)) return null;
+    if (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup' && !L.seen.includes('soup_granny')) return 'soup_granny';
+    if (st.day - L.lastEventDay < 2) return null;
+    const pool = [];
+    if (!L.tollFree && !L.seen.includes('thug_toll')) pool.push('thug_toll');
+    else if (!L.tollFree && st.money >= 3) pool.push('thug_toll');
+    if (!L.seen.includes('street_kid')) pool.push('street_kid');
+    if (L.homeTonight === 'tenement' && !L.seen.includes('washer_help')) pool.push('washer_help');
+    if (!pool.length || r() > 0.5) return null;
+    return pool[Math.floor(r() * pool.length) % pool.length];
   }
   function choicesFor(st, id) {
     return EVENTS[id].choices.map((c, i) => ({ index: i, label: c.label, odds: c.odds(st), enabled: !c.available || c.available(st) }));

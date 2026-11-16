@@ -1,4 +1,4 @@
-/* v77 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
+/* v78 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
    this file keeps the clock, the save, and draws either the painted street (town-pano.js) or an interior (interiors.js).
    Top-level names here are shared with life-ui.js: state, clock, player, playerY, face, moving, anim, log, update, save, $. */
 const c = document.querySelector('canvas'), ctx = c.getContext('2d');
@@ -109,6 +109,34 @@ function drawPlayer(info) {
   else HeroSprite.draw(ctx, { anim, moving: false, face: 1 });
   ctx.restore();
 }
+// Birds crossing the sky in small flocks (the pigeon flying frames of the animals sheet). Daytime only.
+const FLOCKS = [{ y: 210, speed: 95, gap: 2300, n: 4, dir: 1, seed: 0 }, { y: 330, speed: 70, gap: 3100, n: 3, dir: -1, seed: 900 },
+  { y: 150, speed: 120, gap: 4100, n: 5, dir: 1, seed: 1700 }];
+function drawBirds(camera, w, t) {
+  const light = 1 - CityLighting.sample(clock).lamps; if (light < 0.3) return;
+  const sec = t / 1000;
+  for (const F of FLOCKS) {
+    const span = w + F.gap, p = ((sec * F.speed + F.seed) % span + span) % span;
+    const lead = F.dir > 0 ? camera - 200 + p : camera + w + 200 - p;
+    for (let i = 0; i < F.n; i++) {
+      const x = lead - F.dir * (i * 46 + (i % 2) * 18), y = F.y + (i % 2 ? 22 : 0) + Math.sin(sec * 1.7 + i) * 6 + i * 5;
+      const col = 2 + (Math.floor(sec * 7 + i * 1.3) % 2);
+      ctx.globalAlpha = Math.min(1, light);
+      TownNPCs.blit(ctx, 'animals', 2, col, F.dir < 0, 26, x, y, 1);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+// Going through a door: the camera eases in on the hero during the last steps before he disappears inside.
+const DOOR_LEAD = 0.1;                                                // clock units (~0.6 s at ×1)
+function doorZoom(info) {
+  if (!info || info.hidden || info.lane || !info.moving || !window.LIFE_STATE_OK) return 0;
+  for (let i = 1; i <= 5; i++) {
+    const dt = DOOR_LEAD * i / 5, n = LifeSim.sample(state, clock + dt);
+    if (n.hidden) { const k = 1 - (dt - DOOR_LEAD / 5) / DOOR_LEAD; return Math.max(0, Math.min(1, k)) * 0.75; }
+  }
+  return 0;
+}
 // Walking through the alley between the town and ตรอกล่าง: zoom toward the lane mouth while going in,
 // then start zoomed in on the other side and pull back out. k = 0 (normal) … 1 (fully in, screen darkest).
 function laneZoom(info) {
@@ -122,12 +150,13 @@ function drawTown(t) {
   const view = CityCore.viewport(c.width, c.height, player), scale = view.scale, w = view.width, h = view.height;
   const cam0 = Math.max(Z[0], Math.min(view.cameraX, Math.max(Z[0], Z[1] - w)));
   const camera = Math.round(cam0 * scale) / scale;
-  const k = laneZoom(info), zoom = 1 + 1.7 * k;
-  // the lane mouth slides toward the centre of the screen as we zoom into it
-  const fx = (LifeSim.LANE.x - camera) * scale, fy = (LifeSim.LANE.top + 20) * scale;
+  const kl = laneZoom(info), kd = kl ? 0 : doorZoom(info), k = kl || kd, zoom = 1 + (kl ? 1.7 : 1.1) * k;
+  // the lane mouth (or the hero at a door) slides toward the centre of the screen as we zoom into it
+  const fx = ((kl ? LifeSim.LANE.x : player) - camera) * scale, fy = (kl ? LifeSim.LANE.top + 20 : playerY - 70) * scale;
   const tx = fx + (c.width / 2 - fx) * k, ty = fy + (c.height * 0.55 - fy) * k;
   ctx.setTransform(scale * zoom, 0, 0, scale * zoom, tx - (fx + camera * scale) * zoom, ty - fy * zoom);
   TownPano.draw(ctx, camera, w, h, t, zone);
+  drawBirds(camera, w, t);
   const actors = [];
   for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible && (n.zone || 'town') === zone) actors.push({ y: n.y, draw: () => drawNpc(n) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
@@ -151,7 +180,7 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
-let sceneReady = false;
+let sceneReady = false, wasInside = false, wipeStart = -1e9;
 function frame(t) {
   requestAnimationFrame(frame);
   if (!sceneReady) { last = t; return; }
@@ -164,8 +193,17 @@ function frame(t) {
     saveClock += elapsed; if (saveClock >= 2) { saveClock = 0; save(); }
   }
   LifeUI.drive();
-  if (window.LIFE_INFO && Interiors.show(ctx, c, t, clock, window.LIFE_INFO)) return;
-  drawTown(t);
+  window.LIFE_STATE_OK = !!(state.life && state.life.started);
+  const inside = !!(window.LIFE_INFO && Interiors.show(ctx, c, t, clock, window.LIFE_INFO));
+  if (!inside) drawTown(t);
+  // circle wipe whenever the view switches between the street and an interior
+  if (inside !== wasInside) { wasInside = inside; wipeStart = t; }
+  const wk = (t - wipeStart) / 520;
+  if (wk >= 0 && wk < 1) {
+    const e = 1 - Math.pow(1 - wk, 3), R = Math.hypot(c.width, c.height) / 2 * e;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#140e0a'; ctx.beginPath();
+    ctx.rect(0, 0, c.width, c.height); ctx.arc(c.width / 2, c.height * 0.55, Math.max(1, R), 0, Math.PI * 2, true); ctx.fill();
+  }
 }
 
 // ---- time controls

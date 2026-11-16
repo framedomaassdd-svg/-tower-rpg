@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=77';
+  const V = '?v=78';
   const WORLD_W = 11120, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, WORLD_W] });
@@ -23,7 +23,7 @@
     { id: 'arch', x: 2149, y: 342, w: 702, h: 452 },
     { id: 'well', x: 2855, y: 567, w: 239, h: 227 },
     { id: 'bakery', x: 3098, y: 333, w: 590, h: 461 },
-    { id: 'garden', x: 3693, y: 513, w: 434, h: 281 },
+    { id: 'garden', x: 3693, y: 513, w: 434, h: 281, sway: { top: 0.66, amp: 5 } },   // tree crowns sway in the breeze
     { id: 'forge', x: 4130, y: 386, w: 558, h: 408 },
     { id: 'apothecary', x: 4692, y: 415, w: 418, h: 379 },
     { id: 'inn', x: 5114, y: 167, w: 904, h: 627 },
@@ -103,8 +103,19 @@
     if (x > camera + w || x + tw < camera) return;
     ctx.drawImage(im, x, TOWER.base - TOWER.h, tw, TOWER.h);
   }
-  function building(ctx, b, im, camera, w) {
+  function building(ctx, b, im, camera, w, t) {
     if (!ok(im) || b.x > camera + w || b.x + b.w < camera) return;
+    if (b.sway && t !== undefined) {                     // upper part drawn in strips, bent a little more toward the top
+      const S = b.sway, N = 24, cut = S.top, iw = im.naturalWidth, ih = im.naturalHeight;
+      const gust = Math.sin(t * 0.0011) * 0.7 + Math.sin(t * 0.0029 + 1.3) * 0.3;
+      for (let i = 0; i < N; i++) {
+        const f0 = cut * i / N, f1 = cut * (i + 1) / N, k = 1 - (f0 + f1) / 2 / cut;
+        const dx = S.amp * gust * k * k;
+        ctx.drawImage(im, 0, ih * f0, iw, ih * (f1 - f0) + 1, b.x + dx, b.y + b.h * f0, b.w, b.h * (f1 - f0) + 0.6);
+      }
+      ctx.drawImage(im, 0, ih * cut, iw, ih * (1 - cut), b.x, b.y + b.h * cut, b.w, b.h * (1 - cut));
+      return;
+    }
     if (b.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
     else ctx.drawImage(im, b.x, b.y, b.w, b.h);
   }
@@ -123,7 +134,7 @@
       tower(ctx, camera, w);
       if (ok(art.road)) road(art.road);
     }
-    for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w);
+    for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w, t);
     ctx.save();
     for (const [x, y] of SMOKE) {
       if (x < camera - 120 || x > camera + w + 120) continue;
