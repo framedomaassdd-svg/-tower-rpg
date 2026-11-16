@@ -8,11 +8,11 @@
   // stations: where the hero stands (x), facing the wall ('back') or the room ('front')
   const SCENES = {
     lobby:      { file: 'inn_lobby',          name: 'ล็อบบี้โรงแรม',  stand: { x: 720, look: 'back' } },
-    bed_cheap:  { file: 'inn_room_cheap',     name: 'ห้องประหยัด',   bed: { head: 1285, y: 566, clip: null },          stand: { x: 700, look: 'front' } },
-    bed_mid:    { file: 'inn_room_mid',       name: 'ห้องธรรมดา',    bed: { head: 1478, y: 520, clip: [1338, 430, 220, 160] }, stand: { x: 720, look: 'front' } },
-    bed_luxe:   { file: 'inn_room_luxe',      name: 'ห้องหรู',       bed: { head: 1500, y: 512, clip: [1372, 420, 190, 160] }, stand: { x: 900, look: 'front' } },
+    bed_cheap:  { file: 'inn_room_cheap',     name: 'ห้องประหยัด',   bed: { head: 1285, y: 566, clip: null, zz: [1215, 470] },          stand: { x: 700, look: 'front' } },
+    bed_mid:    { file: 'inn_room_mid',       name: 'ห้องธรรมดา',    bed: { head: 1478, y: 520, clip: [1338, 430, 220, 160], zz: [1395, 420] }, stand: { x: 720, look: 'front' } },
+    bed_luxe:   { file: 'inn_room_luxe',      name: 'ห้องหรู',       bed: { head: 1500, y: 512, clip: [1372, 420, 190, 160], zz: [1460, 410] }, stand: { x: 900, look: 'front' } },
     laundry:    { file: 'inn_laundry',        name: 'ห้องซักผ้าโรงแรม', route: [420, 800, 1130, 1420] },
-    restaurant: { file: 'restaurant_hall',    name: 'ร้านอาหาร',     seat: { x: 757, foot: 716, cut: 577 } },
+    restaurant: { file: 'restaurant_hall',    name: 'ร้านอาหาร',     seat: { x: 757, foot: 716, cut: 577, table: 578, h: 205 } },
     kitchen:    { file: 'restaurant_kitchen', name: 'ห้องครัว',      route: [345, 670, 1055, 1385] },
     // v79 (newer paintings, file names int_*). work: a hero pose at x; npcs: townsfolk sheets (h = × hero height)
     forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', k: 1.12, work: { kind: 'hammer', x: 1010, face: -1 },
@@ -23,15 +23,32 @@
     apothecary: { file: 'int_apothecary', name: 'ร้านยา', k: 1.28, stand: { x: 640, look: 'back' },
                   npcs: [{ sheet: 'apothecary', x: 1040, loop: 'grind', face: -1, h: 0.93 }] },
     junk:       { file: 'int_junk',       name: 'ร้านรับซื้อของเก่า', k: 1.34, stand: { x: 1250, look: 'back' } },
-    soup:       { file: 'int_soup',       name: 'โรงทาน', k: 1.2, seat: { x: 1230, foot: 585, cut: 488 },
+    soup:       { file: 'int_soup',       name: 'โรงทาน', k: 1.2, seat: { x: 1230, foot: 585, cut: 488, table: 484, h: 200 },
                   npcs: [{ sheet: 'granny', x: 560, foot: 735, loop: 'stir', face: -1, h: 0.82 }] },
-    tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260] },
+    tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };
   const hasImage = typeof Image !== 'undefined';
   const img = {};
   function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : V); img[k] = i; } }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
+  // v81: the hero asleep is painted into each bed (a patch of the room, laid over it), and eats facing the camera
+  const SLEEP = { bed_cheap: [755, 440], bed_mid: [985, 405], bed_luxe: [1120, 380], tenement: [345, 425] };
+  const sleepImg = {}; let eatImg = null;
+  if (hasImage) {
+    for (const k in SLEEP) { const i = new Image(); i.src = 'sleep_' + k + '.webp?v=81'; sleepImg[k] = i; }
+    eatImg = new Image(); eatImg.src = 'npc5_heroEat.webp?v=81';
+  }
+  const EAT = { cell: 560, base: 4, body: 534, times: [1.3, 0.8, 1.1, 1.6] };
+  const s0 = seat => !!seat.table;
+  function eatFront(ctx, s, sec) {                 // waist-up, the bowl resting on the table top
+    if (!ok(eatImg)) return false;
+    let q = sec % EAT.times.reduce((a, b) => a + b, 0), f = 0;
+    while (q >= EAT.times[f]) { q -= EAT.times[f]; f++; }
+    const k = s.h / EAT.body, bob = f === 1 ? -3 : 0;
+    ctx.drawImage(eatImg, f * EAT.cell, 0, EAT.cell, EAT.cell, s.x - EAT.cell / 2 * k, s.table - (EAT.cell - EAT.base) * k + bob, EAT.cell * k, EAT.cell * k);
+    return true;
+  }
   const images = () => Object.values(img);
 
   // ---- walking a route: dwell at each station, then walk to the next (there and back again)
@@ -114,7 +131,7 @@
     ctx.restore();
   }
 
-  let lastRoom = null, enteredAt = 0;
+  let lastRoom = null, enteredAt = 0, sleepSince = 0, wasAsleep = false;
   function show(ctx, cv, t, clock, info) {
     const sc = SCENES[info && info.room], im = sc && img[info.room];
     if (!sc) { lastRoom = null; return false; }
@@ -140,9 +157,15 @@
 
     const anim = t * 0.008, K = sc.k || 1;
     people(ctx, sc, t);
-    if (act && act.sleep && sc.bed) sleeper(ctx, sc.bed, t);
+    const patch = SLEEP[info.room] && sleepImg[info.room], asleep = !!(act && act.sleep);
+    if (asleep && !wasAsleep) sleepSince = t; wasAsleep = asleep;
+    if (act && act.sleep && sc.bed) {
+      if (ok(patch)) { ctx.save(); ctx.globalAlpha = Math.min(1, (t - Math.max(enteredAt, sleepSince)) / 600); ctx.drawImage(patch, SLEEP[info.room][0], SLEEP[info.room][1]); ctx.restore(); }
+      else sleeper(ctx, sc.bed, t);
+    }
     else if (act && act.work) { shadow(ctx, act.x, FLOOR, K);
       if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face, k: K })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012, k: K }); }
+    else if (act && act.seat && info.eating && s0(act.seat) && eatFront(ctx, act.seat, t / 1000)) { /* eating, facing the camera */ }
     else if (act && act.seat) {
       const s = act.seat;
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, IW, s.cut); ctx.clip();                    // lower body is behind the table
@@ -167,7 +190,7 @@
       ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(255,196,140,' + (0.35 * lamps).toFixed(3) + ')';
       ctx.fillRect(camX, camY, vw, vh); ctx.restore();
     }
-    if (act && act.sleep && sc.bed && !info.rest) zzz(ctx, sc.bed.head + 20, sc.bed.y - 70, t);
+    if (act && act.sleep && sc.bed && !info.rest) { const z = sc.bed.zz || [sc.bed.head + 20, sc.bed.y - 70]; zzz(ctx, z[0], z[1], t); }
 
     // fade in when entering a room
     const fade = 1 - Math.min(1, (t - enteredAt) / 350);
