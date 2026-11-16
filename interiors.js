@@ -27,6 +27,11 @@
     soup:       { file: 'int_soup',       name: 'โรงทาน', k: 1.2, seat: { x: 1230, foot: 585, cut: 488, table: 484, h: 200 },
                   npcs: [{ sheet: 'granny', x: 560, foot: 735, loop: 'stir', face: 1, h: 0.82 }],
                   props: [{ id: 'cauldron', x: 693, foot: 742, w: 0.46 * 0.82 / 0.88, fire: true, front: true }] },
+    // v85 training yards: the guild's (behind the tower arch) and the alley one (through the scrap yard)
+    yard:       { file: 'int_yard',       name: 'ลานฝึกกิลด์', k: 1.0, work: { kind: 'swing', x: 820, face: -1 },
+                  npcs: [{ sheet: 'instructor', x: 400, loop: 'swing', face: 1, h: 1.0 }] },
+    slumyard:   { file: 'int_slumyard',   name: 'ลานฝึกตรอก', k: 1.0, work: { kind: 'swing', x: 1060, face: 1 },
+                  npcs: [{ sheet: 'thug', x: 460, loop: 'knuckle', face: 1, h: 1.04 }, { sheet: 'streetkid', x: 250, loop: 'juggle', face: 1, h: 0.72 }] },
     tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };

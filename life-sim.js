@@ -11,12 +11,13 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
     market: { x: PX.market, y: 792, name: 'ตลาดขนมปัง' },
-    guild:  { x: PX.guild, y: 792, name: 'ลานฝึกหน้าหอคอย' },
+    guild:  { x: PX.guild, y: 792, name: 'ลานฝึกกิลด์' },
+    slumyard: { x: PX.slumyard || 10014, y: 792, name: 'ลานฝึกตรอก' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
     bench:  { x: PX.bench, y: 792, name: 'ม้านั่งในสวน' },
     tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
@@ -118,7 +119,7 @@
   }
   // ตรอกล่าง is its own scene, reached only through the alley at the east end of town: the hero walks up the
   // alley lane in town (camera zooms in), the scene cuts, and he walks down out of the lane on the slum side.
-  const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1 };
+  const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1, slumyard: 1 };
   const zoneOf = place => SLUM_PLACES[place] ? 'slum' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
   function route(t0, from, to, act) {
@@ -134,7 +135,7 @@
     return [s1, into, out, leg(out.t1, LANE.x, b.x, zb)];
   }
   const end = segs => segs[segs.length - 1];
-  const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานหน้าหอคอย', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
+  const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานฝึกกิลด์', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
   // Dinner: the restaurant, or the soup kitchen when there is no money for a meal. Fixed once dinner has happened.
   function dinnerPrice(st) { return st.life.path === 'kitchen' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
   function dinnerPlace(st) {
@@ -143,8 +144,13 @@
     return st.money >= dinnerPrice(st) ? 'tavern' : 'soup';
   }
   function dayPlan(st) {
-    const L = st.life, path = PATHS[L.path], work = path.place;
-    const today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
+    const L = st.life, today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
+    // v85: guild training happens inside a training yard — the guild's behind the tower arch, or (waking in the slum) the alley yard
+    let path = PATHS[L.path];
+    if (L.path === 'guild') path = today.place === 'tenement'
+      ? Object.assign({}, path, { place: 'slumyard', room: 'slumyard', act: 'ฝึกร่างกายที่ลานฝึกตรอก' })
+      : Object.assign({}, path, { room: 'yard', act: st.guild ? 'ซ้อมกับครูฝึกที่ลานฝึกกิลด์' : 'ฝึกที่ลานฝึกกิลด์' });
+    const work = path.place;
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
     const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งในสวน';
     const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : { lie: true };

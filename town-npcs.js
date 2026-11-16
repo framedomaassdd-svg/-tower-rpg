@@ -73,8 +73,8 @@
       { x: 4935, y: 822, until: H(17.5), loop: 'grind', face: -1 },
       { x: 4803, y: DOOR, until: 20, hidden: true }] },
     { id: 'instructor', name: 'ครูฝึกกิลด์', sheet: 'instructor', height: HERO * 1.0, speed: 1500, stops: [
-      { x: 2501, y: 690, until: H(6.3), hidden: true },                       // comes down the tower steps
-      { x: 2296, y: 838, until: H(16), loop: 'swing', face: 1 },
+      { x: 2501, y: 690, until: H(16.2), hidden: true },                      // teaching in the training yard behind the arch
+      { x: 897, y: DOOR, until: H(18.6), hidden: true },                       // supper at the tavern
       { x: 2501, y: 690, until: 20, hidden: true }] },
     { id: 'summoned', name: 'ผู้ถูกอัญเชิญอีกคน', sheet: 'summoned', height: HERO * 1.0, speed: 1500, stops: [
       { x: 5543, y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn

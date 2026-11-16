@@ -64,7 +64,8 @@
     bench:  SPOTS.gardenBench,                               // v82: the garden bench (the hero asleep is painted onto it)
     tenement: SPOTS.tenementDoor,                            // ห้องเช่าตรอก
     soup:   SPOTS.soupCounter,                               // โรงทาน
-    scrap:  10300                                            // ลานเก็บของเก่า
+    scrap:  10300,                                           // ลานเก็บของเก่า
+    slumyard: SPOTS.scrapDoor                                // v85: ลานฝึกตรอก, through the scrap yard's door
   });
   const BENCH_SEAT = 52, BENCH_PATCH = [280, 438];     // patch position in the garden image's pixels
   const NAMES = [
