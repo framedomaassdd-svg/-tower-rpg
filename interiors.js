@@ -15,17 +15,17 @@
     restaurant: { file: 'restaurant_hall',    name: 'ร้านอาหาร',     seat: { x: 757, foot: 716, cut: 577 } },
     kitchen:    { file: 'restaurant_kitchen', name: 'ห้องครัว',      route: [345, 670, 1055, 1385] },
     // v79 (newer paintings, file names int_*). work: a hero pose at x; npcs: townsfolk sheets (h = × hero height)
-    forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', work: { kind: 'hammer', x: 1010, face: -1 },
+    forge:      { file: 'int_forge',      name: 'โรงตีเหล็ก', k: 1.12, work: { kind: 'hammer', x: 1010, face: -1 },
                   npcs: [{ sheet: 'smith', x: 560, loop: 'hammer', face: 1, h: 1.03 }] },
-    bakery:     { file: 'int_bakery',     name: 'ร้านขนมปัง', stand: { x: 1180, look: 'back' } },
-    guild:      { file: 'int_guild',      name: 'ห้องโถงกิลด์', stand: { x: 800, look: 'back' },
-                  npcs: [{ sheet: 'elder', x: 330, loop: 'write', face: 1, h: 0.8, foot: 640, behind: 528 }] },
-    apothecary: { file: 'int_apothecary', name: 'ร้านยา', stand: { x: 640, look: 'back' },
+    bakery:     { file: 'int_bakery',     name: 'ร้านขนมปัง', k: 1.28, stand: { x: 1180, look: 'back' } },
+    guild:      { file: 'int_guild',      name: 'ห้องโถงกิลด์', k: 1.22, stand: { x: 800, look: 'back' },
+                  npcs: [{ sheet: 'elder', x: 330, loop: 'write', face: 1, h: 0.8 / 1.22, foot: 640, behind: 528 }] },
+    apothecary: { file: 'int_apothecary', name: 'ร้านยา', k: 1.28, stand: { x: 640, look: 'back' },
                   npcs: [{ sheet: 'apothecary', x: 1040, loop: 'grind', face: -1, h: 0.93 }] },
-    junk:       { file: 'int_junk',       name: 'ร้านรับซื้อของเก่า', stand: { x: 1250, look: 'back' } },
-    soup:       { file: 'int_soup',       name: 'โรงทาน', seat: { x: 1230, foot: 585, cut: 488 },
-                  npcs: [{ sheet: 'granny', x: 610, loop: 'stir', face: -1, h: 0.88 }] },
-    tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260] },
+    junk:       { file: 'int_junk',       name: 'ร้านรับซื้อของเก่า', k: 1.34, stand: { x: 1250, look: 'back' } },
+    soup:       { file: 'int_soup',       name: 'โรงทาน', k: 1.2, seat: { x: 1230, foot: 585, cut: 488 },
+                  npcs: [{ sheet: 'granny', x: 560, foot: 735, loop: 'stir', face: -1, h: 0.82 }] },
+    tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260] },
                   stand: { x: 800, look: 'front' } }
   };
   const hasImage = typeof Image !== 'undefined';
@@ -56,20 +56,20 @@
   function hero(ctx, x, foot, o) {
     if (!root.HeroSprite || !root.HeroSprite.ready()) return;
     ctx.save(); ctx.translate(x, foot); ctx.scale(o.face || 1, 1);
-    root.HeroSprite.draw(ctx, Object.assign({ scale: HERO_H / root.HeroSprite.HEIGHT, face: 1 }, o, { face: 1 }));
+    root.HeroSprite.draw(ctx, Object.assign({ scale: HERO_H * (o.k || 1) / root.HeroSprite.HEIGHT, face: 1 }, o, { face: 1 }));
     ctx.restore();
   }
   // A work pose from the hero's work sheets (town-npcs.js); false if those images are not loaded yet.
   function pose(ctx, kind, x, foot, o) {
     const N = root.TownNPCs; if (!N || !N.heroReady(kind)) return false;
     ctx.save(); ctx.translate(x, foot);
-    N.drawHero(ctx, kind, Object.assign({ height: HERO_H * 648 / 680 }, o));
+    N.drawHero(ctx, kind, Object.assign({ height: HERO_H * 648 / 680 * (o.k || 1) }, o));
     ctx.restore();
     return true;
   }
   const WORK_POSE = { kitchen: 'chop', laundry: 'mop' };
-  function shadow(ctx, x, foot) {
-    ctx.fillStyle = 'rgba(40,20,10,.28)'; ctx.beginPath(); ctx.ellipse(x, foot - 2, 62, 13, 0, 0, Math.PI * 2); ctx.fill();
+  function shadow(ctx, x, foot, k) {
+    k = k || 1; ctx.fillStyle = 'rgba(40,20,10,.28)'; ctx.beginPath(); ctx.ellipse(x, foot - 2, 62 * k, 13 * k, 0, 0, Math.PI * 2); ctx.fill();
   }
   function sleeper(ctx, bed, t) {
     // real sleeping frames: lying on the back, head on the pillow (sheet's head is on the left, so it is mirrored)
@@ -97,10 +97,10 @@
   function people(ctx, sc, t) {
     const N = root.TownNPCs; if (!N || !sc.npcs) return;
     for (const p of sc.npcs) {
-      const h = HERO_H * 648 / 680 * p.h, [row, col, flip] = N.frameOf({ id: p.sheet, loop: p.loop, face: p.face, height: h }, t / 1000);
+      const h = HERO_H * 648 / 680 * p.h * (sc.k || 1), [row, col, flip] = N.frameOf({ id: p.sheet, loop: p.loop, face: p.face, height: h }, t / 1000);
       ctx.save();
       if (p.behind) { ctx.beginPath(); ctx.rect(0, 0, IW, p.behind); ctx.clip(); }
-      const f = p.foot || FLOOR; if (!p.behind) shadow(ctx, p.x, f); N.blit(ctx, p.sheet, row, col, flip, h, p.x, f, 1);
+      const f = p.foot || FLOOR; if (!p.behind) shadow(ctx, p.x, f, h / (HERO_H * 648 / 680)); N.blit(ctx, p.sheet, row, col, flip, h, p.x, f, 1);
       ctx.restore();
     }
   }
@@ -138,23 +138,23 @@
     ctx.setTransform(scale, 0, 0, scale, -camX * scale, -camY * scale);
     ctx.drawImage(im, 0, 0, IW, IH);
 
-    const anim = t * 0.008;
+    const anim = t * 0.008, K = sc.k || 1;
     people(ctx, sc, t);
     if (act && act.sleep && sc.bed) sleeper(ctx, sc.bed, t);
-    else if (act && act.work) { shadow(ctx, act.x, FLOOR);
-      if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012 }); }
+    else if (act && act.work) { shadow(ctx, act.x, FLOOR, K);
+      if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face, k: K })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012, k: K }); }
     else if (act && act.seat) {
       const s = act.seat;
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, IW, s.cut); ctx.clip();                    // lower body is behind the table
-      if (!(info.eating && pose(ctx, 'eat', s.x, s.foot, { sec: t / 1000, face: 1 })))
-        hero(ctx, s.x, s.foot + Math.sin(t * 0.004) * 1.5, { vdir: 1, moving: false, anim });
+      if (!(info.eating && pose(ctx, 'eat', s.x, s.foot, { sec: t / 1000, face: 1, k: s.k })))
+        hero(ctx, s.x, s.foot + Math.sin(t * 0.004) * 1.5, { vdir: 1, moving: false, anim, k: s.k });
       ctx.restore();
     } else if (act) {
-      shadow(ctx, act.x, FLOOR);
-      if (act.moving) hero(ctx, act.x, FLOOR, { moving: true, anim, face: act.face, horizontal: true });
-      else if (sc.route && WORK_POSE[info.room] && pose(ctx, WORK_POSE[info.room], act.x, FLOOR, { sec: t / 1000, face: act.face })) { /* working at a station */ }
-      else if (act.look === 'back') hero(ctx, act.x, FLOOR, { vdir: -1, moving: !!sc.route, anim: t * 0.012 });   // busy at the counter
-      else hero(ctx, act.x, FLOOR, { vdir: 1, moving: false, anim });
+      shadow(ctx, act.x, FLOOR, K);
+      if (act.moving) hero(ctx, act.x, FLOOR, { moving: true, anim, face: act.face, horizontal: true, k: K });
+      else if (sc.route && WORK_POSE[info.room] && pose(ctx, WORK_POSE[info.room], act.x, FLOOR, { sec: t / 1000, face: act.face, k: K })) { /* working at a station */ }
+      else if (act.look === 'back') hero(ctx, act.x, FLOOR, { vdir: -1, moving: !!sc.route, anim: t * 0.012, k: K });   // busy at the counter
+      else hero(ctx, act.x, FLOOR, { vdir: 1, moving: false, anim, k: K });
     }
 
     // light: evening warmth, and a dark room while asleep
