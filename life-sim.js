@@ -11,14 +11,17 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 6330 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 6330, tenement: 7440, soup: 8052, scrap: 10300 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
     market: { x: PX.market, y: 792, name: 'ตลาดขนมปัง' },
     guild:  { x: PX.guild, y: 792, name: 'ลานฝึกหน้าหอคอย' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
-    bench:  { x: PX.bench, y: 792, name: 'ม้านั่งริมถนน' }
+    bench:  { x: PX.bench, y: 792, name: 'ม้านั่งริมถนน' },
+    tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
+    soup:   { x: PX.soup, y: 812, name: 'โรงทาน' },
+    scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' }
   });
   const STREET_Y = 812;
   const SPEED = 2520;            // world px per clock unit (≈ a brisk walk at ×1)
@@ -31,9 +34,12 @@
   const ROOMS = Object.freeze({
     cheap: { name: 'ห้องประหยัด', price: 2,  energy: 80,  health: 0,  room: 'bed_cheap', desc: 'เตียงไม้กับผ้าห่มผืนเดียว ตื่นมาแรง 80' },
     mid:   { name: 'ห้องธรรมดา',  price: 5,  energy: 100, health: 5,  room: 'bed_mid',   desc: 'ห้องสะอาด นอนเต็มอิ่ม แรง 100 สุขภาพ +5' },
-    luxe:  { name: 'ห้องหรู',     price: 12, energy: 100, health: 12, room: 'bed_luxe',  focus: 1.15, desc: 'เตียงสี่เสา แรง 100 สุขภาพ +12 และวันถัดไปจังหวะมินิเกมกว้างขึ้น' }
+    luxe:  { name: 'ห้องหรู',     price: 12, energy: 100, health: 12, room: 'bed_luxe',  focus: 1.15, desc: 'เตียงสี่เสา แรง 100 สุขภาพ +12 และวันถัดไปจังหวะมินิเกมกว้างขึ้น' },
+    // not at the inn: a room in the tenement in ตรอกล่าง
+    slum:  { name: 'ห้องเช่าตรอก', price: 1,  energy: 65,  health: -3, room: null, place: 'tenement', desc: 'ห้องแคบอับชื้นในตึกเช่าท้ายตรอก 1 เหรียญ ตื่นมาแรง 65 สุขภาพ -3 ยังดีกว่านอนข้างถนน' }
   });
-  const ROOM_ORDER = ['luxe', 'mid', 'cheap'];
+  const ROOM_ORDER = ['luxe', 'mid', 'cheap', 'slum'];
+  const roomPlace = id => (ROOMS[id] && ROOMS[id].place) || 'inn';
   const RENT = ROOMS.mid.price;
 
   const ORIGINS = Object.freeze([
@@ -56,7 +62,9 @@
     hotel:  { name: 'พนักงานโรงแรม',     place: 'inn',    energy: 20, room: 'laundry', act: 'ซักผ้าและจัดห้องพัก',
               desc: 'ซักผ้า ปูเตียง ถูพื้นในโรงแรม ค่าแรง 8 เหรียญ งานเบา และได้ส่วนลดค่าห้องครึ่งราคาทุกคืน' },
     kitchen:{ name: 'ผู้ช่วยครัว',         place: 'tavern', energy: 25, room: 'kitchen', act: 'ช่วยงานในครัว', minigame: true,
-              desc: 'หั่นผักในครัวร้านอาหาร มีมินิเกมหั่นแครอท ค่าแรง 3 + ดาว (สูงสุด 12) ได้กินข้าวเย็นฟรีและอาหารติดมือ' }
+              desc: 'หั่นผักในครัวร้านอาหาร มีมินิเกมหั่นแครอท ค่าแรง 3 + ดาว (สูงสุด 12) ได้กินข้าวเย็นฟรีและอาหารติดมือ' },
+    scrap:  { name: 'เก็บของเก่าในตรอก',  place: 'scrap',  energy: 25,
+              desc: 'คัดของเก่าและเข็นของที่ลานท้ายตรอกล่าง ไม่ต้องสอบเข้า ค่าแรง 6 เหรียญ ทุก 4 วันจะเจอของดีขายให้ร้านรับซื้อได้อีก 5 เหรียญ' }
   });
 
   function originOf(st) { return ORIGINS.find(o => o.name === st.profession) || ORIGINS[3]; }
@@ -95,13 +103,20 @@
     const a = PLACES[from], b = PLACES[to], d = Math.abs(b.x - a.x) / SPEED;
     return { kind: 'walk', t0, t1: t0 + d, x0: a.x, x1: b.x, y: STREET_Y, place: to, act };
   }
-  const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานหน้าหอคอย', market: 'ขนของในตลาด' };
+  const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานหน้าหอคอย', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
+  // Dinner: the restaurant, or the soup kitchen when there is no money for a meal. Fixed once dinner has happened.
+  function dinnerPrice(st) { return st.life.path === 'kitchen' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
+  function dinnerPlace(st) {
+    const L = st.life;
+    if (L.dinnerAt && L.dinnerAt.day === st.day) return L.dinnerAt.place;
+    return st.money >= dinnerPrice(st) ? 'tavern' : 'soup';
+  }
   function dayPlan(st) {
     const L = st.life, path = PATHS[L.path], work = path.place;
     const today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
-    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : 'นอนบนม้านั่งริมถนน';
-    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : { lie: true };
+    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งริมถนน';
+    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
@@ -111,16 +126,18 @@
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
       { milestone: 'work', room: path.room || null, hidden: !!path.room, working: true });
     segs.push(atWork);
-    const toTavern = walk(atWork.t1, work, 'tavern', 'เดินไปกินข้าวเย็น'); segs.push(toTavern);
-    const dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), 'tavern', 'กินข้าวเย็นที่ร้านอาหาร',
-      { milestone: 'dinner', room: 'restaurant', hidden: true, eating: true });
+    const eatAt = dinnerPlace(st), soup = eatAt === 'soup';
+    const toTavern = walk(atWork.t1, work, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น'); segs.push(toTavern);
+    const dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), eatAt, soup ? 'รับซุปฟรีที่โรงทาน' : 'กินข้าวเย็นที่ร้านอาหาร',
+      soup ? { milestone: 'dinner', eating: true } : { milestone: 'dinner', room: 'restaurant', hidden: true, eating: true });
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
-    const back = walk(dinner.t1, 'tavern', home, home === 'inn' ? 'เดินกลับโรงแรม' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง'); segs.push(back);
+    const back = walk(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง'); segs.push(back);
     if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
-    } else segs.push(stay(back.t1, 20, 'bench', asleep('bench'), { lie: true, milestone: 'home' }));
+    } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, milestone: 'home' }));
+    else segs.push(stay(back.t1, 20, 'bench', asleep('bench'), { lie: true, milestone: 'home' }));
     for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
     return segs;
   }
@@ -159,9 +176,9 @@
   function applyWake(st) {
     const L = st.life, o = originOf(st);
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
-    if (L.sleptAt === 'inn') {
+    if (L.sleptAt === 'inn' || L.sleptAt === 'tenement') {
       const room = ROOMS[L.roomSlept] || ROOMS.mid;
-      st.energy = Math.max(st.energy, room.energy); st.health = Math.min(100, st.health + room.health);
+      st.energy = Math.max(st.energy, room.energy); st.health = clamp(st.health + room.health, 1, 100);
       if (room.focus) L.focusDay = st.day;
     } else st.energy = Math.max(st.energy, o.id === 'jobless' ? 80 : 50);
     L.todayStars = null; L.dayStart = { day: st.day, place: L.sleptAt, room: L.roomSlept }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
@@ -211,6 +228,13 @@
       st.food++; st.tavernWork = (st.tavernWork || 0) + 1; st.rep = (st.rep || 0) + 1;
       return say(st, (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ช่วยงานในครัว ได้ ' + w + ' เหรียญ และอาหาร 1 ชุด');
     }
+    if (L.path === 'scrap') {
+      const w = payWork(st, tired ? 3 : 6, core, true);
+      st.scrapWork = (st.scrapWork || 0) + 1;
+      let msg = (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'คัดของเก่าในตรอก ได้ ' + w + ' เหรียญ';
+      if (!tired && st.scrapWork % 4 === 0) { st.money += 5; msg += ' · เจอของดีในกองขยะ ขายให้ร้านรับซื้อได้อีก 5 เหรียญ'; }
+      return say(st, msg);
+    }
     return null; // smith is resolved by the minigame
   }
   function finishSmith(st, totalStars, core) {
@@ -241,7 +265,7 @@
   }
   function roomPrice(st, id) {
     const p = ROOMS[id].price;
-    return st.life && st.life.path === 'hotel' ? Math.ceil(p / 2) : p;       // staff discount
+    return st.life && st.life.path === 'hotel' && !ROOMS[id].place ? Math.ceil(p / 2) : p;       // staff discount (inn rooms)
   }
   // best room at or below the preference that the character can pay for right now
   function pickRoom(st) {
@@ -250,26 +274,30 @@
     return null;
   }
   function applyDinner(st, core) {
-    const L = st.life, staff = L.path === 'kitchen', price = staff ? 0 : originOf(st).id === 'chef' ? 3 : 4;
+    const L = st.life, staff = L.path === 'kitchen', price = dinnerPrice(st), at = dinnerPlace(st);
     const msgs = [];
+    L.dinnerAt = { day: st.day, place: at };
+    if (at === 'soup') { st.food++; msgs.push('ไม่มีเงินกินข้าว ป้าที่โรงทานตักซุปให้ฟรี'); }
     if ((st.taxDue || 0) > 0 && core && core.payTax && st.money >= price + 3) {
       const p = core.payTax(st); if (p.ok) msgs.push('จ่ายภาษีเมือง ' + p.paid + ' เหรียญ');
     }
-    if (staff) { st.food++; msgs.push('กินข้าวพนักงานในครัว ไม่เสียเงิน'); }
+    if (at === 'soup') { /* already fed */ }
+    else if (staff) { st.food++; msgs.push('กินข้าวพนักงานในครัว ไม่เสียเงิน'); }
     else if (st.money >= price) { st.money -= price; st.food++; msgs.push('กินข้าวเย็น ' + price + ' เหรียญ'); }
     else msgs.push('เงินไม่พอกินข้าวเย็น');
     const room = pickRoom(st);
-    L.homeTonight = room ? 'inn' : 'bench'; L.roomTonight = room || L.roomPref;
+    L.homeTonight = room ? roomPlace(room) : 'bench'; L.roomTonight = room || L.roomPref;
     if (!room) msgs.push('ไม่มีค่าห้องคืนนี้');
     else if (room !== L.roomPref) msgs.push('เงินไม่พอ' + ROOMS[L.roomPref].name + ' คืนนี้พัก' + ROOMS[room].name);
     return say(st, msgs.join(' · '));
   }
   function applyHome(st) {
-    const L = st.life, room = L.homeTonight === 'inn' ? pickRoom(st) : null;
+    const L = st.life, planned = L.homeTonight !== 'bench' ? pickRoom(st) : null;
+    const room = planned && roomPlace(planned) === L.homeTonight ? planned : null;   // stay where the walk led
     if (room) {
       const price = roomPrice(st, room);
-      st.money -= price; L.sleptAt = 'inn'; L.roomSlept = room; L.roomTonight = room;
-      return say(st, 'จ่ายค่า' + ROOMS[room].name + ' ' + price + ' เหรียญ' + (L.path === 'hotel' ? ' (ราคาพนักงาน)' : '') + ' แล้วเข้านอน');
+      st.money -= price; L.sleptAt = roomPlace(room); L.roomSlept = room; L.roomTonight = room;
+      return say(st, 'จ่ายค่า' + ROOMS[room].name + ' ' + price + ' เหรียญ' + (L.path === 'hotel' && room !== 'slum' ? ' (ราคาพนักงาน)' : '') + ' แล้วเข้านอน');
     }
     L.sleptAt = 'bench'; L.homeTonight = 'bench';
     return say(st, 'คืนนี้ต้องนอนบนม้านั่งริมถนน');

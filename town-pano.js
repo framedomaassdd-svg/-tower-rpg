@@ -1,12 +1,14 @@
-/* v75 town built from separate pieces (same art style as the characters):
+/* v76 town built from separate pieces (same art style as the characters):
    sky (tiles sideways, slow parallax) · the tower (parallax, seen through the arch) · one image per building ·
    a tiling street (sidewalk + kerb + cobbles). Every building was scaled by its door so doors are ≈ 1.3× the hero.
    Night: each building has a matching glow image (lit windows, lamps, the forge fire), added with 'screen'.
-   World space is unchanged: 6480 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
+   v76 adds ตรอกล่าง, the poor district, east of the last house (x 6450–11100), entered through an alley arch;
+   its own backdrop and dirt street fade in behind/along the arch. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=75';
-  const WORLD_W = 6480, BASE = 794;
+  const V = '?v=76';
+  const WORLD_W = 11120, BASE = 794;
+  const SLUM_FADE = [6640, 7000];                           // town backdrop/street → slum backdrop/street
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
 
@@ -23,9 +25,19 @@
     { id: 'forge', x: 4130, y: 386, w: 558, h: 408 },
     { id: 'apothecary', x: 4692, y: 415, w: 418, h: 379 },
     { id: 'inn', x: 5114, y: 167, w: 904, h: 627 },
-    { id: 'houseE', img: 'houseA', flip: true, x: 6021, y: 346, w: 422, h: 448 }
+    { id: 'houseE', img: 'houseA', flip: true, x: 6021, y: 346, w: 422, h: 448 },
+    // ตรอกล่าง
+    { id: 'alley', x: 6450, y: 317, w: 753, h: 477 },
+    { id: 'tenement', x: 7207, y: 202, w: 436, h: 592 },
+    { id: 'soup', x: 7647, y: 336, w: 597, h: 458 },
+    { id: 'washing', x: 8248, y: 461, w: 518, h: 333 },
+    { id: 'junk', x: 8769, y: 357, w: 625, h: 437 },
+    { id: 'shackA', x: 9398, y: 450, w: 487, h: 344 },
+    { id: 'scrap', x: 9889, y: 433, w: 635, h: 361 },
+    { id: 'shackB', x: 10527, y: 407, w: 566, h: 387 }
   ]);
-  const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp') };
+  const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
+    slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp') };
   for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   const ready = () => ok(art.road) && ok(art.inn);
@@ -35,7 +47,9 @@
     gateDoor: 328, tavernDoor: 897, terrace: 1115, houseB: 1557, houseA: 2005,
     stairs: 2501, plazaLeft: 2296, plazaRight: 2706, well: 2975, bakeryDoor: 3236, stall: 3445,
     gardenBench: 3886, anvil: 4488, forgeFire: 4367, apothecaryDoor: 4803, apothecaryWindow: 4935,
-    innDoor: 5543, innCafe: 5818, houseE: 6162
+    innDoor: 5543, innCafe: 5818, houseE: 6162,
+    alleyDoor: 6609, alleyLane: 6836, tenementDoor: 7440, soupDoor: 7803, soupCounter: 8052, trough: 8455,
+    junkDoor: 8932, junkWindow: 9185, shackA: 9691, scrapDoor: 10014, scrapCart: 10413, shackB: 10873
   });
   const GATE = [240, 420];                                   // the lane up through the city gate
   const ARCH = [2380, 2620];                                 // the steps up toward the tower
@@ -45,12 +59,16 @@
     market: SPOTS.stall,
     smith:  4562,                                            // just right of the anvil
     inn:    SPOTS.innDoor,
-    bench:  6330                                             // street bench past the last house
+    bench:  6330,                                            // street bench past the last house
+    tenement: SPOTS.tenementDoor,                            // ห้องเช่าตรอก
+    soup:   SPOTS.soupCounter,                               // โรงทาน
+    scrap:  10300                                            // ลานเก็บของเก่า
   });
   const BENCH_SEAT = 52;
   const NAMES = [
     [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2150, 'ย่านที่พัก'], [2855, 'ลานหน้าหอคอย'], [3098, 'บ่อน้ำกลางเมือง'],
-    [3690, 'ตลาดขนมปัง'], [4130, 'สวนริมทาง'], [4690, 'โรงตีเหล็ก'], [5110, 'ร้านยา'], [6020, 'โรงแรม'], [Infinity, 'ย่านที่พักตะวันออก']
+    [3690, 'ตลาดขนมปัง'], [4130, 'สวนริมทาง'], [4690, 'โรงตีเหล็ก'], [5110, 'ร้านยา'], [6020, 'โรงแรม'], [6640, 'ย่านที่พักตะวันออก'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
+    [8768, 'ลานซักผ้า'], [9395, 'ร้านรับซื้อของเก่า'], [9888, 'ตรอกล่าง'], [10525, 'ลานของเก่า'], [Infinity, 'ท้ายตรอก']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
@@ -88,12 +106,32 @@
     if (b.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
     else ctx.drawImage(im, b.x, b.y, b.w, b.h);
   }
-  const SMOKE = [[746, 385], [1631, 379], [2091, 349], [3586, 351], [4581, 390], [5219, 188], [4760, 427], [6076, 349]];
+  // Draw `fn` only over [x0, x1) of the world, with opacity ramping from a0 to a1 across it (in strips).
+  function band(ctx, x0, x1, a0, a1, camera, w, h, fn) {
+    const L = Math.max(x0, camera), R = Math.min(x1, camera + w); if (R <= L) return;
+    const steps = a0 === a1 ? 1 : Math.max(1, Math.ceil((R - L) / 14)), sw = (R - L) / steps;
+    for (let i = 0; i < steps; i++) {
+      const xa = L + i * sw, k = (xa + sw / 2 - x0) / (x1 - x0);
+      ctx.save(); ctx.globalAlpha = a0 + (a1 - a0) * k; ctx.beginPath(); ctx.rect(xa - 0.5, 0, sw + 1, h + 200); ctx.clip(); fn(); ctx.restore();
+    }
+  }
+  const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1631, 379], [2091, 349], [3586, 351], [4581, 390], [5219, 188], [4760, 427], [6076, 349]];
   function draw(ctx, camera, w, h, t) {
     ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
-    if (ok(art.sky)) tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
-    tower(ctx, camera, w);
-    if (ok(art.road)) tiled(ctx, art.road, 0, ROAD_ROW, art.road.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
+    const [F0, F1] = SLUM_FADE, H = 1080;
+    const sky = () => tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
+    // slum backdrop: smaller and hazed so its rooftops read as far away behind the real shacks
+    const SB = 0.82, slumSky = () => {
+      ctx.fillStyle = '#9fb8dc'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
+      tiled(ctx, art.slumBg, 0, 0, art.slumBg.naturalHeight, 0, SKY_BOTTOM - art.slumBg.naturalHeight * SB, SB, camera, w, SKY_RATE);
+      ctx.fillStyle = 'rgba(246,224,196,0.42)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
+    };
+    if (ok(art.sky)) band(ctx, -1e4, F1, 1, 1, camera, w, H, sky);
+    if (ok(art.slumBg)) { band(ctx, F0, F1, 0, 1, camera, w, H, slumSky); band(ctx, F1, 1e6, 1, 1, camera, w, H, slumSky); }
+    band(ctx, -1e4, F1, 1, 1, camera, w, H, () => tower(ctx, camera, w));
+    const road = (im) => () => tiled(ctx, im, 0, ROAD_ROW, im.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
+    if (ok(art.road)) band(ctx, -1e4, F1, 1, 1, camera, w, H, road(art.road));
+    if (ok(art.slumRoad)) { band(ctx, F0 + 120, F1, 0, 1, camera, w, H, road(art.slumRoad)); band(ctx, F1, 1e6, 1, 1, camera, w, H, road(art.slumRoad)); }
     for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w);
     ctx.save();
     for (const [x, y] of SMOKE) {
@@ -118,5 +156,5 @@
     ctx.restore();
   }
   const S = 1080 / 724, wx = x => Math.round(x * S);       // kept for older callers
-  root.TownPano = { art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
+  root.TownPano = { SLUM_FADE, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

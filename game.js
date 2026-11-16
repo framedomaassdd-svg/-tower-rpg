@@ -1,4 +1,4 @@
-/* v74 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
+/* v76 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
    this file keeps the clock, the save, and draws either the painted street (town-pano.js) or an interior (interiors.js).
    Top-level names here are shared with life-ui.js: state, clock, player, playerY, face, moving, anim, log, update, save, $. */
 const c = document.querySelector('canvas'), ctx = c.getContext('2d');
@@ -62,7 +62,7 @@ function heroWorkPose() {
   const L = state.life || {}, path = L.path;
   const carrying = () => { const q = TownNPCs.heroShuttle(clock, 75); return { kind: 'carry', dx: q.x, face: q.face, moving: q.moving, d: q.d }; };
   if (path === 'smith') return { kind: 'hammer', dx: 0, face: -1 };            // the anvil is just to the left
-  if (path === 'market') return carrying();
+  if (path === 'market' || path === 'scrap') return carrying();
   if (path === 'guild') return state.guild ? carrying() : { kind: 'swing', dx: 0, face: -1 };   // sparring toward the instructor
   return null;
 }

@@ -1,4 +1,4 @@
-/* v75 townsfolk and the hero's work poses, drawn from frame sprite sheets (same style as the hero).
+/* v76 townsfolk and the hero's work poses, drawn from frame sprite sheets (same style as the hero).
    Sheet npc5_<id>.webp: 4 columns × 3 rows; row 0 walk (side view, facing right) · row 1 work · row 2 idle (front).
    Everyone's position is a pure function of the town clock (0–20 = one day, 5 = 06:00), so the street is right after
    a reload or a time-speed change. Leg frames follow distance walked, so feet never slide.
@@ -17,7 +17,8 @@
     guard1: { ...B, src: 334 }, guard2: { ...B, src: 325 }, chef: { ...B, src: 344 }, innkeeper: { ...B, src: 347 },
     apothecary: { ...B, src: 342 }, instructor: { ...B, src: 345 }, summoned: { ...B, src: 350 }, summoned_work: { ...B, src: 350 },
     heroA: { ...B, src: 353 }, heroB: { ...B, src: 353 }, heroC: { ...B, src: 353 },
-    kids: { ...B, src: 311 }, farmer: { ...B, src: 344 }, animals: { ...B, src: 265 }    // animals: src = the sitting cat
+    kids: { ...B, src: 311 }, farmer: { ...B, src: 344 }, animals: { ...B, src: 265 },    // animals: src = the sitting cat
+    washer: { ...B, src: 348 }, thug: { ...B, src: 345 }, streetkid: { ...B, src: 340 }, granny: { ...B, src: 346 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -28,7 +29,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=74'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=76'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -39,6 +40,8 @@
     sweep:  { row: 1, times: [.38, .3, .3, .36] },   grind: { row: 1, times: [.45, .4, .5, .9] },
     swing:  { row: 1, times: [.42, .1, .22, .7] },   phone: { row: 1, times: [1.4, .7, 1.2, 1.1] },
     guard:  { row: 1, times: [2.2, .5, 1.6, 1.2] },  offer: { row: 1, times: [2.4, .4, 1.6, 1.0] },
+    scrub:  { row: 1, times: [.35, .3, .35, .5] },   stir:  { row: 1, times: [.8, .7, .9, 1.6] },
+    juggle: { row: 1, times: [.22, .22, .22, .22] }, knuckle: { row: 1, times: [1.8, .5, .35, 2.2] },
     idle:   { row: 2, times: [1.6, .45, 1.3, .14] }
   });
 
@@ -92,6 +95,28 @@
       { x: 3900, y: 856, until: H(17.2), shuttle: { A: 150, speed: 1500, play: true } },
       { x: 2005, y: DOOR, until: 20, hidden: true }] }
   ];
+  // ตรอกล่าง (the poor district east of town)
+  const SLUM = [
+    { id: 'granny', name: 'ป้าโรงทาน', sheet: 'granny', height: HERO * 0.88, speed: 900, stops: [
+      { x: 7803, y: DOOR, until: H(9), hidden: true },
+      { x: 7965, y: 806, until: H(20), loop: 'stir', face: 1 },                 // at the soup pot
+      { x: 7803, y: DOOR, until: 20, hidden: true }] },
+    { id: 'washer', name: 'แม่ซักผ้า', sheet: 'washer', height: HERO * 0.88, speed: 1100, stops: [
+      { x: 7440, y: DOOR, until: H(6.5), hidden: true },                       // rents in the tenement
+      { x: 8385, y: 810, until: H(15), loop: 'scrub', face: 1 },
+      { x: 7440, y: DOOR, until: 20, hidden: true }] },
+    { id: 'streetkid', name: 'เด็กจรจัด', sheet: 'streetkid', height: HERO * 0.72, speed: 1400, stops: [
+      { x: 9691, y: DOOR, until: H(7.5), hidden: true },                       // sleeps in the shack
+      { x: 6930, y: 848, until: H(11), loop: 'juggle', face: 1 },               // busking by the alley gate
+      { x: 7900, y: 848, until: H(12.5), loop: 'idle' },                        // waiting for soup
+      { x: 9200, y: 848, until: H(18), loop: 'juggle', face: 1 },
+      { x: 9691, y: DOOR, until: 20, hidden: true }] },
+    { id: 'thug', name: 'นักเลงตรอก', sheet: 'thug', height: HERO * 1.04, speed: 1500, stops: [
+      { x: 10873, y: DOOR, until: H(7.5), hidden: true },
+      { x: 6760, y: 830, until: H(17), loop: 'knuckle', face: 1 },              // minding "his" gate
+      { x: 8995, y: 824, until: H(22.3), loop: 'knuckle', face: -1 },          // and the junk shop at night
+      { x: 10873, y: DOOR, until: 20, hidden: true }] }
+  ];
   // Two guards walk the whole street day and night, one on each half.
   const PATROLS = Object.freeze([
     { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3200, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
@@ -136,7 +161,7 @@
     return { x: x + off * A, y, d, moving, face };
   }
 
-  const ALL_PEOPLE = PEOPLE.concat(MORE);
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true };
     let prev = p.stops[0], start = 0, walked = 0;
