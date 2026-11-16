@@ -1,4 +1,4 @@
-/* v76 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
+/* v77 main loop. The character lives on its own (life-sim.js decides where it is from the town clock);
    this file keeps the clock, the save, and draws either the painted street (town-pano.js) or an interior (interiors.js).
    Top-level names here are shared with life-ui.js: state, clock, player, playerY, face, moving, anim, log, update, save, $. */
 const c = document.querySelector('canvas'), ctx = c.getContext('2d');
@@ -75,6 +75,12 @@ function drawPlayer(info) {
     ctx.restore();
     return;
   }
+  if (info && info.lane) {                                            // walking up into the alley (back view) or out of it (front)
+    ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
+    HeroSprite.draw(ctx, { anim, moving: true, vdir: info.lane === 'in' ? -1 : 1, face: 1 });
+    ctx.restore();
+    return;
+  }
   if (info && info.lie) {                                             // asleep on the street bench (fallback before the sheet loads)
     const seat = TownPano.BENCH_SEAT, h = HeroSprite.HEIGHT;
     ctx.save(); ctx.translate(player - h * 0.52, playerY - seat - 14); ctx.rotate(Math.PI / 2);
@@ -103,14 +109,27 @@ function drawPlayer(info) {
   else HeroSprite.draw(ctx, { anim, moving: false, face: 1 });
   ctx.restore();
 }
+// Walking through the alley between the town and ตรอกล่าง: zoom toward the lane mouth while going in,
+// then start zoomed in on the other side and pull back out. k = 0 (normal) … 1 (fully in, screen darkest).
+function laneZoom(info) {
+  if (!info || !info.lane) return 0;
+  const f = info.laneT || 0, k = info.lane === 'in' ? f : 1 - f;
+  return k * k * (3 - 2 * k);                                         // smoothstep
+}
 function drawTown(t) {
   const info = window.LIFE_INFO || null;
+  const zone = (info && info.zone) || TownPano.zoneAt(player), Z = TownPano.ZONES[zone];
   const view = CityCore.viewport(c.width, c.height, player), scale = view.scale, w = view.width, h = view.height;
-  const camera = Math.round(view.cameraX * scale) / scale;
-  ctx.setTransform(scale, 0, 0, scale, -camera * scale, 0);
-  TownPano.draw(ctx, camera, w, h, t);
+  const cam0 = Math.max(Z[0], Math.min(view.cameraX, Math.max(Z[0], Z[1] - w)));
+  const camera = Math.round(cam0 * scale) / scale;
+  const k = laneZoom(info), zoom = 1 + 1.7 * k;
+  // the lane mouth slides toward the centre of the screen as we zoom into it
+  const fx = (LifeSim.LANE.x - camera) * scale, fy = (LifeSim.LANE.top + 20) * scale;
+  const tx = fx + (c.width / 2 - fx) * k, ty = fy + (c.height * 0.55 - fy) * k;
+  ctx.setTransform(scale * zoom, 0, 0, scale * zoom, tx - (fx + camera * scale) * zoom, ty - fy * zoom);
+  TownPano.draw(ctx, camera, w, h, t, zone);
   const actors = [];
-  for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible) actors.push({ y: n.y, draw: () => drawNpc(n) });
+  for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible && (n.zone || 'town') === zone) actors.push({ y: n.y, draw: () => drawNpc(n) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   actors.sort((a, b) => a.y - b.y);
   for (const a of actors) a.draw();
@@ -121,6 +140,7 @@ function drawTown(t) {
     ctx.fillRect(camera, 0, w, h); ctx.restore();
   }
   TownPano.drawNight(ctx, camera, w, lamps, t);
+  if (k > 0.001) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(20,14,10,' + (0.85 * k * k).toFixed(3) + ')'; ctx.fillRect(0, 0, c.width, c.height); }
 }
 
 // ---- frame

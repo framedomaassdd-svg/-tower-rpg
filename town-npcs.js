@@ -96,7 +96,7 @@
       { x: 2005, y: DOOR, until: 20, hidden: true }] }
   ];
   // ตรอกล่าง (the poor district east of town)
-  const SLUM = [
+  const SLUM = [   // zone 'slum': drawn only in the ตรอกล่าง scene
     { id: 'granny', name: 'ป้าโรงทาน', sheet: 'granny', height: HERO * 0.88, speed: 900, stops: [
       { x: 7803, y: DOOR, until: H(9), hidden: true },
       { x: 7965, y: 806, until: H(20), loop: 'stir', face: 1 },                 // at the soup pot
@@ -161,9 +161,10 @@
     return { x: x + off * A, y, d, moving, face };
   }
 
+  for (const p of SLUM) p.zone = 'slum';
   const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM);
   function scheduled(p, clock) {
-    const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true };
+    const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town' };
     let prev = p.stops[0], start = 0, walked = 0;
     for (let i = 0; i < p.stops.length; i++) {
       const s = p.stops[i];

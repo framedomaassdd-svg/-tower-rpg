@@ -103,6 +103,24 @@
     const a = PLACES[from], b = PLACES[to], d = Math.abs(b.x - a.x) / SPEED;
     return { kind: 'walk', t0, t1: t0 + d, x0: a.x, x1: b.x, y: STREET_Y, place: to, act };
   }
+  // ตรอกล่าง is its own scene, reached only through the alley at the east end of town: the hero walks up the
+  // alley lane in town (camera zooms in), the scene cuts, and he walks down out of the lane on the slum side.
+  const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1 };
+  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : 'town';
+  const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
+  function route(t0, from, to, act) {
+    const za = zoneOf(from), zb = zoneOf(to);
+    if (za === zb) return [Object.assign(walk(t0, from, to, act), { zone: za })];
+    const a = PLACES[from], b = PLACES[to];
+    const leg = (t, x0, x1, zone) => ({ kind: 'walk', t0: t, t1: t + Math.abs(x1 - x0) / SPEED, x0, x1, y: STREET_Y, place: to, act, zone });
+    const s1 = leg(t0, a.x, LANE.x, za);
+    const into = { kind: 'lane', lane: 'in', t0: s1.t1, t1: s1.t1 + LANE.dur, x0: LANE.x, x1: LANE.x, y: STREET_Y, y1: LANE.top,
+      place: to, act: zb === 'slum' ? 'เดินเข้าตรอกล่าง' : 'เดินกลับเข้าเมือง', zone: za };
+    const out = { kind: 'lane', lane: 'out', t0: into.t1, t1: into.t1 + LANE.dur, x0: LANE.x, x1: LANE.x, y: LANE.top, y1: STREET_Y,
+      place: to, act: into.act, zone: zb };
+    return [s1, into, out, leg(out.t1, LANE.x, b.x, zb)];
+  }
+  const end = segs => segs[segs.length - 1];
   const WORK_ACT = { smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานหน้าหอคอย', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
   // Dinner: the restaurant, or the soup kitchen when there is no money for a meal. Fixed once dinner has happened.
   function dinnerPrice(st) { return st.life.path === 'kitchen' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
@@ -122,17 +140,17 @@
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
       return segs;
     }
-    const w = walk(WAKE, start, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)); segs.push(w);
+    const w = end(route(WAKE, start, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)).map(x => (segs.push(x), x)));
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
       { milestone: 'work', room: path.room || null, hidden: !!path.room, working: true });
     segs.push(atWork);
     const eatAt = dinnerPlace(st), soup = eatAt === 'soup';
-    const toTavern = walk(atWork.t1, work, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น'); segs.push(toTavern);
+    const toTavern = end(route(atWork.t1, work, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น').map(x => (segs.push(x), x)));
     const dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), eatAt, soup ? 'รับซุปฟรีที่โรงทาน' : 'กินข้าวเย็นที่ร้านอาหาร',
       soup ? { milestone: 'dinner', eating: true } : { milestone: 'dinner', room: 'restaurant', hidden: true, eating: true });
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
-    const back = walk(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง'); segs.push(back);
+    const back = end(route(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
     if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
@@ -159,9 +177,10 @@
     const segs = dayPlan(st);
     let s = segs[segs.length - 1];
     for (const seg of segs) if (c >= seg.t0 && c < seg.t1) { s = seg; break; }
-    const f = s.kind === 'walk' && s.t1 > s.t0 ? (c - s.t0) / (s.t1 - s.t0) : 0;
-    const x = s.x0 + (s.x1 - s.x0) * clamp(f, 0, 1);
-    return { x, y: s.y, hidden: !!s.hidden, moving: s.kind === 'walk', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
+    const f = s.kind !== 'stay' && s.t1 > s.t0 ? clamp((c - s.t0) / (s.t1 - s.t0), 0, 1) : 0;
+    const x = s.x0 + (s.x1 - s.x0) * f, y = s.kind === 'lane' ? s.y + (s.y1 - s.y) * f : s.y;
+    return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
+      zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
       room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, working: !!s.working, eating: !!s.eating };
   }
@@ -366,7 +385,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

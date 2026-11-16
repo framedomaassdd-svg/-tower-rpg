@@ -2,13 +2,15 @@
    sky (tiles sideways, slow parallax) · the tower (parallax, seen through the arch) · one image per building ·
    a tiling street (sidewalk + kerb + cobbles). Every building was scaled by its door so doors are ≈ 1.3× the hero.
    Night: each building has a matching glow image (lit windows, lamps, the forge fire), added with 'screen'.
-   v76 adds ตรอกล่าง, the poor district, east of the last house (x 6450–11100), entered through an alley arch;
-   its own backdrop and dirt street fade in behind/along the arch. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
+   ตรอกล่าง (x 6450–11100) is a separate scene with its own backdrop and dirt street; the hero reaches it by walking
+   up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=76';
+  const V = '?v=77';
   const WORLD_W = 11120, BASE = 794;
-  const SLUM_FADE = [6640, 7000];                           // town backdrop/street → slum backdrop/street
+  // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
+  const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, WORLD_W] });
+  const zoneAt = x => x > ZONES.town[1] ? 'slum' : 'town';
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
 
@@ -106,32 +108,21 @@
     if (b.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
     else ctx.drawImage(im, b.x, b.y, b.w, b.h);
   }
-  // Draw `fn` only over [x0, x1) of the world, with opacity ramping from a0 to a1 across it (in strips).
-  function band(ctx, x0, x1, a0, a1, camera, w, h, fn) {
-    const L = Math.max(x0, camera), R = Math.min(x1, camera + w); if (R <= L) return;
-    const steps = a0 === a1 ? 1 : Math.max(1, Math.ceil((R - L) / 14)), sw = (R - L) / steps;
-    for (let i = 0; i < steps; i++) {
-      const xa = L + i * sw, k = (xa + sw / 2 - x0) / (x1 - x0);
-      ctx.save(); ctx.globalAlpha = a0 + (a1 - a0) * k; ctx.beginPath(); ctx.rect(xa - 0.5, 0, sw + 1, h + 200); ctx.clip(); fn(); ctx.restore();
-    }
-  }
   const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1631, 379], [2091, 349], [3586, 351], [4581, 390], [5219, 188], [4760, 427], [6076, 349]];
-  function draw(ctx, camera, w, h, t) {
+  function draw(ctx, camera, w, h, t, zone) {
     ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
-    const [F0, F1] = SLUM_FADE, H = 1080;
-    const sky = () => tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
-    // slum backdrop: smaller and hazed so its rooftops read as far away behind the real shacks
-    const SB = 0.82, slumSky = () => {
+    const road = im => tiled(ctx, im, 0, ROAD_ROW, im.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
+    if (zone === 'slum') {
+      // backdrop smaller and hazed so its rooftops read as far away behind the real shacks
       ctx.fillStyle = '#9fb8dc'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
-      tiled(ctx, art.slumBg, 0, 0, art.slumBg.naturalHeight, 0, SKY_BOTTOM - art.slumBg.naturalHeight * SB, SB, camera, w, SKY_RATE);
+      if (ok(art.slumBg)) tiled(ctx, art.slumBg, 0, 0, art.slumBg.naturalHeight, 0, SKY_BOTTOM - art.slumBg.naturalHeight * 0.82, 0.82, camera, w, SKY_RATE);
       ctx.fillStyle = 'rgba(246,224,196,0.42)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
-    };
-    if (ok(art.sky)) band(ctx, -1e4, F1, 1, 1, camera, w, H, sky);
-    if (ok(art.slumBg)) { band(ctx, F0, F1, 0, 1, camera, w, H, slumSky); band(ctx, F1, 1e6, 1, 1, camera, w, H, slumSky); }
-    band(ctx, -1e4, F1, 1, 1, camera, w, H, () => tower(ctx, camera, w));
-    const road = (im) => () => tiled(ctx, im, 0, ROAD_ROW, im.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
-    if (ok(art.road)) band(ctx, -1e4, F1, 1, 1, camera, w, H, road(art.road));
-    if (ok(art.slumRoad)) { band(ctx, F0 + 120, F1, 0, 1, camera, w, H, road(art.slumRoad)); band(ctx, F1, 1e6, 1, 1, camera, w, H, road(art.slumRoad)); }
+      if (ok(art.slumRoad)) road(art.slumRoad);
+    } else {
+      if (ok(art.sky)) tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
+      tower(ctx, camera, w);
+      if (ok(art.road)) road(art.road);
+    }
     for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w);
     ctx.save();
     for (const [x, y] of SMOKE) {
@@ -156,5 +147,5 @@
     ctx.restore();
   }
   const S = 1080 / 724, wx = x => Math.round(x * S);       // kept for older callers
-  root.TownPano = { SLUM_FADE, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
+  root.TownPano = { ZONES, zoneAt, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
