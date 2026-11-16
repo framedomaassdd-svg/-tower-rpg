@@ -39,6 +39,20 @@
     for (const k in SLEEP) { const i = new Image(); i.src = 'sleep_' + k + '.webp?v=81'; sleepImg[k] = i; }
     eatImg = new Image(); eatImg.src = 'npc5_heroEat.webp?v=81';
   }
+  // v83: dinner painted into the room — A = the whole room with the hero eating (spoon in the bowl), B = spoon at his mouth
+  const DINE = { soup: { id: 'soup', B: [1116, 285], bowl: [1240, 512] }, restaurant: { id: 'rest', B: [633, 403], bowl: [728, 556] } };
+  const dineImg = {};
+  if (hasImage) for (const k in DINE) for (const f of ['A', 'B']) { const i = new Image(); i.src = 'eat_' + DINE[k].id + '_' + f + '.webp?v=83'; dineImg[k + f] = i; }
+  function steam(ctx, x, y, t) {
+    ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const k = ((t * 0.0004) + i / 3) % 1, sx = x + (i - 1) * 14;
+      ctx.globalAlpha = Math.sin(k * Math.PI) * 0.35; ctx.beginPath();
+      for (let j = 0; j <= 8; j++) { const q = j / 8, yy = y - 10 - k * 40 - q * 26; ctx[j ? 'lineTo' : 'moveTo'](sx + Math.sin(q * 5 + t * 0.003 + i) * 5, yy); }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   const EAT = { cell: 560, base: 4, body: 534, times: [1.3, 0.8, 1.1, 1.6] };
   const s0 = seat => !!seat.table;
   function eatFront(ctx, s, sec) {                 // waist-up, the bowl resting on the table top
@@ -153,7 +167,13 @@
     const camX = Math.max(0, Math.min(IW - vw, (act ? act.focus : IW / 2) - vw / 2));
     const camY = Math.max(0, Math.min(IH - vh, 560 - vh / 2));
     ctx.setTransform(scale, 0, 0, scale, -camX * scale, -camY * scale);
-    ctx.drawImage(im, 0, 0, IW, IH);
+    const dine = info.eating && DINE[info.room] && ok(dineImg[info.room + 'A']) && ok(dineImg[info.room + 'B']) ? DINE[info.room] : null;
+    ctx.drawImage(dine ? dineImg[info.room + 'A'] : im, 0, 0, IW, IH);
+    if (dine) {
+      const sec = (t - enteredAt) / 1000 % 2.6;                    // spoon down 1.6 s, spoon at the mouth 1 s
+      if (sec >= 1.6) ctx.drawImage(dineImg[info.room + 'B'], dine.B[0], dine.B[1]);
+      else steam(ctx, dine.bowl[0], dine.bowl[1], t);
+    }
 
     const anim = t * 0.008, K = sc.k || 1;
     people(ctx, sc, t);
@@ -165,6 +185,7 @@
     }
     else if (act && act.work) { shadow(ctx, act.x, FLOOR, K);
       if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face, k: K })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012, k: K }); }
+    else if (act && act.seat && dine) { /* the hero is part of the painting */ }
     else if (act && act.seat && info.eating && s0(act.seat) && eatFront(ctx, act.seat, t / 1000)) { /* eating, facing the camera */ }
     else if (act && act.seat) {
       const s = act.seat;
