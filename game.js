@@ -66,9 +66,22 @@ function heroWorkPose() {
   if (path === 'guild') return state.guild ? carrying() : { kind: 'swing', dx: 0, face: -1 };   // sparring toward the instructor
   return null;
 }
+function benchZzz() {
+  const a = window.BENCH_SLEEP || 0; if (a <= 0 || !TownPano.benchSleepReady()) return;
+  const t = performance.now(); ctx.save(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  for (let i = 0; i < 3; i++) {
+    const k = ((t * 0.00035) + i / 3) % 1;
+    ctx.globalAlpha = Math.sin(k * Math.PI) * 0.9 * Math.min(1, a); ctx.font = '700 ' + Math.round(12 + 10 * k) + 'px system-ui';
+    ctx.fillText('z', 3852 + 14 * k + 6 * Math.sin(k * 5), 712 - 50 * k);
+  }
+  ctx.restore();
+}
 function drawPlayer(info) {
   if (!HeroSprite.ready()) return;
   const depth = CityCore.depthScale(player, playerY);
+  if (info && info.lie && TownPano.benchSleepReady() && Math.abs(player - TownPano.PLACES.bench) < 30) {   // painted asleep on the garden bench
+    return;                                                         // its z's are drawn over the night tint (benchZzz)
+  }
   if (info && info.lie && TownNPCs.heroReady('bench')) {             // dozing on the street bench (the sheet draws the bench)
     ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
     TownNPCs.drawHero(ctx, 'bench', { height: HERO_VISIBLE, face: 1, sec: performance.now() / 1000 });
@@ -169,6 +182,7 @@ function drawTown(t) {
     ctx.fillRect(camera, 0, w, h); ctx.restore();
   }
   TownPano.drawNight(ctx, camera, w, lamps, t);
+  benchZzz();
   if (k > 0.001) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(20,14,10,' + (0.85 * k * k).toFixed(3) + ')'; ctx.fillRect(0, 0, c.width, c.height); }
 }
 
@@ -180,7 +194,7 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
-let sceneReady = false, wasInside = false, wipeStart = -1e9;
+let sceneReady = false, wasInside = false, wipeStart = -1e9, lieSince = 0;
 function frame(t) {
   requestAnimationFrame(frame);
   if (!sceneReady) { last = t; return; }
@@ -194,6 +208,9 @@ function frame(t) {
   }
   LifeUI.drive();
   window.LIFE_STATE_OK = !!(state.life && state.life.started);
+  const lie = !!(window.LIFE_INFO && window.LIFE_INFO.lie);         // fade the sleeper on the garden bench in
+  if (lie && !lieSince) lieSince = t; if (!lie) lieSince = 0;
+  window.BENCH_SLEEP = lie ? Math.min(1, (t - lieSince) / 600) : 0;
   const inside = !!(window.LIFE_INFO && Interiors.show(ctx, c, t, clock, window.LIFE_INFO));
   if (!inside) drawTown(t);
   // circle wipe whenever the view switches between the street and an interior

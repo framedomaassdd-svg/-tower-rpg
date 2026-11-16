@@ -11,14 +11,14 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 6330, tenement: 7440, soup: 8052, scrap: 10300 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
     market: { x: PX.market, y: 792, name: 'ตลาดขนมปัง' },
     guild:  { x: PX.guild, y: 792, name: 'ลานฝึกหน้าหอคอย' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
-    bench:  { x: PX.bench, y: 792, name: 'ม้านั่งริมถนน' },
+    bench:  { x: PX.bench, y: 792, name: 'ม้านั่งในสวน' },
     tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
     soup:   { x: PX.soup, y: 812, name: 'โรงทาน' },
     scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' },
@@ -146,7 +146,7 @@
     const L = st.life, path = PATHS[L.path], work = path.place;
     const today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
-    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งริมถนน';
+    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งในสวน';
     const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
@@ -361,7 +361,7 @@
       return say(st, 'จ่ายค่า' + ROOMS[room].name + ' ' + price + ' เหรียญ' + (L.path === 'hotel' && room !== 'slum' ? ' (ราคาพนักงาน)' : '') + ' แล้วเข้านอน');
     }
     L.sleptAt = 'bench'; L.homeTonight = 'bench';
-    return say(st, 'คืนนี้ต้องนอนบนม้านั่งริมถนน');
+    return say(st, 'คืนนี้ต้องนอนบนม้านั่งในสวน');
   }
   function applyRest(st) {
     st.health = Math.min(100, st.health + 25);

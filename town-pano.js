@@ -39,7 +39,7 @@
     { id: 'shackB', x: 10527, y: 407, w: 566, h: 387 }
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
-    slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp') };
+    slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), benchSleep: load('sleep_bench.webp?v=82') };
   for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   const ready = () => ok(art.road) && ok(art.inn);
@@ -61,12 +61,12 @@
     market: SPOTS.stall,
     smith:  4562,                                            // just right of the anvil
     inn:    SPOTS.innDoor,
-    bench:  6330,                                            // street bench past the last house
+    bench:  SPOTS.gardenBench,                               // v82: the garden bench (the hero asleep is painted onto it)
     tenement: SPOTS.tenementDoor,                            // ห้องเช่าตรอก
     soup:   SPOTS.soupCounter,                               // โรงทาน
     scrap:  10300                                            // ลานเก็บของเก่า
   });
-  const BENCH_SEAT = 52;
+  const BENCH_SEAT = 52, BENCH_PATCH = [280, 438];     // patch position in the garden image's pixels
   const NAMES = [
     [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2150, 'ย่านที่พัก'], [2855, 'ลานหน้าหอคอย'], [3098, 'บ่อน้ำกลางเมือง'],
     [3690, 'ตลาดขนมปัง'], [4130, 'สวนริมทาง'], [4690, 'โรงตีเหล็ก'], [5110, 'ร้านยา'], [6020, 'โรงแรม'], [6640, 'ย่านที่พักตะวันออก'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
@@ -134,7 +134,16 @@
       tower(ctx, camera, w);
       if (ok(art.road)) road(art.road);
     }
-    for (const b of BUILDINGS) building(ctx, b, art[b.img || b.id], camera, w, t);
+    for (const b of BUILDINGS) {
+      building(ctx, b, art[b.img || b.id], camera, w, t);
+      const a = root.BENCH_SLEEP || 0;                     // hero asleep on the garden bench: a patch of the garden painting
+      if (b.id === 'garden' && a > 0 && ok(art.benchSleep) && ok(art.garden)) {
+        const k = b.w / art.garden.naturalWidth;
+        ctx.save(); ctx.globalAlpha = Math.min(1, a);
+        ctx.drawImage(art.benchSleep, b.x + BENCH_PATCH[0] * k, b.y + BENCH_PATCH[1] * k, art.benchSleep.naturalWidth * k, art.benchSleep.naturalHeight * k);
+        ctx.restore();
+      }
+    }
     ctx.save();
     for (const [x, y] of SMOKE) {
       if (x < camera - 120 || x > camera + w + 120) continue;
@@ -158,5 +167,5 @@
     ctx.restore();
   }
   const S = 1080 / 724, wx = x => Math.round(x * S);       // kept for older callers
-  root.TownPano = { ZONES, zoneAt, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, WORLD_W, BASE, GATE, ARCH, S, wx };
+  root.TownPano = { ZONES, zoneAt, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, benchSleepReady: () => ok(art.benchSleep) && ok(art.garden), WORLD_W, BASE, GATE, ARCH, S, wx };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
