@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=88';
+  const V = '?v=89';
   const WORLD_W = 15400, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
@@ -46,7 +46,7 @@
     { id: 'cgate', x: 14700, y: 324, w: 693, h: 470 }
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
-    slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), benchSleep: load('sleep_bench.webp?v=82') };
+    slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), backRow: load('v47_backstreet.webp'), benchSleep: load('sleep_bench.webp?v=82') };
   for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   const ready = () => ok(art.road) && ok(art.inn);
@@ -130,6 +130,26 @@
     if (b.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
     else ctx.drawImage(im, b.x, b.y, b.w, b.h);
   }
+  // v89: rows of houses behind the main street so the town no longer stands alone in open country.
+  // Two copies of one row, the far one smaller, slower and hazier (scale, parallax rate, bottom y, haze).
+  const BACK_ROWS = [[0.62, 0.55, 700, 0.5], [0.8, 0.75, 770, 0.25]];
+  const hazed = {};                                       // the row image with its haze baked in (only the houses, not the sky)
+  function hazedRow(im, haze) {
+    if (hazed[haze]) return hazed[haze];
+    if (typeof document === 'undefined') return im;
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(190,215,240,${haze})`; g.fillRect(0, 0, c.width, c.height);
+    c.naturalWidth = c.width; c.naturalHeight = c.height;
+    return (hazed[haze] = c);
+  }
+  function backRows(ctx, camera, w) {
+    const im = art.backRow; if (!ok(im)) return;
+    for (const [s, rate, y, haze] of BACK_ROWS) {
+      const row = hazedRow(im, haze);
+      tiled(ctx, row, 0, 0, row.naturalHeight, 0, y - row.naturalHeight * s, s, camera, w, rate);
+    }
+  }
   const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1631, 379], [2091, 349], [3586, 351], [4581, 390], [5219, 188], [4760, 427], [6076, 349]];
   function draw(ctx, camera, w, h, t, zone) {
     ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
@@ -151,6 +171,7 @@
       if (ok(art.sky)) tiled(ctx, art.sky, 0, 0, art.sky.naturalHeight, 0, SKY_BOTTOM - art.sky.naturalHeight, 1, camera, w, SKY_RATE);
       if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t);
       tower(ctx, camera, w);
+      backRows(ctx, camera, w);
       if (ok(art.road)) road(art.road);
     }
     for (const b of BUILDINGS) {
