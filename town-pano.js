@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=87';
+  const V = '?v=88';
   const WORLD_W = 15400, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
@@ -136,9 +136,9 @@
     const road = im => tiled(ctx, im, 0, ROAD_ROW, im.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);
     if (zone === 'carts') {                                // open country: far fields and hills, a dirt yard
       ctx.fillStyle = '#7fb2e8'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
-      if (ok(art.cartsBg)) tiled(ctx, art.cartsBg, 0, 0, art.cartsBg.naturalHeight, 0, SKY_BOTTOM + 10 - art.cartsBg.naturalHeight * 1.18, 1.18, camera, w, SKY_RATE);
-      if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t, 0.85);
-      ctx.fillStyle = 'rgba(250,232,200,0.22)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
+      if (ok(art.cartsBg)) tiled(ctx, art.cartsBg, 0, 0, art.cartsBg.naturalHeight, 0, SKY_BOTTOM + 10 - art.cartsBg.naturalHeight * 1.37, 1.37, camera, w, SKY_RATE);
+      if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t, 0.55);
+      ctx.fillStyle = 'rgba(250,232,200,0.12)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
       if (ok(art.slumRoad)) road(art.slumRoad);
     } else if (zone === 'slum') {
       // backdrop smaller and hazed so its rooftops read as far away behind the real shacks
