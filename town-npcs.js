@@ -21,7 +21,10 @@
     kids: { ...B, src: 311 }, farmer: { ...B, src: 344 }, animals: { ...B, src: 265 },    // animals: src = the sitting cat
     washer: { ...B, src: 348 }, thug: { ...B, src: 345 }, streetkid: { ...B, src: 340 }, granny: { ...B, src: 346 },
     laborer: { ...B, src: 344 }, foreman: { ...B, src: 336 }, caravan: { ...B, src: 344 },
-    wagons2: { cw: 480, ch: 320, base: 310, src: 281 }
+    wagons2: { cw: 480, ch: 320, base: 310, src: 281 },
+    // v92 market people and the shrine's pilgrim
+    mktveg: { ...B, src: 347 }, mktspice: { ...B, src: 347 }, mktcloth: { ...B, src: 347 }, mktcook: { ...B, src: 347 },
+    garbage: { ...B, src: 347 }, shopper: { ...B, src: 347 }, pilgrim: { ...B, src: 347 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -32,7 +35,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=87'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=92'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -46,6 +49,7 @@
     scrub:  { row: 1, times: [.35, .3, .35, .5] },   stir:  { row: 1, times: [.8, .7, .9, 1.6] },
     juggle: { row: 1, times: [.22, .22, .22, .22] }, knuckle: { row: 1, times: [1.8, .5, .35, 2.2] },
     order:  { row: 1, times: [1.1, 1.6, 1.4, 1.8] }, haggle: { row: 1, times: [1.3, 1.0, .8, 1.5] },
+    wok:    { row: 1, times: [.4, .3, .28, .55] },   pray:  { row: 1, times: [2.0, 1.4, 1.8, 2.6] },
     idle:   { row: 2, times: [1.6, .45, 1.3, .14] }
   });
 
@@ -219,23 +223,59 @@
   for (const p of SLUM) p.zone = 'slum';
   // v90 ตลาดใหญ่ (zone 'market'): stall keepers come out of the market lane in the morning and go home at dusk.
   // They borrow existing sheets for now (a boy, an old clerk, an auntie) until the market gets its own people.
+  const LANE_M = 15986;                       // the market lane: where market folk go home
   const MARKET = [
-    { id: 'mkt_boy', name: 'เด็กแผงผัก', sheet: 'teen', height: HERO * 0.9, speed: 1400, stops: [
-      { x: 15986, y: DOOR, until: H(5.6), hidden: true },
-      { x: 16640, y: 830, until: H(17.8), loop: 'offer', face: 1 },
-      { x: 15986, y: DOOR, until: 20, hidden: true }] },
-    { id: 'mkt_cloth', name: 'ลุงร้านผ้า', sheet: 'elder', height: HERO * 0.92, speed: 1300, stops: [
-      { x: 15986, y: DOOR, until: H(7.2), hidden: true },
-      { x: 18360, y: 826, until: H(18.4), loop: 'write', face: 1 },
-      { x: 15986, y: DOOR, until: 20, hidden: true }] },
-    { id: 'mkt_cook', name: 'ป้าร้านข้าว', sheet: 'granny', height: HERO * 0.9, speed: 1200, stops: [
-      { x: 15986, y: DOOR, until: H(5.2), hidden: true },
-      { x: 18960, y: 812, until: H(20.6), loop: 'stir', face: 1 },
-      { x: 15986, y: DOOR, until: 20, hidden: true }] }
+    { id: 'mkt_veg', name: 'ป้าแผงผัก', sheet: 'mktveg', height: HERO * 0.9, speed: 1200, stops: [
+      { x: LANE_M, y: DOOR, until: H(5.6), hidden: true },
+      { x: 16560, y: 830, until: H(17.8), loop: 'offer', face: 1 },
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] },
+    { id: 'mkt_spice', name: 'พ่อค้าเครื่องเทศ', sheet: 'mktspice', height: HERO * 1.0, speed: 1300, stops: [
+      { x: LANE_M, y: DOOR, until: H(6.8), hidden: true },
+      { x: 17150, y: 828, until: H(18.2), loop: 'grind', face: 1 },
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] },
+    { id: 'mkt_cloth', name: 'ช่างผ้า', sheet: 'mktcloth', height: HERO * 0.92, speed: 1300, stops: [
+      { x: LANE_M, y: DOOR, until: H(7.2), hidden: true },
+      { x: 18390, y: 830, until: H(18.4), loop: 'write', face: 1 },
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] },
+    { id: 'mkt_cook', name: 'พ่อครัวริมทาง', sheet: 'mktcook', height: HERO * 0.95, speed: 1400, stops: [
+      { x: LANE_M, y: DOOR, until: H(5.2), hidden: true },
+      { x: 18900, y: 836, until: H(21.2), loop: 'wok', face: 1 },
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] },
+    { id: 'garbage', name: 'ลุงเก็บขยะ', sheet: 'garbage', height: HERO * 0.88, speed: 900, stops: [
+      { x: 19480, y: 846, until: H(4.6), loop: 'idle', face: -1 },               // dozes against his heap
+      { x: 17000, y: 850, until: H(7.4), shuttle: { A: 900, speed: 500 } },       // walks the market before it opens
+      { x: 16300, y: 852, until: H(9.5), loop: 'sweep', face: 1 },
+      { x: 19480, y: 846, until: H(13), loop: 'idle', face: -1 },
+      { x: 17800, y: 852, until: H(18.5), loop: 'sweep', face: -1 },             // by the fountain
+      { x: 19480, y: 846, until: 20, loop: 'idle', face: -1 }] },
+    { id: 'shopper1', name: 'คนมาจ่ายตลาด', sheet: 'shopper', height: HERO * 0.9, speed: 1200, stops: [
+      { x: LANE_M, y: DOOR, until: H(7.6), hidden: true },
+      { x: 16820, y: 858, until: H(8.4), loop: 'offer', face: -1 },               // picking fruit at the veg stall
+      { x: 17290, y: 860, until: H(9.1), loop: 'idle', face: -1 },
+      { x: 18560, y: 858, until: H(9.8), loop: 'offer', face: 1 },
+      { x: LANE_M, y: DOOR, until: H(15.5), hidden: true },
+      { x: 16840, y: 858, until: H(16.4), loop: 'offer', face: -1 },
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] },
+    { id: 'shopper2', name: 'คนมาจ่ายตลาด', sheet: 'shopper', height: HERO * 0.86, speed: 1100, stops: [
+      { x: LANE_M, y: DOOR, until: H(10.2), hidden: true },
+      { x: 17370, y: 862, until: H(11), loop: 'offer', face: -1 },
+      { x: 18760, y: 864, until: H(12.2), loop: 'idle', face: 1 },                // waiting for noodles
+      { x: LANE_M, y: DOOR, until: 20, hidden: true }] }
   ];
+  // v92 ศาลเจ้าร้าง (zone 'carts'): an old wandering monk who sleeps there, prays out front and begs at the caravan fire
+  const SHRINE = [
+    { id: 'pilgrim', name: 'หลวงตาเร่ร่อน', sheet: 'pilgrim', height: HERO * 0.9, speed: 800, stops: [
+      { x: 11000, y: DOOR, until: H(5.4), hidden: true },
+      { x: 10930, y: 812, until: H(11), loop: 'pray', face: 1 },
+      { x: 11640, y: 840, until: H(13), loop: 'idle', face: 1 },                  // alms by the caravan fire
+      { x: 10930, y: 812, until: H(18.5), loop: 'pray', face: 1 },
+      { x: 11000, y: DOOR, until: 20, hidden: true }] }
+  ];
+
   for (const p of CARTS_YARD) p.zone = 'carts';
   for (const p of MARKET) p.zone = 'market';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET);
+  for (const p of SHRINE) p.zone = 'carts';
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;

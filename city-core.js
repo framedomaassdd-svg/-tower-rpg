@@ -6,7 +6,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   // Reference pixels for the current front-oblique scene; not a metre grid.
-  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:19360,
+  const SCENE = Object.freeze({referenceWidth:1920,referenceHeight:1080,worldWidth:19880,
     playerWidth:76.5,playerHeight:130.05,spriteFrameWidth:400,spriteFrameHeight:680,
     walkFeet:Object.freeze([661,658,655,658]),walkFramesPerSecond:8,
     speedX:210,speedY:140,footRadius:9,lampWidth:64});

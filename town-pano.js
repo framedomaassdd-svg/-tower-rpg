@@ -6,12 +6,12 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=91';
-  const WORLD_W = 19360, BASE = 794;
+  const V = '?v=92';
+  const WORLD_W = 19880, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
-  const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, 11120], carts: [11300, 15400], market: [15500, WORLD_W] });
-  const zoneAt = x => x >= ZONES.market[0] ? 'market' : x >= ZONES.carts[0] ? 'carts' : x > ZONES.town[1] ? 'slum' : 'town';
+  const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, 11120], carts: [10700, 15400], market: [15500, WORLD_W] });
+  const zoneAt = x => x >= ZONES.market[0] ? 'market' : x >= 11300 ? 'carts' : x > ZONES.town[1] ? 'slum' : 'town';
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
 
@@ -28,7 +28,7 @@
     { id: 'apothecary', x: 4977, y: 415, w: 418, h: 379 },
     { id: 'inn', x: 5399, y: 167, w: 904, h: 627 },
     // ตรอกล่าง
-    { id: 'alley', x: 6450, y: 317, w: 753, h: 477 },
+    { id: 'alley', zones: ['town', 'slum'], x: 6450, y: 317, w: 753, h: 477 },
     { id: 'tenement', x: 7207, y: 202, w: 436, h: 592 },
     { id: 'soup', x: 7647, y: 336, w: 597, h: 458 },
     { id: 'washing', x: 8248, y: 461, w: 518, h: 333 },
@@ -37,6 +37,7 @@
     { id: 'scrap', x: 9889, y: 433, w: 635, h: 361 },
     { id: 'shackB', x: 10527, y: 407, w: 566, h: 387 },
     // ลานเกวียน (outside the city wall; the city gate is at its east end)
+    { id: 'shrine', zone: 'carts', x: 10760, y: 425, w: 485, h: 369 },   // v92 ศาลเจ้าร้าง: a free place to sleep
     { id: 'camp', x: 11330, y: 444, w: 771, h: 350 },
     { id: 'office', x: 12220, y: 374, w: 664, h: 420 },
     { id: 'stable', x: 12975, y: 404, w: 616, h: 390 },
@@ -48,7 +49,8 @@
     { id: 'mkt_spice', x: 17010, y: 442, w: 528, h: 352 },
     { id: 'mkt_fountain', x: 17550, y: 353, w: 652, h: 441 },        // v91: น้ำพุลานตลาด (benches ≈ knee height)
     { id: 'mkt_cloth', x: 18220, y: 443, w: 528, h: 351 },
-    { id: 'mkt_food', x: 18765, y: 444, w: 528, h: 350 }
+    { id: 'mkt_food', x: 18765, y: 444, w: 528, h: 350 },
+    { id: 'mkt_shack', x: 19310, y: 529, w: 513, h: 265 }           // v92 เพิงข้างกองขยะ: a free place to sleep
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
     slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), mktBg: load('town6_mkt_bg.webp'), backRow: load('v47_backstreet.webp'), benchSleep: load('sleep_bench.webp?v=82') };
@@ -65,7 +67,8 @@
     alleyDoor: 6609, alleyLane: 6836, tenementDoor: 7440, soupDoor: 7803, soupCounter: 8052, trough: 8455,
     junkDoor: 8932, junkWindow: 9185, shackA: 9691, scrapDoor: 10014, scrapCart: 10413, shackB: 10873,
     campFire: 11715, officeDoor: 12545, stableDoor: 13283, dock: 14202, outerGate: 15046,
-    marketGate: 15986, produce: 16733, spice: 17274, fountain: 17876, cloth: 18484, foodStall: 19029
+    marketGate: 15986, produce: 16733, spice: 17274, fountain: 17876, cloth: 18484, foodStall: 19029,
+    shrine: 11000, shack: 19666
   });
   const GATE = [240, 420];                                   // the lane up through the city gate
   const ARCH = [2665, 2905];                                 // the steps up toward the tower
@@ -81,6 +84,8 @@
     scrap:  10300,                                           // ลานเก็บของเก่า
     slumyard: SPOTS.scrapDoor,                               // v85: ลานฝึกตรอก, through the scrap yard's door
     cargo:  14050,                                           // v87: ลานเกวียน, by the warehouse dock
+    shrine: SPOTS.shrine,                                    // v92 free shelters
+    shack:  SPOTS.shack,
     market: SPOTS.produce                                    // v90: งานรับจ้างที่ตลาดใหญ่ (was the bakery stall)
   });
   const BENCH_SEAT = 52, BENCH_PATCH = [280, 438];     // patch position in the garden image's pixels
@@ -88,7 +93,7 @@
     [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2435, 'ปากตรอกตลาด'], [3140, 'ลานหน้าหอคอย'], [3383, 'บ่อน้ำกลางเมือง'],
     [3975, 'ตลาดขนมปัง'], [4415, 'สวนริมทาง'], [4975, 'โรงตีเหล็ก'], [5395, 'ร้านยา'], [6305, 'โรงแรม'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
     [8768, 'ลานซักผ้า'], [9395, 'ร้านรับซื้อของเก่า'], [9888, 'ตรอกล่าง'], [10525, 'ลานของเก่า'], [11300, 'ท้ายตรอก'], [12220, 'ค่ายคาราวาน'], [12975, 'ซุ้มหัวหน้าคนงาน'], [13850, 'คอกสัตว์'], [14700, 'โกดังสินค้า'], [15450, 'ประตูเมืองฝั่งนอก'],
-    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [Infinity, 'ร้านอาหารริมทาง']
+    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [19300, 'ร้านอาหารริมทาง'], [Infinity, 'กองขยะท้ายตลาด']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
@@ -158,6 +163,10 @@
       tiled(ctx, row, 0, 0, row.naturalHeight, 0, y - row.naturalHeight * s, s, camera, w, rate);
     }
   }
+  // v92: each scene draws only its own buildings, so scenes may share x ranges (the shrine sits west of the cart yard)
+  const inZone = (b, zone) => !zone || (b.zones ? b.zones.includes(zone) : (b.zone || zoneAt(b.x + b.w / 2)) === zone);
+  // where the hero lies down in the free shelters (world px; feet-line of the lying sprite)
+  const BEDS = Object.freeze({ shrine: { x: 10990, y: 703 }, shack: { x: 19662, y: 763 } });
   const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1382, 190], [2294, 166], [18960, 600], [19050, 605], [3871, 351], [4866, 390], [5504, 188], [5045, 427]];
   function draw(ctx, camera, w, h, t, zone) {
     ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
@@ -189,6 +198,7 @@
       if (ok(art.road)) road(art.road);
     }
     for (const b of BUILDINGS) {
+      if (!inZone(b, zone)) continue;
       building(ctx, b, art[b.img || b.id], camera, w, t);
       const a = root.BENCH_SLEEP || 0;                     // hero asleep on the garden bench: a patch of the garden painting
       if (b.id === 'garden' && a > 0 && ok(art.benchSleep) && ok(art.garden)) {
@@ -210,16 +220,16 @@
     ctx.restore();
   }
   // lit windows and lamps; call after the day/night tint. `amount` is 0–1 (CityLighting.sample(clock).lamps)
-  function drawNight(ctx, camera, w, amount, t) {
+  function drawNight(ctx, camera, w, amount, t, zone) {
     if (amount <= 0.01) return;
     ctx.save(); ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = Math.min(1, amount) * (0.94 + 0.06 * Math.sin(t * 0.004));  // faint flicker
     for (let pass = 0; pass < 2; pass++) {                   // two passes: lit windows read clearly through the night tint
-      for (const b of BUILDINGS) building(ctx, b, art['glow_' + (b.img || b.id)], camera, w);
+      for (const b of BUILDINGS) if (inZone(b, zone)) building(ctx, b, art['glow_' + (b.img || b.id)], camera, w);
       ctx.globalAlpha *= 0.7;
     }
     ctx.restore();
   }
   const S = 1080 / 724, wx = x => Math.round(x * S);       // kept for older callers
-  root.TownPano = { ZONES, zoneAt, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BENCH_SEAT, benchSleepReady: () => ok(art.benchSleep) && ok(art.garden), WORLD_W, BASE, GATE, ARCH, S, wx };
+  root.TownPano = { ZONES, zoneAt, art, ready, draw, drawNight, walkable, depthScale, sceneName, PLACES, SPOTS, BUILDINGS, BEDS, BENCH_SEAT, benchSleepReady: () => ok(art.benchSleep) && ok(art.garden), WORLD_W, BASE, GATE, ARCH, S, wx };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

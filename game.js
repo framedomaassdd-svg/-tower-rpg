@@ -76,9 +76,28 @@ function benchZzz() {
   }
   ctx.restore();
 }
+// v92: asleep on the mat in a free shelter (ศาลเจ้าร้าง / เพิงข้างกองขยะ)
+function shelterBed(info) { return info && info.lie && info.shelter && TownPano.BEDS[info.shelter]; }
+function shelterZzz(info) {
+  const b = shelterBed(info); if (!b) return;
+  const t = performance.now(); ctx.save(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  for (let i = 0; i < 3; i++) {
+    const k = ((t * 0.00035) + i / 3) % 1;
+    ctx.globalAlpha = Math.sin(k * Math.PI) * 0.9; ctx.font = '700 ' + Math.round(12 + 10 * k) + 'px system-ui';
+    ctx.fillText('z', b.x - 40 + 14 * k + 6 * Math.sin(k * 5), b.y - 50 - 50 * k);
+  }
+  ctx.restore();
+}
 function drawPlayer(info) {
   if (!HeroSprite.ready()) return;
   const depth = CityCore.depthScale(player, playerY);
+  const bed = shelterBed(info);
+  if (bed && TownNPCs.heroReady('sleep')) {
+    ctx.save(); ctx.translate(bed.x, bed.y);
+    TownNPCs.drawHero(ctx, 'sleep', { height: HERO_VISIBLE, face: 1, sec: performance.now() / 1000 });
+    ctx.restore();
+    return;
+  }
   if (info && info.lie && TownPano.benchSleepReady() && Math.abs(player - TownPano.PLACES.bench) < 30) {   // painted asleep on the garden bench
     return;                                                         // its z's are drawn over the night tint (benchZzz)
   }
@@ -183,7 +202,8 @@ function drawTown(t) {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(70,82,140,' + (0.5 * lamps).toFixed(3) + ')';
     ctx.fillRect(camera, 0, w, h); ctx.restore();
   }
-  TownPano.drawNight(ctx, camera, w, lamps, t);
+  TownPano.drawNight(ctx, camera, w, lamps, t, zone);
+  shelterZzz(info);
   benchZzz();
   if (k > 0.001) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(20,14,10,' + (0.85 * k * k).toFixed(3) + ')'; ctx.fillRect(0, 0, c.width, c.height); }
 }
@@ -210,7 +230,7 @@ function frame(t) {
   }
   LifeUI.drive();
   window.LIFE_STATE_OK = !!(state.life && state.life.started);
-  const lie = !!(window.LIFE_INFO && window.LIFE_INFO.lie);         // fade the sleeper on the garden bench in
+  const lie = !!(window.LIFE_INFO && window.LIFE_INFO.lie && !window.LIFE_INFO.shelter);         // fade the sleeper on the garden bench in
   if (lie && !lieSince) lieSince = t; if (!lie) lieSince = 0;
   window.BENCH_SLEEP = lie ? Math.min(1, (t - lieSince) / 600) : 0;
   const inside = !!(window.LIFE_INFO && Interiors.show(ctx, c, t, clock, window.LIFE_INFO));

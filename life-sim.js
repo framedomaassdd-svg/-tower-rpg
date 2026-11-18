@@ -11,7 +11,7 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, shrine: 11000, shack: 19666 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
@@ -24,6 +24,8 @@
     tenement: { x: PX.tenement, y: 792, name: 'ห้องเช่าตรอก' },
     soup:   { x: PX.soup, y: 812, name: 'โรงทาน' },
     scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' },
+    shrine: { x: PX.shrine || 11000, y: 792, name: 'ศาลเจ้าร้าง' },
+    shack:  { x: PX.shack || 19666, y: 792, name: 'เพิงข้างกองขยะ' },
     // doors used for short errands after work (each has an interior in interiors.js)
     bakery: { x: 3521, y: 792, name: 'ร้านขนมปัง' },
     apothecary: { x: 5088, y: 792, name: 'ร้านยา' },
@@ -51,9 +53,13 @@
     mid:   { name: 'ห้องธรรมดา',  price: 5,  energy: 100, health: 5,  room: 'bed_mid',   desc: 'ห้องสะอาด นอนเต็มอิ่ม แรง 100 สุขภาพ +5' },
     luxe:  { name: 'ห้องหรู',     price: 12, energy: 100, health: 12, room: 'bed_luxe',  focus: 1.15, desc: 'เตียงสี่เสา แรง 100 สุขภาพ +12 และวันถัดไปจังหวะมินิเกมกว้างขึ้น' },
     // not at the inn: a room in the tenement in ตรอกล่าง
-    slum:  { name: 'ห้องเช่าตรอก', price: 1,  energy: 65,  health: -3, room: null, place: 'tenement', desc: 'ห้องแคบอับชื้นในตึกเช่าท้ายตรอก 1 เหรียญ ตื่นมาแรง 65 สุขภาพ -3 ยังดีกว่านอนข้างถนน' }
+    slum:  { name: 'ห้องเช่าตรอก', price: 1,  energy: 65,  health: -3, room: null, place: 'tenement', desc: 'ห้องแคบอับชื้นในตึกเช่าท้ายตรอก 1 เหรียญ ตื่นมาแรง 65 สุขภาพ -3 ยังดีกว่านอนข้างถนน' },
+    // v92: free shelters. Only used when chosen; being broke never sends the character this far (it falls back to the bench).
+    shrine: { name: 'ศาลเจ้าร้าง', price: 0, energy: 70, health: -2, room: null, place: 'shrine', free: true, desc: 'ศาลเจ้าเก่าท้ายลานเกวียน นอนฟรีบนเสื่อกับหลวงตาเร่ร่อน ตื่นมาแรง 70 สุขภาพ -2 ใกล้งานกรรมกร' },
+    shack:  { name: 'เพิงข้างกองขยะ', price: 0, energy: 60, health: -4, room: null, place: 'shack', free: true, desc: 'เพิงไม้ผุท้ายตลาดใหญ่ นอนฟรีแต่กลิ่นแรง ตื่นมาแรง 60 สุขภาพ -4 ใกล้งานในตลาด' }
   });
-  const ROOM_ORDER = ['luxe', 'mid', 'cheap', 'slum'];
+  const ROOM_ORDER = ['luxe', 'mid', 'cheap', 'slum', 'shrine', 'shack'];
+  const SHELTER = { shrine: 1, shack: 1 };
   const roomPlace = id => (ROOMS[id] && ROOMS[id].place) || 'inn';
   const RENT = ROOMS.mid.price;
 
@@ -125,9 +131,9 @@
   const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1, slumyard: 1 };
   // v87: ลานเกวียน (outside the city) is a third scene, reached through the city gate: up the gate lane in town,
   // out of the outer gate on the yard side. Between the slum and the yard the hero crosses town.
-  const CARTS_PLACES = { cargo: 1 };
+  const CARTS_PLACES = { cargo: 1, shrine: 1 };
   // v90: ตลาดใหญ่ is a fourth scene, reached by the market lane off the main street.
-  const MARKET_PLACES = { market: 1 };
+  const MARKET_PLACES = { market: 1, shack: 1 };
   const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : MARKET_PLACES[place] ? 'market' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
   const CROSS = Object.freeze({ slum: { town: LANE.x, other: LANE.x, act: 'เดินเข้าตรอกล่าง' },
@@ -170,8 +176,8 @@
       : Object.assign({}, path, { room: 'yard', act: st.guild ? 'ซ้อมกับครูฝึกที่ลานฝึกกิลด์' : 'ฝึกที่ลานฝึกกิลด์' });
     const work = path.place;
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
-    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : 'นอนบนม้านั่งในสวน';
-    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : { lie: true };
+    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : 'นอนบนม้านั่งในสวน';
+    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : SHELTER[place] ? { lie: true, shelter: place } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
@@ -194,11 +200,12 @@
       { milestone: 'dinner', room: soup ? 'soup' : 'restaurant', hidden: true, eating: true });
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
-    const back = end(route(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
+    const back = end(route(dinner.t1, eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : SHELTER[home] ? 'เดินไปนอนที่' + PLACES[home].name : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
     if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
     } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, room: 'tenement', milestone: 'home' }));
+    else if (SHELTER[home]) segs.push(stay(back.t1, 20, home, asleep(home), { lie: true, shelter: home, milestone: 'home' }));
     else segs.push(stay(back.t1, 20, 'bench', asleep('bench'), { lie: true, milestone: 'home' }));
     for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
     return segs;
@@ -226,7 +233,7 @@
     return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
       zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
-      room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, working: !!s.working, eating: !!s.eating };
+      room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating };
   }
 
   // ---- daily effects ----------------------------------------------------
@@ -239,7 +246,7 @@
   function applyWake(st) {
     const L = st.life, o = originOf(st);
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
-    if (L.sleptAt === 'inn' || L.sleptAt === 'tenement') {
+    if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt]) {
       const room = ROOMS[L.roomSlept] || ROOMS.mid;
       st.energy = Math.max(st.energy, room.energy); st.health = clamp(st.health + room.health, 1, 100);
       if (room.focus) L.focusDay = st.day;
@@ -363,7 +370,7 @@
   // best room at or below the preference that the character can pay for right now
   function pickRoom(st) {
     const from = Math.max(0, ROOM_ORDER.indexOf(st.life.roomPref));
-    for (const id of ROOM_ORDER.slice(from)) if (st.money >= roomPrice(st, id)) return id;
+    for (const id of ROOM_ORDER.slice(from)) if ((!ROOMS[id].free || id === st.life.roomPref) && st.money >= roomPrice(st, id)) return id;
     return null;
   }
   function applyDinner(st, core) {
@@ -390,6 +397,7 @@
     if (room) {
       const price = roomPrice(st, room);
       st.money -= price; L.sleptAt = roomPlace(room); L.roomSlept = room; L.roomTonight = room;
+      if (!price) return say(st, 'เข้านอนที่' + ROOMS[room].name + ' ไม่เสียเงิน');
       return say(st, 'จ่ายค่า' + ROOMS[room].name + ' ' + price + ' เหรียญ' + (L.path === 'hotel' && room !== 'slum' ? ' (ราคาพนักงาน)' : '') + ' แล้วเข้านอน');
     }
     L.sleptAt = 'bench'; L.homeTonight = 'bench';
