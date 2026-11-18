@@ -6,8 +6,8 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=90';
-  const WORLD_W = 18960, BASE = 794;
+  const V = '?v=91';
+  const WORLD_W = 19360, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
   const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, 11120], carts: [11300, 15400], market: [15500, WORLD_W] });
@@ -46,9 +46,9 @@
     { id: 'mkt_gate', x: 15520, y: 210, w: 932, h: 584 },
     { id: 'mkt_produce', x: 16470, y: 444, w: 526, h: 350 },
     { id: 'mkt_spice', x: 17010, y: 442, w: 528, h: 352 },
-    { id: 'mwell', img: 'well', x: 17560, y: 567, w: 239, h: 227 },
-    { id: 'mkt_cloth', x: 17820, y: 443, w: 528, h: 351 },
-    { id: 'mkt_food', x: 18365, y: 444, w: 528, h: 350 }
+    { id: 'mkt_fountain', x: 17550, y: 353, w: 652, h: 441 },        // v91: น้ำพุลานตลาด (benches ≈ knee height)
+    { id: 'mkt_cloth', x: 18220, y: 443, w: 528, h: 351 },
+    { id: 'mkt_food', x: 18765, y: 444, w: 528, h: 350 }
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
     slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), mktBg: load('town6_mkt_bg.webp'), backRow: load('v47_backstreet.webp'), benchSleep: load('sleep_bench.webp?v=82') };
@@ -65,7 +65,7 @@
     alleyDoor: 6609, alleyLane: 6836, tenementDoor: 7440, soupDoor: 7803, soupCounter: 8052, trough: 8455,
     junkDoor: 8932, junkWindow: 9185, shackA: 9691, scrapDoor: 10014, scrapCart: 10413, shackB: 10873,
     campFire: 11715, officeDoor: 12545, stableDoor: 13283, dock: 14202, outerGate: 15046,
-    marketGate: 15986, produce: 16733, spice: 17274, marketWell: 17680, cloth: 18084, foodStall: 18629
+    marketGate: 15986, produce: 16733, spice: 17274, fountain: 17876, cloth: 18484, foodStall: 19029
   });
   const GATE = [240, 420];                                   // the lane up through the city gate
   const ARCH = [2665, 2905];                                 // the steps up toward the tower
@@ -88,7 +88,7 @@
     [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2435, 'ปากตรอกตลาด'], [3140, 'ลานหน้าหอคอย'], [3383, 'บ่อน้ำกลางเมือง'],
     [3975, 'ตลาดขนมปัง'], [4415, 'สวนริมทาง'], [4975, 'โรงตีเหล็ก'], [5395, 'ร้านยา'], [6305, 'โรงแรม'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
     [8768, 'ลานซักผ้า'], [9395, 'ร้านรับซื้อของเก่า'], [9888, 'ตรอกล่าง'], [10525, 'ลานของเก่า'], [11300, 'ท้ายตรอก'], [12220, 'ค่ายคาราวาน'], [12975, 'ซุ้มหัวหน้าคนงาน'], [13850, 'คอกสัตว์'], [14700, 'โกดังสินค้า'], [15450, 'ประตูเมืองฝั่งนอก'],
-    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [17810, 'บ่อน้ำลานตลาด'], [18355, 'แผงผ้า'], [Infinity, 'ร้านอาหารริมทาง']
+    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [Infinity, 'ร้านอาหารริมทาง']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
@@ -158,7 +158,7 @@
       tiled(ctx, row, 0, 0, row.naturalHeight, 0, y - row.naturalHeight * s, s, camera, w, rate);
     }
   }
-  const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1382, 190], [2294, 166], [18560, 600], [18650, 605], [3871, 351], [4866, 390], [5504, 188], [5045, 427]];
+  const SMOKE = [[6539, 335], [7129, 355], [7275, 219], [7739, 351], [8864, 371], [9778, 466], [9956, 445],[746, 385], [1382, 190], [2294, 166], [18960, 600], [19050, 605], [3871, 351], [4866, 390], [5504, 188], [5045, 427]];
   function draw(ctx, camera, w, h, t, zone) {
     ctx.fillStyle = '#3d86e0'; ctx.fillRect(camera, 0, w, h);
     const road = im => tiled(ctx, im, 0, ROAD_ROW, im.naturalHeight - ROAD_ROW, 0, ROAD_Y, ROAD_S, camera, w, 1);

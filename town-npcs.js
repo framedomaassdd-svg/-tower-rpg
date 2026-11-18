@@ -226,11 +226,11 @@
       { x: 15986, y: DOOR, until: 20, hidden: true }] },
     { id: 'mkt_cloth', name: 'ลุงร้านผ้า', sheet: 'elder', height: HERO * 0.92, speed: 1300, stops: [
       { x: 15986, y: DOOR, until: H(7.2), hidden: true },
-      { x: 17960, y: 826, until: H(18.4), loop: 'write', face: 1 },
+      { x: 18360, y: 826, until: H(18.4), loop: 'write', face: 1 },
       { x: 15986, y: DOOR, until: 20, hidden: true }] },
     { id: 'mkt_cook', name: 'ป้าร้านข้าว', sheet: 'granny', height: HERO * 0.9, speed: 1200, stops: [
       { x: 15986, y: DOOR, until: H(5.2), hidden: true },
-      { x: 18560, y: 812, until: H(20.6), loop: 'stir', face: 1 },
+      { x: 18960, y: 812, until: H(20.6), loop: 'stir', face: 1 },
       { x: 15986, y: DOOR, until: 20, hidden: true }] }
   ];
   for (const p of CARTS_YARD) p.zone = 'carts';
