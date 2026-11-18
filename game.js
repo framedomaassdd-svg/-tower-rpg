@@ -156,22 +156,51 @@ function drawPlayer(info) {
   ctx.restore();
 }
 // Birds crossing the sky in small flocks (the pigeon flying frames of the animals sheet). Daytime only.
-const FLOCKS = [{ y: 210, speed: 95, gap: 2300, n: 4, dir: 1, seed: 0 }, { y: 330, speed: 70, gap: 3100, n: 3, dir: -1, seed: 900 },
-  { y: 150, speed: 120, gap: 4100, n: 5, dir: 1, seed: 1700 }];
+// v97 birds in the sky: distant flapping silhouettes (no more standing pigeons sliding across the sky).
+// Each flock drifts along with its own speed, height and loose V; every bird flaps on its own beat and bobs a little.
+// At dusk and night the birds go home and a few bats flit about instead.
+const FLOCKS = [
+  { y: 200, speed: 95, gap: 2300, n: 5, dir: 1, seed: 0, size: 8, flap: 7.5 },          // sparrows: small, fast wingbeats
+  { y: 320, speed: 62, gap: 3100, n: 3, dir: -1, seed: 900, size: 12, flap: 3.2 },      // crows: bigger, slow and steady
+  { y: 140, speed: 120, gap: 4100, n: 7, dir: 1, seed: 1700, size: 7, flap: 9 },        // swallows: quick, swooping
+  { y: 260, speed: 48, gap: 5200, n: 2, dir: -1, seed: 2600, size: 15, flap: 2.2, glide: 0.6 }   // egrets: long glides
+];
+function birdShape(x, y, size, phase, dir, alpha) {
+  const up = Math.sin(phase), wing = size * (0.35 + 0.65 * Math.abs(up)), lift = -up * size * 0.55;
+  ctx.globalAlpha = alpha; ctx.lineWidth = Math.max(1.4, size * 0.2); ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - wing, y + lift * 0.6);
+  ctx.quadraticCurveTo(x - wing * 0.45, y + lift - size * 0.15, x, y);
+  ctx.quadraticCurveTo(x + wing * 0.45, y + lift - size * 0.15, x + wing, y + lift * 0.6);
+  ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x + dir * size * 0.12, y + size * 0.05, size * 0.22, size * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+}
+// bats come out after dark; drawn over the night tint so they show as black shapes against the dark-blue sky
+function drawBats(camera, w, t) {
+  const lamps = CityLighting.sample(clock).lamps, sec = t / 1000; if (lamps <= 0.45) return;
+  ctx.save(); ctx.strokeStyle = ctx.fillStyle = '#07060a';
+  if (lamps > 0.45) for (let i = 0; i < 5; i++) {                        // bats: jerky, darting loops near the rooftops
+    const k = sec * 0.18 + i * 1.37, x = camera + ((Math.sin(k * 1.3) * 0.5 + 0.5) * 0.8 + 0.1) * w + Math.sin(sec * 5.1 + i) * 30;
+    const y = 170 + i * 30 + Math.sin(k * 3.7) * 60 + Math.sin(sec * 7.3 + i * 2) * 12;
+    birdShape(x, y, 10, sec * 14 + i, Math.cos(k * 1.3) > 0 ? 1 : -1, Math.min(1, (lamps - 0.45) * 3) * 0.9);
+  }
+  ctx.restore();
+}
 function drawBirds(camera, w, t) {
-  const light = 1 - CityLighting.sample(clock).lamps; if (light < 0.3) return;
-  const sec = t / 1000;
-  for (const F of FLOCKS) {
+  const lamps = CityLighting.sample(clock).lamps, light = 1 - lamps, sec = t / 1000;
+  ctx.save(); ctx.strokeStyle = ctx.fillStyle = '#2c2a33';
+  if (light > 0.25) for (const F of FLOCKS) {
     const span = w + F.gap, p = ((sec * F.speed + F.seed) % span + span) % span;
     const lead = F.dir > 0 ? camera - 200 + p : camera + w + 200 - p;
     for (let i = 0; i < F.n; i++) {
-      const x = lead - F.dir * (i * 46 + (i % 2) * 18), y = F.y + (i % 2 ? 22 : 0) + Math.sin(sec * 1.7 + i) * 6 + i * 5;
-      const col = 2 + (Math.floor(sec * 7 + i * 1.3) % 2);
-      ctx.globalAlpha = Math.min(1, light);
-      TownNPCs.blit(ctx, 'animals', 2, col, F.dir < 0, 26, x, y, 1);
+      const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1;                  // a loose V behind the leader
+      const x = lead - F.dir * row * F.size * 4.2 + Math.sin(sec * 0.7 + i * 2.1) * F.size * 0.8;
+      const y = F.y + side * row * F.size * 1.6 + Math.sin(sec * 1.3 + i * 1.7) * F.size * 0.7 + (F.flap > 8 ? Math.sin(sec * 0.9 + i) * 22 : 0);
+      const beat = sec * F.flap + i * 1.9, gliding = F.glide && Math.sin(sec * 0.5 + i) > 1 - F.glide * 2;
+      birdShape(x, y, F.size, gliding ? -0.35 : beat, F.dir, Math.min(1, light) * 0.85);
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 // Going through a door: the camera eases in on the hero during the last steps before he disappears inside.
 const DOOR_LEAD = 0.1;                                                // clock units (~0.6 s at ×1)
@@ -220,6 +249,7 @@ function drawTown(t) {
     ctx.fillRect(camera, 0, w, h); ctx.restore();
   }
   TownPano.drawNight(ctx, camera, w, lamps, t, zone);
+  drawBats(camera, w, t);
   shelterZzz(info);
   benchZzz();
   if (k > 0.001) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(20,14,10,' + (0.85 * k * k).toFixed(3) + ')'; ctx.fillRect(0, 0, c.width, c.height); }
