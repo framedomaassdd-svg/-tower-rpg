@@ -88,6 +88,7 @@
   const placeKey = place => Object.keys(KEY_PLACE).find(k => KEY_PLACE[k] === place) || null;
   const gscene = (key, room) => 'g_' + key + '_' + room;              // Interiors scene id
   const TOWER_PATH = { guild: 1, compass: 1, porter: 1 };
+  const PARTY_IN = { guild: 8.76, compass: 8.51, porter: 8.15 };      // = town-npcs: when each guild's party climbs into the tower
   // v105 the quest board: how deep today's party goes (pay, injury risk and loot multiply)
   const QUESTS = Object.freeze({
     safe:   { name: 'คุ้มกันชั้นตื้น', pay: 0.7, risk: 0.4, loot: 0.5, desc: 'ค่าแรง ×0.7 แทบไม่เจ็บ ของน้อย' },
@@ -272,7 +273,7 @@
     if (L.path === 'compass') path = st.compassMember ? Object.assign({}, path, { place: 'tower', inside: true, act: 'ตามทีมสำรวจเข้าไปทำแผนที่ในหอคอย' })
       : Object.assign({}, path, { inside: true, act: 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน' });
     if (L.path === 'porter') path = Object.assign({}, path, { place: 'tower', inside: true, act: 'แบกเสบียงตามทีมเข้าหอคอย' });
-    if (L.path === 'tmerchant') path = Object.assign({}, path, { inside: true, act: st.merchMember ? 'ตีราคาของจากหอคอยในกิลด์พ่อค้า' : 'เป็นลูกมือตีราคาในกิลด์พ่อค้า' });
+    if (L.path === 'tmerchant') path = Object.assign({}, path, { inside: true, room: gscene('merch', st.merchMember ? 'store' : 'hall'), act: st.merchMember ? 'ตีราคาของจากหอคอยในกิลด์พ่อค้า' : 'เป็นลูกมือตีราคาในกิลด์พ่อค้า' });
     const G = guildOf(st);
     if (L.path === 'compass' && !st.compassMember) path = Object.assign({}, path, { room: gscene('compass', 'hall'), act: 'ฝึกอ่านแผนที่ที่โถงกิลด์เข็มทิศเงิน' });
     if (L.path === 'gchef') path = Object.assign({}, path, { place: G.place, room: gscene(G.key, 'kitchen'), act: 'ทำอาหารในครัว' + G.name });
@@ -290,7 +291,9 @@
     let w0 = { t1: WAKE }, wfrom = start;
     if (TOWER_PATH[L.path] && G && G.member && work === 'tower') {
       const toHall = end(route(WAKE, start, G.place, 'เดินไป' + G.name).map(x => (segs.push(x), x)));
-      const board = stay(toHall.t1, toHall.t1 + 0.22, G.place, 'รับภารกิจ "' + questOf(st).name + '" จากกระดาน', { room: gscene(G.key, 'hall'), hidden: true });
+      // v107 leave the hall so as to reach the tower gate when your guild's party climbs in (they're seen going in together)
+      const probe = end(route(0, G.place, 'tower', '')).t1, leave = PARTY_IN[L.path] - probe;
+      const board = stay(toHall.t1, Math.max(toHall.t1 + 0.22, leave), G.place, 'รับภารกิจ "' + questOf(st).name + '" จากกระดาน', { room: gscene(G.key, 'hall'), hidden: true });
       segs.push(board); w0 = board; wfrom = G.place;
     }
     const w = end(route(w0.t1, wfrom, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)).map(x => (segs.push(x), x)));

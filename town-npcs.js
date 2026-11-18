@@ -71,9 +71,9 @@
       { x: 4700, y: 800, until: H(18), loop: 'hammer', face: 1 },               // left of the anvil
       { x: 1864, y: DOOR, until: 20, hidden: true }] },
     { id: 'clerk', name: 'เสมียนกิลด์', sheet: 'elder', height: HERO * 0.92, speed: 1450, stops: [
-      { x: 5828, y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
-      { x: 2991, y: 826, until: H(16.8), loop: 'write', face: -1 },            // right of the arch
-      { x: 5828, y: DOOR, until: 20, hidden: true }] },
+      { x: 21258, y: DOOR, until: H(5.9), hidden: true },                    // v107 moved to ย่านกิลด์: lodges in the Iron Shield hall
+      { x: 20930, y: 826, until: H(16.8), loop: 'write', face: -1 },           // signing up newcomers just inside the district gate
+      { x: 21258, y: DOOR, until: 20, hidden: true }] },
     { id: 'chef', name: 'พ่อครัว', sheet: 'chef', height: HERO * 1.12, speed: 1450, stops: [
       { x: 1602, y: DOOR, until: H(5.4), hidden: true },
       { x: 3730, y: 842, until: H(7.6), loop: 'idle' },                       // picking vegetables at the market
@@ -90,9 +90,9 @@
       { x: 5220, y: 822, until: H(17.5), loop: 'grind', face: -1 },
       { x: 5088, y: DOOR, until: 20, hidden: true }] },
     { id: 'instructor', name: 'ครูฝึกกิลด์', sheet: 'instructor', height: HERO * 1.0, speed: 1500, stops: [
-      { x: 2786, y: 690, until: H(16.2), hidden: true },                      // teaching in the training yard behind the arch
-      { x: 897, y: DOOR, until: H(18.6), hidden: true },                       // supper at the tavern
-      { x: 2786, y: 690, until: 20, hidden: true }] },
+      { x: 21258, y: DOOR, until: H(16.2), hidden: true },                    // v107 teaching in the Iron Shield's training yard
+      { x: 21420, y: 832, until: H(18.6), loop: 'guard', face: -1 },           // waits out front for the party to come back
+      { x: 21258, y: DOOR, until: 20, hidden: true }] },
     { id: 'summoned', name: 'ผู้ถูกอัญเชิญอีกคน', sheet: 'summoned', height: HERO * 1.0, speed: 1500, stops: [
       { x: 5828, y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
       { x: 3215, y: 832, until: H(8.4), loop: 'phone', face: 1 },             // still trying his phone by the well
@@ -325,6 +325,7 @@
       { x: G.merch, y: DOOR, until: 20, hidden: true }] }
   ];
   for (const p of GUILD) p.zone = 'guild';
+  for (const p of PEOPLE) if (p.id === 'clerk' || p.id === 'instructor') p.zone = 'guild';
   for (const p of CARTS_YARD) p.zone = 'carts';
   for (const p of MARKET) p.zone = 'market';
   for (const p of SHRINE) p.zone = 'carts';

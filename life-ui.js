@@ -358,7 +358,7 @@
       h += '<p>กระดานภารกิจ (ตัวละครแวะรับที่โถงกิลด์ทุกเช้า)</p>' + Object.entries(LifeSim.QUESTS).map(([id, q]) =>
         `<button class="lg-btn ${cur === id ? 'lg-cur' : ''}" data-quest="${id}">${cur === id ? '✓ ' : ''}${esc(q.name)}<small>${esc(q.desc)}</small></button>`).join('');
     }
-    if (L.path === 'gchef') h += '<p>ทำงานในครัวของ</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px">' + [['iron', 'โล่เหล็ก'], ['compass', 'เข็มทิศเงิน'], ['porter', 'คนแบกของ']].map(([k, n]) =>
+    if (L.path === 'gchef') h += '<p>ทำงานในครัวของ</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">' + [['iron', 'โล่เหล็ก'], ['compass', 'เข็มทิศเงิน'], ['porter', 'คนแบกของ'], ['merch', 'พ่อค้าหอคอย']].map(([k, n]) =>
       `<button class="lg-btn ${(state.life.chefNext || G.key) === k ? 'lg-cur' : ''}" data-chef="${k}">${n}</button>`).join('') + '</div><p class="lg-muted">เปลี่ยนแล้วมีผลพรุ่งนี้</p>';
     return h;
   }
