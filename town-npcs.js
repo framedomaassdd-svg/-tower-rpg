@@ -24,7 +24,10 @@
     wagons2: { cw: 480, ch: 320, base: 310, src: 281 },
     // v92 market people and the shrine's pilgrim
     mktveg: { ...B, src: 347 }, mktspice: { ...B, src: 347 }, mktcloth: { ...B, src: 347 }, mktcook: { ...B, src: 347 },
-    garbage: { ...B, src: 347 }, shopper: { ...B, src: 347 }, pilgrim: { ...B, src: 347 }
+    garbage: { ...B, src: 347 }, shopper: { ...B, src: 347 }, pilgrim: { ...B, src: 347 },
+    // v95 rides: src = the whole rider + mount (or coach) in sheet px
+    heroHorse: { cw: 480, ch: 320, base: 310, src: 296 }, heroBike: { cw: 480, ch: 320, base: 310, src: 296 },
+    heroScooter: { cw: 480, ch: 320, base: 310, src: 296 }, coach: { cw: 480, ch: 320, base: 310, src: 265 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -35,7 +38,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=92'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=95'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -398,7 +401,9 @@
     eat:    { sheet: 'heroB', row: 2, times: [1.1, .6, .9, 1.2] },
     sleep:  { sheet: 'heroC', row: 0, times: [2.2, 1.6, 2.2, 1.4] },  bench: { sheet: 'heroC', row: 1, times: [1.8, 2.4, .5, 2.5] },
     tired:  { sheet: 'heroC', row: 2 },
-    coach_old: { sheet: 'wagons', row: 0 }                               // v94 stand-in for the passenger coach
+    coach_old: { sheet: 'wagons', row: 0 },                              // v94 stand-in for the passenger coach
+    coach: { sheet: 'coach', row: 0 }, ride_horse: { sheet: 'heroHorse', row: 0 }, ride_bike: { sheet: 'heroBike', row: 0 }, ride_scooter: { sheet: 'heroScooter', row: 0 },
+    horse_parked: { sheet: 'heroHorse', row: 1, times: [2.4, 1.6, 3.2, 1.8] }
   });
   function heroReady(kind) { const P = HERO_POSE[kind]; return !!P && ok(sheets[P.sheet]); }
   function drawHero(ctx, kind, o) {

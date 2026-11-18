@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=92';
+  const V = '?v=95';
   const WORLD_W = 19880, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
@@ -50,10 +50,20 @@
     { id: 'mkt_fountain', x: 17550, y: 353, w: 652, h: 441 },        // v91: น้ำพุลานตลาด (benches ≈ knee height)
     { id: 'mkt_cloth', x: 18220, y: 443, w: 528, h: 351 },
     { id: 'mkt_food', x: 18765, y: 444, w: 528, h: 350 },
-    { id: 'mkt_shack', x: 19310, y: 529, w: 513, h: 265 }           // v92 เพิงข้างกองขยะ: a free place to sleep
+    { id: 'mkt_shack', x: 19310, y: 529, w: 513, h: 265 },          // v92 เพิงข้างกองขยะ: a free place to sleep
+    // v95 coach stops (รถม้าโดยสาร): x = centre - 167; life-sim COACH lists the same centres (drawn last: in front)
+    { id: 'stop0', img: 'coachstop', zone: 'town', x: -47, y: 578, w: 335, h: 216 },
+    { id: 'stop1', img: 'coachstop', zone: 'town', x: 1173, y: 578, w: 335, h: 216 },
+    { id: 'stop2', img: 'coachstop', zone: 'town', x: 4263, y: 578, w: 335, h: 216 },
+    { id: 'stop3', img: 'coachstop', zone: 'town', x: 6133, y: 578, w: 335, h: 216 },
+    { id: 'stop4', img: 'coachstop', zone: 'carts', x: 11123, y: 578, w: 335, h: 216 },
+    { id: 'stop5', img: 'coachstop', zone: 'carts', x: 11993, y: 578, w: 335, h: 216 },
+    { id: 'stop6', img: 'coachstop', zone: 'carts', x: 13553, y: 578, w: 335, h: 216 },
+    { id: 'stop7', img: 'coachstop', zone: 'carts', x: 14453, y: 578, w: 335, h: 216 }
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
     slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), mktBg: load('town6_mkt_bg.webp'), backRow: load('v47_backstreet.webp'), benchSleep: load('sleep_bench.webp?v=82') };
+  art.coachstop = load('town6_coachstop.webp'); art.glow_coachstop = load('town6_glow_coachstop.webp');
   for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   const ready = () => ok(art.road) && ok(art.inn);

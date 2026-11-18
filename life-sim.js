@@ -151,7 +151,7 @@
                                 market: { town: 1864, other: 15986, act: 'เดินเข้าตรอกตลาด' } });
   // ---- v94 getting around: riding your own horse / bike / scooter, or the coach (รถม้าโดยสาร) on long stretches.
   // RIDE is set by dayPlan for the state being planned (route() has no state of its own).
-  const COACH = Object.freeze({ town: [420, 1864, 3260, 5828, 6350], carts: [15046, 14202, 12545, 11400] });
+  const COACH = Object.freeze({ town: [120, 1340, 4430, 6300], carts: [11290, 12160, 13720, 14620] });   // = the stop signs in town-pano
   const COACH_SPEED = 3, COACH_WAIT = 0.1, COACH_FARE = 1, COACH_MIN = 1800;
   let RIDE = { mode: null, coach: false, n: 0 };
   function rideOf(st) {
