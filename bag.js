@@ -1,0 +1,122 @@
+/* v93 กระเป๋าและไอเท็ม: what the hero carries, what it costs, how long it keeps, recipes, forging and gathering.
+   The bag is a list of stacks { id, n, exp } on the save (st.bag). exp = the last day the stack is still good;
+   at the night rollover into a later day it spoils. Pure data + small functions; LifeSim decides when they run. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  if (root) root.Bag = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+  const CAP = 20;                                   // items, not stacks
+  // kind: meal (eaten for dinner / the night) · ingredient · material · tool (kept, gives a bonus) · goods (made to sell)
+  // keep: days it stays good (0 = never spoils) · sell: what a buyer pays · heal: health when eaten
+  const ITEMS = Object.freeze({
+    ration:    { name: 'อาหารติดมือ',      icon: '🍙', kind: 'meal', keep: 2, sell: 0 },
+    bread:     { name: 'ขนมปัง',            icon: '🍞', kind: 'meal', keep: 3, sell: 1 },
+    riceball:  { name: 'ข้าวห่อใบตอง',      icon: '🍱', kind: 'meal', keep: 1, sell: 1 },
+    jerky:     { name: 'ปลาแห้ง',           icon: '🐟', kind: 'meal', keep: 10, sell: 2 },
+    fruit:     { name: 'ผลไม้ป่า',          icon: '🍎', kind: 'meal', keep: 4, sell: 1 },
+    meal_veg:  { name: 'ข้าวต้มผัก',        icon: '🍲', kind: 'meal', keep: 1, sell: 0, heal: 3 },
+    meal_fish: { name: 'ปลาย่างกับข้าว',    icon: '🍛', kind: 'meal', keep: 1, sell: 0, heal: 5 },
+    meal_spice:{ name: 'ข้าวผัดเครื่องเทศ', icon: '🥘', kind: 'meal', keep: 1, sell: 0, heal: 4 },
+    rice:      { name: 'ข้าวสาร',           icon: '🌾', kind: 'ingredient', keep: 30, sell: 0 },
+    veg:       { name: 'ผักสด',             icon: '🥬', kind: 'ingredient', keep: 4, sell: 1 },
+    fish:      { name: 'ปลาสด',             icon: '🐠', kind: 'ingredient', keep: 1, sell: 1 },
+    spice:     { name: 'เครื่องเทศ',        icon: '🌶️', kind: 'ingredient', keep: 60, sell: 1 },
+    herb:      { name: 'สมุนไพร',           icon: '🌿', kind: 'material', keep: 5, sell: 2 },
+    junk:      { name: 'ของเก่าพอใช้ได้',   icon: '🏺', kind: 'material', keep: 0, sell: 2 },
+    scrap:     { name: 'เศษเหล็ก',          icon: '🔩', kind: 'material', keep: 0, sell: 1 },
+    iron:      { name: 'เหล็กแท่ง',         icon: '⬛', kind: 'material', keep: 0, sell: 3 },
+    monster:   { name: 'ชิ้นส่วนมอนสเตอร์', icon: '🦴', kind: 'material', keep: 0, sell: 6 },   // the tower, later
+    knife:     { name: 'มีดครัว',           icon: '🔪', kind: 'tool', keep: 0, sell: 5, desc: 'ทำอาหารได้เพิ่มอีก 1 ที่' },
+    sickle:    { name: 'เคียว',             icon: '🌙', kind: 'tool', keep: 0, sell: 5, desc: 'เก็บของนอกประตูเมืองได้เพิ่ม 1 ชิ้น' },
+    hook:      { name: 'ตะขอคุ้ยของ',       icon: '🪝', kind: 'tool', keep: 0, sell: 5, desc: 'คุ้ยลานของเก่าได้เพิ่ม 1 ชิ้น' },
+    dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14 }
+  });
+  // where things are bought (place = LifeSim place id)
+  const SHOPS = Object.freeze({
+    bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
+    bakery: { name: 'ร้านขนมปัง', place: 'bakery', items: { bread: 2 } },
+    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5 } }
+  });
+  // who buys what (everything they take is sold in one visit; tools are never sold automatically)
+  const BUYERS = Object.freeze({
+    junk:       { name: 'ร้านรับซื้อของเก่า', place: 'junk', takes: ['junk', 'scrap'] },
+    apothecary: { name: 'ร้านยา', place: 'apothecary', takes: ['herb'] },
+    bazaar:     { name: 'ตลาดใหญ่', place: 'bazaar', takes: ['fruit', 'veg', 'fish', 'jerky'] },
+    smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['dagger', 'scrap', 'monster'] }
+  });
+  const RECIPES = Object.freeze({
+    meal_veg:   { needs: { rice: 1, veg: 1 }, makes: 2 },
+    meal_fish:  { needs: { rice: 1, fish: 1 }, makes: 2 },
+    meal_spice: { needs: { rice: 1, veg: 1, spice: 1 }, makes: 3 }
+  });
+  // stoves: home = the room you sleep in tonight, if it has one
+  const STOVES = Object.freeze({
+    tavern:      { name: 'ยืมครัวร้านอาหาร', place: 'tavern', fee: 1, room: 'kitchen' },
+    campfire:    { name: 'กองไฟคาราวาน', place: 'campfire', fee: 0 },
+    streetstall: { name: 'เตาร้านริมทางในตลาด', place: 'streetstall', fee: 1 }
+  });
+  const HOME_STOVE = Object.freeze({ tenement: 'เตาถ่านในห้องเช่า', shrine: 'ก้อนเส้าหน้าศาลเจ้า', shack: 'เตาสังกะสีข้างเพิง' });
+  const FORGE = Object.freeze({
+    knife: { iron: 1 }, sickle: { iron: 1 }, hook: { iron: 1 }, dagger: { iron: 2 }
+  });
+  const FORGE_FEE = 2;                               // waived for the smith's apprentice
+  const GATHER = Object.freeze({
+    scrap: { name: 'คุ้ยลานของเก่าท้ายตรอก', place: 'scrap', tool: 'hook', loot: [['junk', 1, 2], ['scrap', 0, 2]] },
+    field: { name: 'เก็บของในทุ่งนอกประตูเมือง', place: 'field', tool: 'sickle', loot: [['herb', 1, 2], ['fruit', 0, 2], ['veg', 0, 1]] }
+  });
+
+  const list = st => (Array.isArray(st.bag) ? st.bag : (st.bag = []));
+  const count = (st, id) => list(st).reduce((n, s) => n + (s.id === id ? s.n : 0), 0);
+  const total = st => list(st).reduce((n, s) => n + s.n, 0);
+  const meals = st => list(st).reduce((n, s) => n + (ITEMS[s.id] && ITEMS[s.id].kind === 'meal' ? s.n : 0), 0);
+  const sync = st => { st.food = meals(st); return st; };          // older code and the panel read st.food
+  function add(st, id, n, day) {
+    const it = ITEMS[id]; n = Math.max(0, Math.min(n === undefined ? 1 : n, CAP - total(st)));
+    if (!it || !n) return 0;
+    const exp = it.keep ? (day || st.day || 1) + it.keep : 0, L = list(st);
+    const s = L.find(x => x.id === id && x.exp === exp);
+    if (s) s.n += n; else L.push({ id, n, exp });
+    sync(st); return n;
+  }
+  function take(st, id, n) {                          // oldest first
+    n = n === undefined ? 1 : n;
+    if (count(st, id) < n) return false;
+    const L = list(st).filter(s => s.id === id).sort((a, b) => (a.exp || 1e9) - (b.exp || 1e9));
+    for (const s of L) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!n) break; }
+    st.bag = list(st).filter(s => s.n > 0); sync(st); return true;
+  }
+  // eat one meal: the one that spoils soonest (cooked food first on a tie). Returns the item id or null.
+  function eat(st) {
+    const L = list(st).filter(s => ITEMS[s.id] && ITEMS[s.id].kind === 'meal')
+      .sort((a, b) => (a.exp || 1e9) - (b.exp || 1e9) || (ITEMS[b.id].heal || 0) - (ITEMS[a.id].heal || 0));
+    if (!L.length) return null;
+    const id = L[0].id; L[0].n--; st.bag = list(st).filter(s => s.n > 0);
+    const heal = ITEMS[id].heal || 0; if (heal) st.health = Math.min(100, (st.health || 0) + heal);
+    sync(st); return id;
+  }
+  // night rollover into `day`: whatever's past its date goes off. Returns [[id, n], ...].
+  function spoil(st, day) {
+    const gone = {};
+    for (const s of list(st)) if (s.exp && s.exp < day) gone[s.id] = (gone[s.id] || 0) + s.n;
+    st.bag = list(st).filter(s => !(s.exp && s.exp < day)); sync(st);
+    return Object.entries(gone);
+  }
+  const has = (st, needs) => Object.entries(needs).every(([id, n]) => count(st, id) >= n);
+  // what's still missing for a recipe, and what it costs at the bazaar
+  function missing(st, needs) {
+    const out = {}; let cost = 0;
+    for (const [id, n] of Object.entries(needs)) { const k = n - count(st, id); if (k > 0) { out[id] = k; cost += k * (SHOPS.bazaar.items[id] || 99); } }
+    return { items: out, cost };
+  }
+  const daysLeft = (s, day) => s.exp ? s.exp - day : Infinity;
+  const name = id => ITEMS[id] ? ITEMS[id].name : id;
+  const label = pairs => pairs.map(([id, n]) => name(id) + (n > 1 ? ' ×' + n : '')).join(', ');
+  function migrate(st) {                              // pre-v93 saves kept food as a bare number
+    if (!Array.isArray(st.bag)) { st.bag = []; const n = Math.max(0, Math.min(6, Math.floor(st.food || 0))); if (n) add(st, 'ration', n); }
+    sync(st);
+  }
+  return { CAP, ITEMS, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+    list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
+});

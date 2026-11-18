@@ -135,6 +135,115 @@
     });
   }
 
+  // ---------- v93 bag and the after-work order ----------
+  const B = () => LifeSim.Bag;
+  function describeOrder(O) {
+    const b = B(); if (!O) return 'ไม่มี (ตัวละครแวะธุระตามปกติ)';
+    const when = O.repeat ? 'ทุกวัน' : O.day === state.day ? 'วันนี้' : 'พรุ่งนี้';
+    if (O.kind === 'buy') return 'ซื้อ ' + b.label(Object.entries(O.items || {})) + ' ที่' + b.SHOPS[O.shop].name + ' · ' + when;
+    if (O.kind === 'cook') return 'ทำ' + b.name(O.recipe) + 'กินเอง (' + LifeSim.stovePlace(state, O).name + ') · ' + when;
+    if (O.kind === 'forge') return 'ตี' + b.name(O.item) + 'เองที่โรงตีเหล็ก · ' + when;
+    if (O.kind === 'gather') return b.GATHER[O.spot].name + ' · ' + when;
+    if (O.kind === 'sell') return 'เอาของไปขายที่' + b.BUYERS[O.buyer].name + ' · ' + when;
+    return '';
+  }
+  function bagHtml() {
+    const b = B(), L = state.life, bag = b.list(state).slice().sort((x, y) => (x.exp || 1e9) - (y.exp || 1e9));
+    const rows = bag.map(st => { const it = b.ITEMS[st.id], left = b.daysLeft(st, state.day);
+      return `<span>${it.icon} ${esc(it.name)} ×${st.n}${left === Infinity ? '' : left <= 0 ? ' <b style="color:#ff9a7a">เสียคืนนี้</b>' : ' <span class="lg-muted">เหลือ ' + (left + 1) + ' วัน</span>'}</span>`; }).join('');
+    const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
+    return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
+      <div class="lg-stats" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${rows || '<span class="lg-muted">ว่างเปล่า</span>'}</div>
+      <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
+      <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p>
+      <p class="lg-muted">สั่งก่อนเลิกงาน (16:00) จะทำวันนี้ หลังจากนั้นจะทำพรุ่งนี้</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
+        <button class="lg-btn" data-order="buy">🛒 ซื้อของ<small>ตลาดใหญ่ · ร้านขนมปัง · โรงตีเหล็ก</small></button>
+        <button class="lg-btn" data-order="cook">🍳 ทำอาหาร<small>กินเอง เหลือเก็บใส่กระเป๋า</small></button>
+        <button class="lg-btn" data-order="forge">🔨 ตีเหล็ก<small>ตีมีด เคียว ตะขอ มีดสั้น</small></button>
+        <button class="lg-btn" data-order="gather">🧺 เก็บของ<small>ลานของเก่า · ทุ่งนอกประตูเมือง</small></button>
+        <button class="lg-btn" data-order="sell">💰 ขายของ<small>ร้านรับซื้อ · ร้านยา · ตลาด · โรงตีเหล็ก</small></button>
+        ${O ? '<button class="lg-btn" data-a="nocmd">✖ ยกเลิกธุระ<small>กลับไปใช้ชีวิตตามปกติ</small></button>' : ''}
+      </div>`;
+  }
+  // one card per kind of order; `sel` keeps what's been picked while the card re-renders
+  function orderCard(kind, sel) {
+    const b = B(), L = state.life; sel = sel || { items: {} };
+    const money = state.money, icon = id => b.ITEMS[id].icon + ' ' + esc(b.ITEMS[id].name);
+    let body = '', ok = false;
+    if (kind === 'buy') {
+      sel.shop = sel.shop || 'bazaar';
+      const S = b.SHOPS[sel.shop]; let cost = 0, n = 0;
+      for (const [id, k] of Object.entries(sel.items)) { cost += k * S.items[id]; n += k; }
+      body = `<p>${Object.entries(b.SHOPS).map(([id, x]) => `<button class="lg-btn ${id === sel.shop ? 'lg-cur' : ''}" style="display:inline-block;width:auto;margin-right:6px" data-shop="${id}">${esc(x.name)}</button>`).join('')}</p>
+        ${Object.entries(S.items).map(([id, price]) => { const it = b.ITEMS[id];
+          return `<button class="lg-btn" data-add="${id}">${icon(id)} · ${price} เหรียญ${sel.items[id] ? '<span class="lg-tag">×' + sel.items[id] + '</span>' : ''}<small>${it.keep ? 'เก็บได้ ' + it.keep + ' วัน' : 'ไม่เสีย'}${it.kind === 'meal' ? ' · กินได้เลย' : it.kind === 'ingredient' ? ' · วัตถุดิบ' : ''}</small></button>`; }).join('')}
+        <p>รวม ${n} ชิ้น ${cost} เหรียญ (มี ${money}) ${n ? '<button class="lg-btn" style="display:inline-block;width:auto" data-clear="1">ล้าง</button>' : ''}</p>`;
+      ok = n > 0; sel.order = { kind, shop: sel.shop, items: sel.items };
+    } else if (kind === 'cook') {
+      const home = LifeSim.stovePlace(state, { stove: 'home' });
+      sel.recipe = sel.recipe || 'meal_veg'; sel.stove = sel.stove || 'home';
+      body = Object.entries(b.RECIPES).map(([id, R]) => { const m = b.missing(state, R.needs);
+        return `<button class="lg-btn ${id === sel.recipe ? 'lg-cur' : ''}" data-recipe="${id}">${icon(id)} · ได้ ${R.makes} ที่<small>ใช้ ${esc(b.label(Object.entries(R.needs)))}${Object.keys(m.items).length ? ' · ขาด ' + esc(b.label(Object.entries(m.items))) + ' จะแวะซื้อในตลาด ~' + m.cost + ' เหรียญ' : ' · มีครบในกระเป๋า'} · สุขภาพ +${b.ITEMS[id].heal}</small></button>`; }).join('')
+        + `<h3>ทำที่ไหน</h3>` + [['home', 'ที่พักคืนนี้', b.HOME_STOVE[home.place] ? home.name + ' ฟรี' : 'ที่พักคืนนี้ไม่มีเตา จะยืมครัวร้านอาหารแทน'],
+          ['tavern', 'ยืมครัวร้านอาหาร', (L.path === 'kitchen' ? 'ฟรีสำหรับผู้ช่วยครัว' : '1 เหรียญ') + ' · ในเมือง'],
+          ['campfire', 'กองไฟคาราวาน', 'ฟรี · นอกประตูเมือง'], ['streetstall', 'เตาร้านริมทางในตลาด', '1 เหรียญ · ในตลาดใหญ่']]
+          .map(([id, t, d]) => `<button class="lg-btn ${id === sel.stove ? 'lg-cur' : ''}" data-stove="${id}">${esc(t)}<small>${esc(d)}</small></button>`).join('')
+        + `<p class="lg-muted">มีดครัวในกระเป๋าทำได้เพิ่ม 1 ที่ · ของที่ทำเองเก็บได้ถึงพรุ่งนี้</p>`;
+      ok = true; sel.order = { kind, recipe: sel.recipe, stove: sel.stove };
+    } else if (kind === 'forge') {
+      sel.item = sel.item || 'knife';
+      const fee = L.path === 'smith' ? 0 : b.FORGE_FEE, odds = Math.round(Math.min(0.95, 0.6 + 0.03 * (state.smithWork || 0) + 0.02 * (state.strength || 3)) * 100);
+      body = Object.entries(b.FORGE).map(([id, f]) => `<button class="lg-btn ${id === sel.item ? 'lg-cur' : ''}" data-item="${id}">${icon(id)} · เหล็ก ${f.iron} แท่ง<small>${esc(b.ITEMS[id].desc || 'ขายให้โรงตีเหล็กได้ ' + b.ITEMS[id].sell + ' เหรียญ')}</small></button>`).join('')
+        + `<p class="lg-muted">มีเหล็กแท่ง ${b.count(state, 'iron')} · ขาดจะซื้อที่โรงตีเหล็กแท่งละ ${b.SHOPS.smith.items.iron} · ค่าเตา ${fee ? fee + ' เหรียญ' : 'ฟรี (ช่างฝึกหัด)'} · โอกาสสำเร็จ ${odds}% · แรง -12</p>`;
+      ok = true; sel.order = { kind, item: sel.item };
+    } else if (kind === 'gather') {
+      sel.spot = sel.spot || 'field';
+      body = Object.entries(b.GATHER).map(([id, G]) => `<button class="lg-btn ${id === sel.spot ? 'lg-cur' : ''}" data-spot="${id}">${esc(G.name)}<small>ได้ ${esc(G.loot.map(([i]) => b.name(i)).join(' / '))} · ${esc(b.name(G.tool))}ช่วยได้เพิ่ม · แรง -10</small></button>`).join('');
+      ok = true; sel.order = { kind, spot: sel.spot };
+    } else if (kind === 'sell') {
+      sel.buyer = sel.buyer || 'junk';
+      body = Object.entries(b.BUYERS).map(([id, X]) => { const items = X.takes.map(i => [i, b.count(state, i)]).filter(([, n]) => n);
+        const val = items.reduce((t, [i, n]) => t + n * b.ITEMS[i].sell, 0);
+        return `<button class="lg-btn ${id === sel.buyer ? 'lg-cur' : ''}" data-buyer="${id}">${esc(X.name)}${val ? '<span class="lg-tag">' + val + ' เหรียญ</span>' : ''}<small>รับซื้อ ${esc(X.takes.map(i => b.name(i)).join(', '))}${items.length ? ' · ตอนนี้มี ' + esc(b.label(items)) : ''}</small></button>`; }).join('')
+        + '<p class="lg-muted">ขายทุกชิ้นที่ร้านนั้นรับ (เครื่องมือไม่ถูกขาย)</p>';
+      ok = true; sel.order = { kind, buyer: sel.buyer };
+    }
+    // how late this evening runs: plan the day with the order in place, then put things back
+    let eta = '';
+    if (ok) {
+      const keep = L.order, keepDone = L.done;
+      try {
+        L.order = Object.assign({}, sel.order, { day: state.day }); L.done = Object.assign({}, keepDone);
+        const home = LifeSim.milestones(state).find(([k]) => k === 'home');
+        if (home) { const h = home[1] * 1.2, hh = Math.floor(h) % 24, mm = Math.round((h % 1) * 60 / 10) * 10 % 60;
+          eta = '<p class="lg-muted">ถ้าทำวันนี้ จะกลับถึงที่นอนราว ' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + (home[1] >= 19.5 ? ' <b style="color:#ff9a7a">ดึกมาก ไกลจากที่ทำงาน</b>' : '') + '</p>'; }
+      } catch (e) {} finally { L.order = keep; L.done = keepDone; }
+    }
+    const title = { buy: 'ซื้อของ', cook: 'ทำอาหารกินเอง', forge: 'ตีเหล็กเอง', gather: 'เก็บของ', sell: 'ขายของ' }[kind];
+    const d = el(`<div class="lg-card"><h2>${title}</h2>${body}${eta}
+      <button class="lg-btn lg-primary" data-go="once" ${ok ? '' : 'disabled'}>สั่งครั้งเดียว</button>
+      <button class="lg-btn" data-go="repeat" ${ok ? '' : 'disabled'}>ทำทุกวัน<small>ทำซ้ำทุกเย็นจนกว่าจะยกเลิก</small></button>
+      <button class="lg-btn" data-go="">กลับ</button></div>`);
+    block(d);
+    const redo = () => { d.remove(); block(null); orderCard(kind, sel); };
+    const on = (attr, fn) => d.querySelectorAll('[data-' + attr + ']').forEach(x => x.onclick = () => { fn(x.dataset[attr]); redo(); });
+    on('shop', v => { sel.shop = v; sel.items = {}; });
+    on('add', v => { sel.items[v] = (sel.items[v] || 0) + 1; });
+    on('clear', () => { sel.items = {}; });
+    on('recipe', v => { sel.recipe = v; }); on('stove', v => { sel.stove = v; });
+    on('item', v => { sel.item = v; }); on('spot', v => { sel.spot = v; }); on('buyer', v => { sel.buyer = v; });
+    d.querySelectorAll('[data-go]').forEach(x => x.onclick = () => {
+      const go = x.dataset.go;
+      if (go) {
+        const day = LifeSim.setOrder(state, Object.assign({}, sel.order, { repeat: go === 'repeat' }), clock);
+        log('ธุระ' + (day === state.day ? 'วันนี้' : 'พรุ่งนี้') + ': ' + describeOrder(state.life.order));
+        save();
+      }
+      d.remove(); block(null); panel();
+    });
+  }
+
   // ---------- life panel ----------
   function panel() {
     if (open) return;
@@ -143,11 +252,12 @@
       <p>ตัวตนในโลกเดิม: <b>${esc(o.name)}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${state.guild ? ' · สมาชิกกิลด์' : ''}</p>
+      ${bagHtml()}
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
         return `<button class="lg-btn ${L.roomPref === id ? 'lg-cur' : ''}" data-room="${id}">${esc(r.name)} · ${price ? price + ' เหรียญ/คืน' : 'ฟรี'}${price < r.price ? '<span class="lg-tag">ราคาพนักงาน</span>' : ''}${L.roomPref === id ? '<span class="lg-tag">เลือกอยู่</span>' : ''}<small>${esc(r.desc)}</small></button>`; }).join('')}
       <h3>ค่าสถานะ</h3><div class="lg-stats"><span>กำลัง ${state.strength}</span><span>คล่องตัว ${state.agility}</span><span>ปัญญา ${state.intelligence}</span>
-        <span>ชื่อเสียง ${state.rep}</span><span>สุขภาพ ${state.health}</span><span>อาหารสำรอง ${state.food}</span></div>
+        <span>ชื่อเสียง ${state.rep}</span><span>สุขภาพ ${state.health}</span><span>ของกินในกระเป๋า ${Bag.meals(state)}</span></div>
       <h3>หอคอยและเมือง</h3><div class="lg-stats"><span>ชั้นที่สำรวจ ${state.floor}</span><span>อันตราย ${state.danger}/5</span><span>เสบียง ${state.supplies}</span><span>ภาษีค้าง ${state.taxDue}</span></div>
       <h3>บันทึก</h3><div class="lg-log">${esc(state.events.slice(0, 8).join('\n') || 'ยังไม่มีบันทึก')}</div>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
@@ -158,6 +268,9 @@
       LifeSim.setRoomPref(state, b.dataset.room); log('ตั้งใจพัก' + LifeSim.ROOMS[b.dataset.room].name + 'ตั้งแต่คืนนี้');
       d.remove(); block(null); save(); panel();
     });
+    d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
+    const eb = d.querySelector('[data-a=eatbag]'); if (eb) eb.onclick = () => { L.eatBag = !L.eatBag; d.remove(); block(null); save(); panel(); };
+    const cancel = d.querySelector('[data-a=nocmd]'); if (cancel) cancel.onclick = () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); d.remove(); block(null); save(); panel(); };
     d.querySelector('[data-a=close]').onclick = () => closeOverlay(d);
     d.querySelector('[data-a=path]').onclick = () => { d.remove(); choosePath(false); };
     d.querySelector('[data-a=new]').onclick = () => { if (confirm('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?')) { d.remove(); newLife(); } };
@@ -222,7 +335,8 @@
       else if (k === 'dinner') { LifeSim.applyDinner(state, CityCore); const ev = LifeSim.pickEvent(state); update(); if (ev) { event(ev); return; } }
       else if (k === 'home') LifeSim.applyHome(state);
       else if (k === 'rest') LifeSim.applyRest(state);
-      else if (k === 'errand') LifeSim.applyErrand(state);
+      else if (k === 'errand' || k === 'errand2') LifeSim.applyErrand(state, k);
+      else if (k === 'cook') LifeSim.applyOrder(state, 'cook');
       update();
     }
   }

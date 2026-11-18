@@ -39,7 +39,8 @@ function nextDay() {
   TownResidents.closeDay(state); clock = 0; state.day++;
   const taxPeriods = CityCore.accrueTax(state);
   if (taxPeriods) log('ถึงรอบภาษีเมือง ยอดค้าง ' + state.taxDue + ' เหรียญ');
-  if (state.food > 0) state.food--; else { state.health = Math.max(1, state.health - 5); log('ไม่มีอาหาร สุขภาพลดลง 5'); }
+  if (LifeSim.night) for (const m of LifeSim.night(state)) log(m);              // v93: spoilage + supper from the bag
+  else if (state.food > 0) state.food--; else { state.health = Math.max(1, state.health - 5); log('ไม่มีอาหาร สุขภาพลดลง 5'); }
   const roll = Math.random();
   if (roll < .27) { state.danger = Math.min(5, state.danger + 1); log('มอนสเตอร์เพิ่มจำนวนรอบเมือง ระดับอันตรายสูงขึ้น'); }
   else if (roll < .5) { state.danger = Math.max(1, state.danger - 1); log('หน่วยลาดตระเวนกำจัดมอนสเตอร์ใกล้เมือง'); }
@@ -58,9 +59,11 @@ function drawNpc(n) {
 }
 // What the hero does at a street workplace. Indoor jobs (inn laundry, kitchen) are drawn by interiors.js.
 const HERO_VISIBLE = HeroSprite.HEIGHT * 648 / 680;                  // standing height without the cell's padding
-function heroWorkPose() {
+function heroWorkPose(info) {
   const L = state.life || {}, path = L.path;
   const carrying = () => { const q = TownNPCs.heroShuttle(clock, 75); return { kind: 'carry', dx: q.x, face: q.face, moving: q.moving, d: q.d }; };
+  if (info && info.task === 'cook') return { kind: 'chop', dx: 0, face: 1 };      // v93 cooking for himself
+  if (info && info.task === 'gather') return carrying();                              // v93 gathering
   if (path === 'smith') return { kind: 'hammer', dx: 0, face: -1 };            // the anvil is just to the left
   if (path === 'market' || path === 'scrap' || path === 'cargo') return carrying();
   if (path === 'guild') return state.guild ? carrying() : { kind: 'swing', dx: 0, face: -1 };   // sparring toward the instructor
@@ -119,7 +122,7 @@ function drawPlayer(info) {
     HeroSprite.draw(ctx, { vdir: 1, moving: false, face: 1 }); ctx.restore();
     return;
   }
-  const pose = !moving && info && info.working ? heroWorkPose() : null;
+  const pose = !moving && info && (info.working || info.task === 'cook' || info.task === 'gather') ? heroWorkPose(info) : null;
   if (pose && TownNPCs.heroReady(pose.kind)) {                        // a real work pose from the hero's work sheets
     const x = player + pose.dx;
     CityLighting.actorShadow(ctx, x, playerY, depth, clock);
