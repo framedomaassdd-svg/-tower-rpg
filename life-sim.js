@@ -13,7 +13,7 @@
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
   // v93 the bag (bag.js); Node simulations load it with require
   const Bag = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24470, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24198, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
@@ -23,7 +23,7 @@
     compass: { x: PX.compass || 21941, y: 792, name: 'กิลด์นักสำรวจเข็มทิศเงิน' },
     porter: { x: PX.porter || 22646, y: 792, name: 'สมาคมคนแบกของ' },
     tmerchant: { x: PX.tmerchant || 23358, y: 792, name: 'กิลด์พ่อค้าหอคอย' },
-    tower:  { x: PX.tower || 24470, y: 812, name: 'ทางขึ้นหอคอย' },
+    tower:  { x: PX.tower || 24198, y: 812, name: 'ประตูขึ้นหอคอย' },
     slumyard: { x: PX.slumyard || 10014, y: 792, name: 'ลานฝึกตรอก' },
     cargo:  { x: PX.cargo || 14050, y: 792, name: 'ลานเกวียน' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
@@ -696,7 +696,77 @@
 
   // ---- events: choices move the odds, never guarantee the result ----------
   const pct = p => Math.round(clamp(p, 0, 1) * 100) + '%';
+  // v104 the guild masters of ย่านกิลด์ (odds use the stats each guild cares about)
+  const frontOdds = st => clamp(0.25 + 0.05 * (st.strength + st.agility) - (st.health < 50 ? 0.15 : 0), 0.15, 0.9);
+  const shortcutOdds = st => clamp(0.1 + 0.07 * st.intelligence, 0.15, 0.92);
+  const heavyOdds = st => clamp(0.2 + 0.08 * st.strength - (st.energy < 30 ? 0.15 : 0), 0.15, 0.92);
+  const appraiseOdds = st => clamp(0.2 + 0.04 * st.intelligence + 0.04 * Math.min(10, st.rep || 0), 0.15, 0.9);
+  const GUILD_EVENT = { guild: 'iron_short', compass: 'compass_shortcut', porter: 'porter_chest', tmerchant: 'merch_horn' };
   const EVENTS = {
+    iron_short: {
+      title: 'ทีมขาดคน', speaker: 'หัวหน้ากิลด์โล่เหล็ก', portrait: 'ironboss', faces: [3, 0, 1],
+      lines: ['นักธนูของทีมเราโดนพิษแมงมุมที่ชั้นสี่ ต้องนอนพักอีกหลายวัน',
+        'พรุ่งนี้ทีมต้องลงไปเคลียร์ทางให้คนแบกของ ขาดคนแนวหน้าไปหนึ่งคน',
+        'เจ้ายังใหม่อยู่ แต่ข้าเห็นเจ้าซ้อมทุกเช้า... จะลองยืนแถวหน้าไหม'],
+      choices: [
+        { label: 'รับยืนแนวหน้า', odds: st => 'โอกาสรอดแบบไม่เจ็บ ' + pct(frontOdds(st)) + ' (ขึ้นกับกำลัง + คล่องตัว)',
+          resolve(st, r) { if (r() < frontOdds(st)) { st.money += 12; st.rep = (st.rep || 0) + 2; if (Bag) Bag.add(st, 'monster', 1, st.day);
+              return 'คุณกันมอนสเตอร์ไว้ให้ทีมผ่านได้ หัวหน้าตบไหล่ (ได้ 12 เหรียญ ชิ้นส่วนมอนสเตอร์ 1 ชิ้น ชื่อเสียง +2)'; }
+            st.health = Math.max(1, st.health - 18); st.money += 4; return 'โล่แตกตั้งแต่ห้องแรก ทีมต้องลากคุณกลับ (สุขภาพ −18 ได้ค่าเสี่ยงภัย 4 เหรียญ)'; } },
+        { label: 'ขออยู่แนวหลัง คุ้มกันคนแบกของ', odds: () => 'ปลอดภัยกว่า ได้เงินน้อยกว่า',
+          resolve(st) { st.money += 5; st.rep = (st.rep || 0) + 1; return 'คุณเดินคุมท้ายขบวนคนแบกของจนจบวัน (ได้ 5 เหรียญ ชื่อเสียง +1)'; } },
+        { label: 'ขอตัวพักก่อน', odds: () => 'ไม่ได้อะไร หัวหน้าอาจผิดหวังนิดหน่อย',
+          resolve(st) { st.health = Math.min(100, st.health + 5); return 'หัวหน้าพยักหน้าเงียบ ๆ แล้วหันไปถามคนอื่น (สุขภาพ +5)'; } }
+      ]
+    },
+    compass_shortcut: {
+      title: 'ทางลัดบนแผนที่', speaker: 'หัวหน้ากิลด์เข็มทิศเงิน', portrait: 'compassboss', faces: [0, 2, 1],
+      lines: ['มานี่สิ ดูแผนที่ชั้นหกที่ทีมเพิ่งส่งมา',
+        'ตรงนี้ทางเดินหายไปเฉย ๆ แต่ลมจากช่องหินพัดมาจากทางทิศเหนือ',
+        'ถ้าเธอเดาถูกว่ามีทางลัด ทีมจะประหยัดเวลาไปได้ครึ่งวันเลยนะ'],
+      choices: [
+        { label: 'ชี้ทางลัดตามที่คิด', odds: st => 'โอกาสถูก ' + pct(shortcutOdds(st)) + ' (ขึ้นกับปัญญา)',
+          resolve(st, r) { if (r() < shortcutOdds(st)) { st.money += 10; st.rep = (st.rep || 0) + 2; st.intelligence = Math.min(12, st.intelligence + 1);
+              return 'ทีมเจอทางลัดจริง! หัวหน้าจดชื่อคุณไว้มุมแผนที่ (ได้ 10 เหรียญ ปัญญา +1 ชื่อเสียง +2)'; }
+            st.rep = Math.max(0, (st.rep || 0) - 1); return 'ทางนั้นเป็นทางตัน ทีมเสียเวลาไปครึ่งวัน (ชื่อเสียง −1)'; } },
+        { label: 'ขอลอกแผนที่กลับไปศึกษา', odds: () => 'ได้ความรู้แน่นอน แต่เหนื่อย',
+          resolve(st) { st.intelligence = Math.min(12, st.intelligence + 1); st.energy = Math.max(0, st.energy - 15); return 'คุณนั่งลอกแผนที่ใต้ตะเกียงจนดึก (ปัญญา +1 แรง −15)'; } },
+        { label: 'บอกว่ายังไม่แน่ใจ', odds: () => 'ปลอดภัย',
+          resolve(st) { return 'หัวหน้าหัวเราะ "ระวังดีแล้ว นักสำรวจที่รีบมักไม่ได้กลับมา"'; } }
+      ]
+    },
+    porter_chest: {
+      title: 'หีบเหล็กใบใหญ่', speaker: 'หัวหน้าสมาคมคนแบกของ', portrait: 'porterboss', faces: [0, 3, 1],
+      lines: ['ปี๊ด! เฮ้ เจ้าคนใหม่ มานี่หน่อย',
+        'ทีมโล่เหล็กเจอหีบเหล็กที่ชั้นสาม หนักจนคนแบกสองคนยังบ่น',
+        'ใครแบกขึ้นมาถึงประตูได้ ข้าจ่ายสองเท่า'],
+      choices: [
+        { label: 'แบกคนเดียว รับสองเท่า', odds: st => 'โอกาสแบกไหว ' + pct(heavyOdds(st)) + ' (ขึ้นกับกำลัง)',
+          resolve(st, r) { if (r() < heavyOdds(st)) { st.money += 12; st.rep = (st.rep || 0) + 1; if (st.strength < 12 && r() < 0.5) st.strength++;
+              return 'คุณแบกหีบขึ้นบันไดหอคอยได้ทีละขั้นจนถึงประตู คนแบกของทั้งสมาคมปรบมือ (ได้ 12 เหรียญ ชื่อเสียง +1)'; }
+            st.health = Math.max(1, st.health - 12); return 'หีบลื่นหลุดมือทับเท้า (สุขภาพ −12)'; } },
+        { label: 'ชวนเพื่อนคนแบกช่วยกัน', odds: () => 'แบ่งเงินกัน แต่ได้แน่',
+          resolve(st) { st.money += 5; st.rep = (st.rep || 0) + 1; st.life.porterFriend = true; return 'สองคนช่วยกันหามหีบขึ้นมาได้ เพื่อนใหม่ชวนไปกินข้าวด้วยกัน (ได้ 5 เหรียญ ชื่อเสียง +1)'; } },
+        { label: 'ปฏิเสธ หลังจะพังแล้ว', odds: () => 'ปลอดภัย',
+          resolve(st) { st.energy = Math.min(100, st.energy + 10); return 'หัวหน้าเป่านกหวีดเรียกคนอื่นแทน คุณได้พักหลัง (แรง +10)'; } }
+      ]
+    },
+    merch_horn: {
+      title: 'เขาสัตว์ปริศนา', speaker: 'หัวหน้ากิลด์พ่อค้าหอคอย', portrait: 'merchboss', faces: [0, 2, 1],
+      lines: ['ทีมสำรวจเอาเขาสัตว์อันนี้มาขาย ฉันไม่เคยเห็นมาก่อนเลย',
+        'ถ้ามันเป็นเขามังกรน้อย ราคาจะสูงกว่าบ้านหลังหนึ่ง ถ้าไม่ใช่ ก็แค่เขาแพะภูเขา',
+        'เธอว่าเราควรให้ราคาเท่าไหร่ดี'],
+      choices: [
+        { label: 'ตีราคาสูง กล้าเสี่ยง', odds: st => 'โอกาสตีถูก ' + pct(appraiseOdds(st)) + ' (ขึ้นกับปัญญา + ชื่อเสียง)',
+          resolve(st, r) { if (r() < appraiseOdds(st)) { st.money += 15; st.rep = (st.rep || 0) + 2; return 'เป็นเขามังกรน้อยจริง ๆ! หัวหน้าแบ่งกำไรให้ (ได้ 15 เหรียญ ชื่อเสียง +2)'; }
+            st.rep = Math.max(0, (st.rep || 0) - 2); st.money = Math.max(0, st.money - 3); return 'เป็นแค่เขาแพะ กิลด์ขาดทุน คุณโดนหักค่าแรง (เงิน −3 ชื่อเสียง −2)'; } },
+        { label: 'ขายชิ้นส่วนมอนสเตอร์ของตัวเองให้', available: st => !!Bag && Bag.count(st, 'monster') > 0,
+          odds: st => 'รับซื้อชิ้นละ 8 เหรียญ (มี ' + (Bag ? Bag.count(st, 'monster') : 0) + ' ชิ้น)',
+          resolve(st) { const n = Bag.count(st, 'monster'); Bag.take(st, 'monster', n); st.money += 8 * n; return 'หัวหน้ารับซื้อชิ้นส่วนมอนสเตอร์ทั้งหมด ' + n + ' ชิ้น (ได้ ' + 8 * n + ' เหรียญ)'; } },
+        { label: 'ตีราคากลาง ๆ ไว้ก่อน', odds: () => 'ปลอดภัย',
+          resolve(st) { st.rep = (st.rep || 0) + 1; return 'หัวหน้าพยักหน้า "รอบคอบดี" (ชื่อเสียง +1)'; } }
+      ]
+    },
     first_night: {
       title: 'คืนแรกในต่างโลก', speaker: 'ธนา', portrait: 'worker', faces: [0, 1, 3],
       lines: ['เธอเองก็ถูกอัญเชิญมาเหมือนกันสินะ ดูจากเสื้อผ้าแปลก ๆ นั่นก็รู้แล้ว',
@@ -835,6 +905,9 @@
       const yard = ['foreman_rush', 'caravan_offer'].filter(k => !L.seen.includes(k) || k === 'foreman_rush');
       if (yard.length && r() < 0.45) return yard[Math.floor(r() * yard.length) % yard.length];
     }
+    // v104 a guild master stops you after a day's work (first time likely, then now and then)
+    const gev = GUILD_EVENT[L.path];
+    if (gev && L.workedDay === st.day && st.day - L.lastEventDay >= 2 && (L.path !== 'guild' || st.guild) && r() < (L.seen.includes(gev) ? 0.2 : 0.6)) return gev;
     if (!slumToday(st)) return null;
     if (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup' && !L.seen.includes('soup_granny')) return 'soup_granny';
     if (st.day - L.lastEventDay < 2) return null;

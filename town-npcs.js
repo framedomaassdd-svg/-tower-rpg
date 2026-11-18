@@ -284,11 +284,11 @@
 
   // v103 ย่านกิลด์ (zone 'guild'): each guild's people live in their hall. In the morning the parties gather out front,
   // walk east past the halls and up into the tower (off the east end), and come back down in the late afternoon.
-  const G = { iron: 21258, compass: 21941, porter: 22646, merch: 23358, tower: 24480 };
+  const G = { iron: 21258, compass: 21941, porter: 22646, merch: 23358, tower: 24198 };
   const party = (id, name, sheet, hall, h, speed, gather, loop, out, back, y) => ({ id, name, sheet, height: HERO * h, speed, stops: [
     { x: hall, y: DOOR, until: H(gather[0]), hidden: true },
     { x: gather[1], y, until: H(out), loop, face: 1 },
-    { x: G.tower, y: y + 4, until: H(back), hidden: true },                  // in the tower
+    { x: G.tower + (y - 840) * 2, y: 662, until: H(back), hidden: true },    // up the gate's stairs and into the tower
     { x: gather[1] + 40, y, until: H(back + 2.2), loop: 'idle', face: -1 },    // back out front, telling the day's story
     { x: hall, y: DOOR, until: 20, hidden: true }] });
   const GUILD = [

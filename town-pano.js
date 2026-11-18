@@ -6,8 +6,8 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=103';
-  const WORLD_W = 24400, BASE = 794;
+  const V = '?v=104';
+  const WORLD_W = 24700, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
   // v103: ย่านกิลด์ (guild) is a fifth scene, up the steps under the tower arch
@@ -58,6 +58,7 @@
     { id: 'gcompass', x: 21620, y: 354, w: 642, h: 440 },          // กิลด์นักสำรวจเข็มทิศเงิน
     { id: 'gporter', x: 22330, y: 369, w: 632, h: 425 },           // สมาคมคนแบกของ
     { id: 'gmerch', x: 23040, y: 349, w: 636, h: 445 },            // กิลด์พ่อค้าหอคอย
+    { id: 'gtower', x: 23740, y: 174, w: 917, h: 620 },            // v104 ประตูขึ้นหอคอย: the parties climb its stairs into the tower
     // v95 coach stops (รถม้าโดยสาร): x = centre - 167; life-sim COACH lists the same centres (drawn last: in front)
     { id: 'stop0', img: 'coachstop', zone: 'town', x: -47, y: 578, w: 335, h: 216 },
     { id: 'stop1', img: 'coachstop', zone: 'town', x: 1173, y: 578, w: 335, h: 216 },
@@ -87,7 +88,7 @@
     campFire: 11715, officeDoor: 12545, stableDoor: 13283, dock: 14202, outerGate: 15046,
     marketGate: 15986, produce: 16733, spice: 17274, fountain: 17876, cloth: 18484, foodStall: 19029,
     shrine: 11000, shack: 19666,
-    guildLane: 20472, ironDoor: 21258, compassDoor: 21941, porterDoor: 22646, merchDoor: 23358, towerPath: 24470
+    guildLane: 20472, ironDoor: 21258, compassDoor: 21941, porterDoor: 22646, merchDoor: 23358, towerPath: 24198
   });
   const GATE = [240, 420];                                   // the lane up through the city gate
   const ARCH = [2665, 2905];                                 // the steps up toward the tower
@@ -114,7 +115,7 @@
     [3975, 'ตลาดขนมปัง'], [4415, 'สวนริมทาง'], [4975, 'โรงตีเหล็ก'], [5395, 'ร้านยา'], [6305, 'โรงแรม'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
     [8768, 'ลานซักผ้า'], [9395, 'ร้านรับซื้อของเก่า'], [9888, 'ตรอกล่าง'], [10525, 'ลานของเก่า'], [11300, 'ท้ายตรอก'], [12220, 'ค่ายคาราวาน'], [12975, 'ซุ้มหัวหน้าคนงาน'], [13850, 'คอกสัตว์'], [14700, 'โกดังสินค้า'], [15450, 'ประตูเมืองฝั่งนอก'],
     [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [19300, 'ร้านอาหารริมทาง'], [20000, 'กองขยะท้ายตลาด'],
-    [20950, 'ซุ้มประตูย่านกิลด์'], [21600, 'กิลด์นักรบโล่เหล็ก'], [22320, 'กิลด์นักสำรวจเข็มทิศเงิน'], [23030, 'สมาคมคนแบกของ'], [23700, 'กิลด์พ่อค้าหอคอย'], [Infinity, 'ทางขึ้นหอคอย']
+    [20950, 'ซุ้มประตูย่านกิลด์'], [21600, 'กิลด์นักรบโล่เหล็ก'], [22320, 'กิลด์นักสำรวจเข็มทิศเงิน'], [23030, 'สมาคมคนแบกของ'], [23700, 'กิลด์พ่อค้าหอคอย'], [Infinity, 'ประตูขึ้นหอคอย']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
