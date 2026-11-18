@@ -15,6 +15,8 @@
   const Bag = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
   // v108 skills / titles / equipment / combat (skills.js)
   const Skills = (typeof globalThis !== 'undefined' && globalThis.Skills) || (typeof require === 'function' ? require('./skills.js') : null);
+  // v109 expeditions into the tower (expedition.js)
+  const Exp = (typeof globalThis !== 'undefined' && globalThis.Expedition) || (typeof require === 'function' ? require('./expedition.js') : null);
   const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24198, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
@@ -285,14 +287,33 @@
     if (L.path === 'gchef') path = Object.assign({}, path, { place: G.place, room: gscene(G.key, 'kitchen'), act: 'ทำอาหารในครัว' + G.name });
     const work = path.place;
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
-    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : placeKey(place) ? 'นอนในห้องพัก' + GUILD_NAME[placeKey(place)] : 'นอนบนม้านั่งในสวน';
-    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' }
+    const asleep = place => place === 'tower' ? 'พักแรมในหอคอย' : place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : placeKey(place) ? 'นอนในห้องพัก' + GUILD_NAME[placeKey(place)] : 'นอนบนม้านั่งในสวน';
+    const inBed = (place, room) => place === 'tower' ? { hidden: true, sleep: true, tower: true } : place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' }
       : SHELTER[place] ? { lie: true, shelter: place } : placeKey(place) ? { hidden: true, sleep: true, room: gscene(placeKey(place), 'bed') } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
       return segs;
     }
+    // v109 on an expedition: whole days inside the tower (encounters at fixed times, a night at camp); on the last day
+    // one morning encounter, then out through the gate and back to an ordinary evening in town
+    const XP = Exp && Exp.X(st), inTower = XP && !XP.over && st.day >= XP.start;
+    const leaving = inTower && XP.endDay === st.day && st.day !== XP.start;
+    if (inTower && !leaving) {
+      let t0 = WAKE;
+      if (st.day === XP.start) t0 = end(route(WAKE, start, 'tower', 'เดินไปประตูหอคอย พร้อมออกสำรวจ').map(x => (segs.push(x), x))).t1;
+      const ms = Exp.SLOTS_OF_DAY.filter(([, t]) => t >= t0 + 0.15).map(([k, t]) => [k, t]);
+      if (st.day === XP.start) ms.unshift(['xstart', t0]);
+      segs.push(stay(t0, Exp.CAMP_SLEEP, 'tower', 'สำรวจหอคอย ชั้น ' + XP.floor + ' ' + Exp.terrainOf(XP.floor).name, { hidden: true, tower: true, milestones: ms }));
+      segs.push(stay(Exp.CAMP_SLEEP, 20, 'tower', 'พักแรมในหอคอย', { hidden: true, sleep: true, tower: true }));
+      for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
+      return segs;
+    }
+    let from, free;
+    if (leaving) {
+      const out = stay(WAKE, WAKE + 2.5, 'tower', 'เก็บค่ายเตรียมออกจากหอคอย', { hidden: true, tower: true, milestones: [['x1', WAKE + 0.5], ['xback', WAKE + 2.45]] });
+      segs.push(out); from = 'tower'; free = out.t1;
+    } else {
     // v105 tower days start at the guild's quest board: take today's job, then up to the tower with the party
     let w0 = { t1: WAKE }, wfrom = start;
     if (TOWER_PATH[L.path] && G && G.member && work === 'tower') {
@@ -306,7 +327,8 @@
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
       { milestone: 'work', room: path.room || null, hidden: !!(path.room || path.inside), working: true });
     segs.push(atWork);
-    let from = work, free = atWork.t1;
+    from = work; free = atWork.t1;
+    }
     // v105 called to the guild master's office (decided at wake)
     if (G && L.talk && L.talk.day === st.day && EVENTS[L.talk.ev]) {
       const go = end(route(free, from, G.place, 'หัวหน้ากิลด์เรียกพบ').map(x => (segs.push(x), x)));
@@ -378,7 +400,7 @@
     return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
       zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
-      task: s.task || null, ride: s.ride || null, room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating };
+      task: s.task || null, ride: s.ride || null, room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating, tower: !!s.tower };
   }
 
   // ---- daily effects ----------------------------------------------------
@@ -392,6 +414,14 @@
     const L = st.life, o = originOf(st);
     if (L.chefNext) { L.chefAt = L.chefNext; L.chefNext = null; }
     if (Skills) Skills.recalc(st);
+    // v109 expedition: overdue → close it; waking in the tower → camp rest, nothing else planned for the day
+    const XP = Exp && Exp.X(st);
+    if (XP && !XP.over && XP.endDay && st.day > XP.endDay) say(st, Exp.close(st));
+    if (Exp && Exp.active(st) && st.day > XP.start) {
+      st.energy = Math.max(st.energy, 70); L.todayStars = null; L.errand = { day: st.day, kind: null }; L.talk = null;
+      L.rideDay = { day: st.day, ride: null, coach: false }; L.dayStart = { day: st.day, place: 'tower', room: null }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
+      return say(st, XP.endDay === st.day ? 'เช้าวันสุดท้ายในหอคอย เก็บค่ายเตรียมกลับ' : 'ตื่นที่ค่ายในหอคอย ชั้น ' + XP.floor);
+    }
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
     if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt] || placeKey(L.sleptAt)) {
       const room = ROOMS[L.roomSlept] || ROOMS.mid;
@@ -1056,7 +1086,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { Exp, Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

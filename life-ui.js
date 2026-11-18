@@ -77,6 +77,10 @@
   .lg-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff1c;font-size:12px;line-height:1.25;text-align:center}
   .lg-slot b{position:absolute;right:6px;top:4px;min-width:20px;padding:0 5px;border-radius:99px;background:#e0a84a;color:#2a1a0c;font-size:12px}
   .lg-slot .x{color:#ff9a7a} .lg-slot .d{color:var(--lg-muted);font-size:11px}
+  .lg-reels{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
+  .lg-reel{width:74px;height:82px;border-radius:14px;background:linear-gradient(#120b07,#2a1c12 50%,#120b07);border:2px solid var(--lg-line);font-size:46px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 14px #000c}
+  .lg-reel.stop{border-color:#ffd76a;box-shadow:inset 0 0 14px #000c,0 0 12px #ffd76a66}
+  .lg-res{margin:6px 0;padding:0;list-style:none} .lg-res li{margin:3px 0}
   .lg-bigstars{font-size:44px;color:#ffd76a;letter-spacing:4px} .lg-sword{display:block;width:88%;margin:4px auto 2px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
   `;
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl);
@@ -341,6 +345,7 @@
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
+      ${expHtml()}
       ${guildHtml()}
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
@@ -350,6 +355,84 @@
       <button class="lg-btn" data-a="new">เริ่มชีวิตใหม่<small>สุ่มตัวตนใหม่ ความคืบหน้าเดิมจะหายไป</small></button>`;
   }
   // v105 the guild: quest board (tower paths), which kitchen the guild chef works in
+  // ---------- v109 expeditions into the tower ----------
+  const X = () => window.Expedition;
+  function expHtml() {
+    const L = state.life, x = L.exp, E = X(); if (!E) return '';
+    if (x && !x.over && state.day >= x.start) {
+      const T = E.terrainOf(x.floor);
+      return `<h3>กำลังสำรวจหอคอย</h3><p>ชั้น ${x.floor} · ${esc(T.name)} · วันที่ ${state.day - x.start + 1}${x.endDay ? ' · ออกจากหอคอยวันที่ ' + x.endDay : ' · จนกว่าเสบียงจะหมด'}${x.party ? ' · ไปกับ' + esc(E.PARTY[x.party].name) : ' · ไปคนเดียว'}</p>
+        <p class="lg-muted">ของกิน ${B().meals(state)} มื้อ · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · ชนะ ${x.wins} ครั้ง</p>
+        <div class="lg-log">${esc(x.log.slice(0, 5).map(e => 'วันที่ ' + e.day + ' · ' + e.title + ': ' + e.lines.join(' / ')).join('\n'))}</div>
+        ${x.endDay === state.day + 1 || x.endDay === state.day ? '' : '<button class="lg-btn" data-a="xback">ถอนตัวกลับเมือง<small>ออกจากหอคอยพรุ่งนี้เช้า</small></button>'}`;
+    }
+    if (x && !x.over) return `<h3>หอคอย</h3><p>จะออกสำรวจเช้าวันที่ ${x.start} · ${x.days ? x.days + ' คืน' : 'จนกว่าเสบียงจะหมด'}${x.party ? ' · ไปกับ' + esc(E.PARTY[x.party].name) : ' · ไปคนเดียว'}</p>
+      <button class="lg-btn" data-a="xcancel">ยกเลิกการออกสำรวจ</button>`;
+    return `<h3>หอคอย</h3><button class="lg-btn lg-primary" data-a="xprep">เตรียมออกสำรวจหอคอย<small style="color:#2a1a0c">หลายวัน · เจอเหตุการณ์ เลือกทาง แล้วหมุนสล็อต · เวลาในเมืองเดินต่อ</small></button>`;
+  }
+  const PREP_SHOP = [['jerky', 5, 'เก็บได้ 10 วัน'], ['bread', 3, 'เก็บได้ 3 วัน'], ['potion', 7, 'ดื่มเองเมื่อสุขภาพต่ำ']];
+  function prepCard(sel) {
+    const E = X(), L = state.life; sel = sel || { days: 5, party: null };
+    const path = L.path, G = LifeSim.guildOf(state), guildOK = G && G.member && E.PARTY[path];
+    const parties = [[null, 'ไปคนเดียว', 'ไม่มีใครช่วยถ้าพลาด อาจตายได้จริง']]
+      .concat(guildOK ? [[path, 'ไปกับ' + E.PARTY[path].name, 'พลังทีม +' + E.PARTY[path].power + ' · แพ้หนักแล้วทีมช่วยไว้ (เสียเงิน อุปกรณ์ ครึ่งหนึ่ง)']] : [])
+      .concat([['guard', 'จ้างนักรบคุ้มกัน', E.GUARD_FEE + ' เหรียญ/วัน · พลัง +' + E.PARTY.guard.power + ' · ช่วยชีวิตได้' + (sel.days ? ' · รวม ' + E.GUARD_FEE * sel.days + ' เหรียญ' : ' (ต้องกำหนดจำนวนวัน)')]]);
+    const meals = B().meals(state), need = sel.days || 0;
+    const d = el(`<div class="lg-card"><h2>เตรียมออกสำรวจหอคอย</h2>
+      <p class="lg-muted">ออกเดินทางเช้าพรุ่งนี้ที่ประตูขึ้นหอคอย ทุกคืนในหอคอยกินของ 1 มื้อจากกระเป๋า ถ้าของกินหมด หรือบาดเจ็บหนัก จะกลับเมืองเอง</p>
+      <h3>กี่คืน</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0 6px">${[3, 5, 10, 0].map(n => `<button class="lg-btn ${sel.days === n ? 'lg-cur' : ''}" data-days="${n}" style="text-align:center">${n || 'ไม่กำหนด'}</button>`).join('')}</div>
+      <h3>ไปกับใคร</h3>${parties.map(([id, n, dsc]) => `<button class="lg-btn ${sel.party === id ? 'lg-cur' : ''}" data-party="${id || ''}" ${id === 'guard' && !sel.days ? 'disabled' : ''}>${esc(n)}<small>${esc(dsc)}</small></button>`).join('')}
+      <h3>เสบียง</h3><p>ของกิน ${meals} มื้อ${need && meals < need ? ' <b style="color:#ff9a7a">ไม่พอ ' + need + ' คืน</b>' : ''} · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · กระเป๋า ${B().total(state)}/${B().CAP} · เงิน ${state.money}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 6px">${PREP_SHOP.map(([id, p, n]) => `<button class="lg-btn" data-buy="${id}" ${state.money < p || B().total(state) >= B().CAP ? 'disabled' : ''}>${iconHtml(id, 24)} ${esc(B().name(id))}<small>${p} เหรียญ · ${n}</small></button>`).join('')}</div>
+      <p class="lg-muted">ซื้อจากแผงเสบียงหน้าประตูหอคอย (แพงกว่าในตลาดนิดหน่อย) · ฝากของที่ไม่ใช้ไว้ในหีบกิลด์ จะได้มีที่ใส่ของที่หาได้</p>
+      <button class="lg-btn lg-primary" data-go="1">ออกเดินทางพรุ่งนี้เช้า</button><button class="lg-btn" data-go="">ยังก่อน</button></div>`);
+    block(d);
+    const redo = () => { d.remove(); block(null); prepCard(sel); };
+    d.querySelectorAll('[data-days]').forEach(b => b.onclick = () => { sel.days = +b.dataset.days; if (!sel.days && sel.party === 'guard') sel.party = null; redo(); });
+    d.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { sel.party = b.dataset.party || null; redo(); });
+    d.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const [id, p] = PREP_SHOP.find(q => q[0] === b.dataset.buy);
+      if (state.money >= p && B().add(state, id, 1, state.day)) state.money -= p; save(); redo(); });
+    d.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
+      if (b.dataset.go) { const r = E.plan(state, { days: sel.days, party: sel.party }); if (!r.ok) { alert(r.why); return; }
+        log('เตรียมออกสำรวจหอคอยเช้าวันที่ ' + r.start + (sel.party ? ' กับ' + E.PARTY[sel.party].name : ' คนเดียว')); save(); }
+      d.remove(); block(null); panel('char'); });
+  }
+  // an encounter in the tower: choose → spin the three reels → see what happened
+  function encounterCard(enc) {
+    const E = X(), Eng = window.TowerSlotEngine;
+    const d = el(`<div class="lg-card"><canvas></canvas><div><div class="who">${esc(enc.title)}</div><p class="line">${esc(enc.text)}</p></div><div class="lg-actions"></div></div>`, 'lg-event');
+    block(d);
+    const cv = d.querySelector('canvas'), actions = d.querySelector('.lg-actions'), line = d.querySelector('.line');
+    drawFace(cv, 'hero', enc.scene === 'combat' ? 2 : 0);
+    actions.innerHTML = '<p class="lg-muted" style="margin:0">เลือกแล้วจะหมุนสล็อตสามวง ตัวเลือกเปลี่ยนโอกาสที่สัญลักษณ์แต่ละแบบจะออก</p>' + E.choiceView(enc).map(c => `<button class="lg-btn" data-i="${c.index}">${esc(c.label)}<small>${esc(c.hint)}</small></button>`).join('');
+    actions.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+      const kind = enc.scene === 'combat' ? 'combat' : 'event', cat = Eng.SYMBOLS[kind];
+      const pool = Object.values(cat).filter(s => s.emoji).map(s => s.emoji);
+      line.textContent = enc.choices[+b.dataset.i].label;
+      actions.innerHTML = `<div class="lg-reels">${[0, 1, 2].map(() => '<div class="lg-reel">❔</div>').join('')}</div><button class="lg-btn lg-primary" data-spin="1">หมุน!</button>`;
+      const spin = () => {
+        const had = holding(), res = E.resolve(state, enc, +b.dataset.i), got = diff(had, holding()); snap = holding(); snapOf = state; save();
+        const reels = actions.querySelectorAll('.lg-reel'); actions.querySelector('[data-spin]').remove();
+        const t = setInterval(() => reels.forEach(r => { if (!r.classList.contains('stop')) r.textContent = pool[Math.floor(Math.random() * pool.length)]; }), 70);
+        res.reels.forEach((id, i) => setTimeout(() => { reels[i].classList.add('stop'); reels[i].textContent = cat[id].emoji || '・'; }, 700 + i * 450));
+        setTimeout(() => {
+          clearInterval(t);
+          const fight = res.fight ? `<p class="lg-muted">พลังฝ่ายเรา ${res.fight.power} · ${esc(enc.monster.name)} ${res.fight.monster} · โอกาสชนะหลังสล็อต ${res.fight.p}%</p>` : '';
+          actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
+            ${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">${res.dead ? '...' : 'ตกลง'}</button>`);
+          for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
+          actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else closeOverlay(d); };
+        }, 700 + 3 * 450 + 200);
+      };
+      actions.querySelector('[data-spin]').onclick = spin;
+    });
+  }
+  function deathCard() {
+    const D = state.life.dead || {};
+    const d = el(`<div class="lg-card" style="text-align:center"><h2>เสียชีวิตในหอคอย</h2><p>ชั้น ${D.floor || '?'} · วันที่ ${D.day || state.day} · ${esc(D.cause || '')}</p>
+      <p class="lg-muted">ไม่มีเพื่อนร่วมทีมอยู่ช่วย การผจญภัยของตัวละครนี้จบลงแล้ว</p><button class="lg-btn lg-primary">เริ่มชีวิตใหม่</button></div>`);
+    block(d); d.querySelector('button').onclick = () => { d.remove(); block(null); newLife(); };
+  }
   function guildHtml() {
     const L = state.life, G = LifeSim.guildOf(state); if (!G) return '';
     let h = `<h3>${esc(G.name)}</h3><p class="lg-muted">${G.member ? 'สมาชิก: กินข้าวเย็นที่โรงอาหารกิลด์ ' + (L.path === 'gchef' ? 'ฟรี' : LifeSim.GUILD_MEAL + ' เหรียญ') + ' · เลือก "ห้องพักกิลด์" ในที่พักได้ · ฝากของในหีบกิลด์ได้ (แท็บกระเป๋า)' : 'ยังไม่ได้เป็นสมาชิก สิทธิ์โรงอาหาร ห้องพัก และหีบฝากของจะได้หลังสอบผ่าน'}</p>`;
@@ -445,6 +528,9 @@
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
     d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); again(); });
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
+    on('[data-a=xprep]', () => { d.remove(); block(null); prepCard(); });
+    on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
+    on('[data-a=xback]', () => { X().turnBack(state, 'ถอนตัวกลับเอง'); log('ตัดสินใจกลับเมือง ออกจากหอคอยพรุ่งนี้เช้า'); again(); });
     d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
     d.querySelectorAll('[data-title]').forEach(x => x.onclick = () => { Skills.wearTitle(state, x.dataset.title); log('ใช้ฉายา "' + Skills.TITLES[x.dataset.title].name + '"'); again(); });
     d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip, slot = B().ITEMS[id].equip;
@@ -513,6 +599,8 @@
   // ---------- per-frame driver ----------
   function process() {
     const L = state.life;
+    if (L.dead) { deathCard(); return; }
+    if (L.exp && L.exp.pending) { encounterCard(L.exp.pending); return; }
     if (L.pendingEvent && LifeSim.EVENTS[L.pendingEvent]) { event(L.pendingEvent); return; }
     for (const k of LifeSim.due(state, clock)) {
       if (k === 'work' && L.path === 'smith') { smith(); return; }
@@ -527,6 +615,12 @@
       else if (k === 'errand' || k === 'errand2') LifeSim.applyErrand(state, k);
       else if (k === 'cook') LifeSim.applyOrder(state, 'cook');
       else if (k.startsWith('coach')) LifeSim.applyCoach(state);
+      else if (k === 'xstart') log('เข้าหอคอย เริ่มออกสำรวจ');
+      else if (k === 'xback') log(X().close(state));
+      else if (/^x[123]$/.test(k) || k === 'xcamp') {
+        if (k === 'xcamp') log(X().camp(state));
+        const e = X().encounter(state, k); if (e) { L.exp.pending = e; save(); encounterCard(e); return; }
+      }
       update();
     }
   }
