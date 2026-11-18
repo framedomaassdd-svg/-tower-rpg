@@ -54,8 +54,10 @@ function nextDay() {
 // ---- street actors (townsfolk sheets in town-npcs.js; the old guard patrol is retired until it has art in the new style)
 function drawNpc(n) {
   const depth = CityCore.depthScale(n.x, n.y);
-  CityLighting.actorShadow(ctx, n.x, n.y, depth * .8 * n.height / 124, clock);
+  if (n.alpha !== undefined && n.alpha < 1) ctx.globalAlpha = n.alpha;
+  CityLighting.actorShadow(ctx, n.x, n.y, depth * .8 * (n.worldH || n.height) / 124, clock);
   TownNPCs.draw(ctx, n, performance.now() / 1000, depth);
+  ctx.globalAlpha = 1;
 }
 // What the hero does at a street workplace. Indoor jobs (inn laundry, kitchen) are drawn by interiors.js.
 const HERO_VISIBLE = HeroSprite.HEIGHT * 648 / 680;                  // standing height without the cell's padding

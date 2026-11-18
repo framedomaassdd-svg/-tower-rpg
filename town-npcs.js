@@ -27,7 +27,9 @@
     garbage: { ...B, src: 347 }, shopper: { ...B, src: 347 }, pilgrim: { ...B, src: 347 },
     // v95 rides: src = the whole rider + mount (or coach) in sheet px
     heroHorse: { cw: 480, ch: 320, base: 310, src: 296 }, heroBike: { cw: 480, ch: 320, base: 310, src: 296 },
-    heroScooter: { cw: 480, ch: 320, base: 310, src: 296 }, coach: { cw: 480, ch: 320, base: 310, src: 265 }
+    heroScooter: { cw: 480, ch: 320, base: 310, src: 296 }, coach: { cw: 480, ch: 320, base: 310, src: 265 },
+    // v98 animals: src 1, so a critter's `height` is the scale of its sheet (see CRITTERS)
+    cats: { ...B, src: 1 }, dogs: { ...B, src: 1 }, rats: { ...B, src: 1 }, gbirds: { ...B, src: 1 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -38,7 +40,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=95'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=98'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -355,16 +357,100 @@
     });
   }
 
+  // ---- v98 critters: cats, dogs, rats, mice, sparrows, crows, a hen with chicks ----------------------------
+  // Each wanders inside its range in hops: walk to a new spot, then idle there (pose picked per hop), all a pure
+  // function of the clock. Birds and rats bolt (fade away) when someone walks right up to them.
+  // k = sheet scale; walk: [row]; idle: [[row, col], ...]; loop: idle frames that animate (pecking); day/night: hours.
+  const CAT = 0.16, DOG = 0.2, RAT = 0.1;
+  const CRITTERS = [
+    // town
+    { id: 'tabby', name: 'แมวลายเทา', sheet: 'cats', k: CAT, zone: 'town', range: [3500, 4350], y: 812, speed: 420, hop: 0.9,
+      walk: 0, idle: [[1, 0], [1, 1], [1, 3], [1, 0]], night: { range: [5260, 5300], idle: [[1, 2]] } },
+    { id: 'sparrows', name: 'นกกระจอก', sheet: 'gbirds', k: 0.075, zone: 'town', range: [3560, 3780], y: 852, speed: 260, hop: 0.35,
+      walk: 0, loop: [[0, 2], [0, 3]], flock: 3, shy: true, day: [6, 19] },
+    { id: 'crowT', name: 'อีกา', sheet: 'gbirds', k: 0.11, zone: 'town', range: [2440, 2600], y: 848, speed: 200, hop: 0.6,
+      walk: 1, loop: [[1, 2], [1, 3], [1, 0]], shy: true, day: [6, 18] },
+    // ตรอกล่าง
+    { id: 'stray', name: 'หมาจร', sheet: 'dogs', k: DOG, zone: 'slum', range: [7000, 9600], y: 846, speed: 700, hop: 1.1,
+      walk: 0, idle: [[1, 0], [1, 1], [1, 3], [1, 2]], night: { range: [8000, 8040], idle: [[1, 2]] } },
+    { id: 'blackcat', name: 'แมวดำ', sheet: 'cats', k: CAT, zone: 'slum', range: [8900, 9400], y: 816, speed: 380, hop: 1.0,
+      walk: 0, tint: 'black', idle: [[2, 0], [2, 1], [2, 2], [2, 3]] },
+    { id: 'ratS', name: 'หนู', sheet: 'rats', k: RAT, zone: 'slum', range: [9750, 10500], y: 830, speed: 1100, hop: 0.3,
+      walk: 0, idle: [[1, 0], [1, 1], [1, 2]], flock: 2, shy: true, nightFlock: 4 },
+    { id: 'mouseS', name: 'หนูหริ่ง', sheet: 'rats', k: RAT, zone: 'slum', range: [7600, 8100], y: 824, speed: 1000, hop: 0.25,
+      walk: 2, idle: [[2, 1]], shy: true, day: [19, 6] },
+    // ตลาดใหญ่
+    { id: 'fishcat', name: 'แมวรอเศษปลา', sheet: 'cats', k: CAT, zone: 'market', range: [16860, 16960], y: 830, speed: 300, hop: 1.4,
+      walk: 0, idle: [[1, 0], [1, 1], [1, 0], [1, 3]], night: { range: [19500, 19520], idle: [[1, 2]] } },
+    { id: 'ratM', name: 'หนู', sheet: 'rats', k: RAT, zone: 'market', range: [19330, 19820], y: 806, speed: 1100, hop: 0.3,
+      walk: 0, idle: [[1, 0], [1, 1], [1, 3]], flock: 2, shy: true, nightFlock: 3 },
+    { id: 'crowM', name: 'อีกา', sheet: 'gbirds', k: 0.11, zone: 'market', range: [18700, 19200], y: 850, speed: 200, hop: 0.6,
+      walk: 1, loop: [[1, 2], [1, 3], [1, 0]], flock: 2, shy: true, day: [6, 18.5] },
+    { id: 'sparrowM', name: 'นกกระจอก', sheet: 'gbirds', k: 0.075, zone: 'market', range: [17600, 17950], y: 852, speed: 260, hop: 0.35,
+      walk: 0, loop: [[0, 2], [0, 3]], flock: 4, shy: true, day: [6, 18.5] },
+    // ลานเกวียน
+    { id: 'guarddog', name: 'หมาเฝ้าคอก', sheet: 'dogs', k: DOG, zone: 'carts', range: [12950, 13650], y: 840, speed: 600, hop: 1.2,
+      walk: 2, idle: [[2, 1]], night: { range: [13300, 13320], idle: [[2, 1]] } },
+    { id: 'hen', name: 'แม่ไก่กับลูก', sheet: 'gbirds', k: 0.14, zone: 'carts', range: [13950, 14450], y: 846, speed: 160, hop: 0.7,
+      walk: 2, loop: [[2, 2], [2, 3], [2, 0], [2, 2]], day: [5.5, 18.5] },
+    { id: 'crowF', name: 'อีกา', sheet: 'gbirds', k: 0.11, zone: 'carts', range: [10900, 11600], y: 850, speed: 200, hop: 0.6,
+      walk: 1, loop: [[1, 2], [1, 3], [1, 0]], flock: 3, shy: true, day: [6, 18] }
+  ];
+  const ROWH = { cats: 288, dogs: 280, rats: 170, gbirds: 220 };   // walk-row height in sheet px (for shadows)
+  const hash = (a, b) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
+  const idNum = s => [...s].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 7) % 9973;
+  const inHours = (h, [a, b]) => a <= b ? h >= a && h < b : h >= a || h < b;
+  function critterAt(c, j, clock, movers) {
+    const hour = clock * 1.2, isNight = hour < 6 || hour >= 20;
+    const id = c.id + (j ? '_' + j : ''), base = { id, name: c.name, sheet: c.sheet, height: c.k, worldH: ROWH[c.sheet] * c.k, zone: c.zone, visible: false, x: c.range[0], y: c.y };
+    if (c.day && !inHours(hour, c.day)) return base;
+    const mode = isNight && c.night ? c.night : c, range = mode.range, idle = mode.idle || c.idle, seed = idNum(id);
+    const hop = c.hop * (0.8 + 0.4 * hash(seed, 1)), seg = Math.floor(clock / hop), t = clock - seg * hop;
+    const at = s => range[0] + (range[1] - range[0]) * hash(seed, s);
+    const a = at(seg - 1), b = at(seg), travel = Math.abs(b - a) / c.speed;
+    const y = c.y + (j % 3) * 7 - (hash(seed, 2) * 6);
+    let x, moving = false, face = b >= a ? 1 : -1, frame;
+    if (t < travel && travel > 0) {
+      moving = true; x = a + (b - a) * (t / travel);
+      frame = [c.walk, Math.floor(Math.abs(x) / (ROWH[c.sheet] * c.k * 0.32)) % 4];
+    } else {
+      x = b;
+      if (c.loop) frame = { loop: c.loop, rate: 2.6 + hash(seed, 3) };
+      else frame = idle[Math.floor(hash(seed, seg + 0.5) * idle.length)];
+    }
+    let alpha = 1;
+    if (c.shy) {                                                   // bolts when someone comes close
+      let dist = Infinity;
+      for (const m of movers) if (Math.abs(m.y - y) < 80) dist = Math.min(dist, Math.abs(m.x - x));
+      alpha = Math.max(0, Math.min(1, (dist - 70) / 60));
+      if (alpha <= 0) return base;
+    }
+    return Object.assign(base, { visible: true, x, y, face, moving, crit: frame, alpha });
+  }
+  function critters(clock, movers) {
+    const out = [], c0 = finiteClock(clock), hour = c0 * 1.2, night = hour < 6 || hour >= 20;
+    for (const c of CRITTERS) {
+      const n = (night && c.nightFlock) || c.flock || 1;
+      for (let j = 0; j < n; j++) out.push(critterAt(c, j, c0, movers));
+    }
+    return out;
+  }
+
   function snapshots(clock, movers) {
     const out = ALL_PEOPLE.map(p => scheduled(p, clock)).concat(PATROLS.map(g => patrol(g, clock)));
     const residents = root && root.TownResidents ? root.TownResidents.snapshots(clock) : [];
     for (const r of residents) { const n = fromResident(r, clock); if (n) out.push(n); }
     out.push(cat(clock), dog(clock));
-    return out.concat(pigeons(out, movers || []));
+    const walkers = (movers || []).concat(out.filter(n => n.visible && n.moving));
+    return out.concat(pigeons(out, movers || []), critters(clock, walkers));
   }
 
   // [row, col, flip] for a snapshot; `sec` is real time in seconds (work loops keep their own rhythm).
   function frameOf(n, sec) {
+    if (n.crit) {                                                                // v98 critters
+      const f = n.crit.loop ? n.crit.loop[Math.floor(sec * n.crit.rate + n.x * 0.013) % n.crit.loop.length] : n.crit;
+      return [f[0], f[1], n.face < 0];
+    }
     if (n.vrow !== undefined) return [n.vrow, n.moving ? Math.floor((n.d || 0) / 46) % 4 : 1, n.face < 0];
     if (n.still) return [n.still[0], n.still[1], n.face < 0];
     if (n.dogWalk) return [1, n.moving ? Math.floor((n.d || 0) / (n.height * 0.35)) % 4 : 1, n.face < 0];
