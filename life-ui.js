@@ -379,7 +379,7 @@
       .concat(guildOK ? [[path, 'ไปกับ' + E.PARTY[path].name, 'พลังทีม +' + E.PARTY[path].power + ' · แพ้หนักแล้วทีมช่วยไว้ (เสียเงิน อุปกรณ์ ครึ่งหนึ่ง)']] : [])
       .concat([['guard', 'จ้างนักรบคุ้มกัน', E.GUARD_FEE + ' เหรียญ/วัน (มัดจำ 5 วัน ' + E.GUARD_FEE * 5 + ' เหรียญ ที่เหลือจ่ายตอนออก) · พลัง +' + E.PARTY.guard.power + ' · ช่วยชีวิตได้ถ้าไม่หลงกัน']]);
     const meals = B().meals(state), need = 0;
-    const d = el(`<div class="lg-card"><h2>เตรียมออกสำรวจหอคอย</h2>
+    const d = el(`<div class="lg-card"><h2>เตรียมเข้าหอคอย</h2>
       <p class="lg-muted">เข้าหอคอยเช้าพรุ่งนี้ แสงจากประตูจะพาไปโผล่ที่ใดที่หนึ่งในชั้น 1 (บางครั้งหลุดจากทีม) ออกได้ทางเดียวคือหา<b>ศิลาทางออก</b> ส่วน<b>ศิลาทางขึ้น</b>พาไปชั้นถัดไป ไม่รู้ว่าจะใช้เวลากี่วัน ทุกคืนกินของ 1 มื้อ ในหอคอยหาผลไม้หรือล่าสัตว์กินได้</p>
       <h3>ไปกับใคร</h3>${parties.map(([id, n, dsc]) => `<button class="lg-btn ${sel.party === id ? 'lg-cur' : ''}" data-party="${id || ''}" ${id === 'guard' && state.money < E.GUARD_FEE * 5 ? 'disabled' : ''}>${esc(n)}<small>${esc(dsc)}</small></button>`).join('')}
       <h3>เสบียง</h3><p>ของกิน ${meals} มื้อ${meals < 3 ? ' <b style="color:#ff9a7a">น้อยมาก</b>' : ''} · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · กระเป๋า ${B().total(state)}/${B().CAP} · เงิน ${state.money}</p>
