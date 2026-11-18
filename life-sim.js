@@ -152,6 +152,7 @@
   // ---- v94 getting around: riding your own horse / bike / scooter, or the coach (รถม้าโดยสาร) on long stretches.
   // RIDE is set by dayPlan for the state being planned (route() has no state of its own).
   const COACH = Object.freeze({ town: [120, 1340, 4430, 6300], carts: [11290, 12160, 13720, 14620] });   // = the stop signs in town-pano
+  const ROAD_Y = 896, ROAD_STEP = 0.035;   // the cobbled road below the sidewalk (wagons use 905)
   const COACH_SPEED = 3, COACH_WAIT = 0.1, COACH_FARE = 1, COACH_MIN = 1800;
   let RIDE = { mode: null, coach: false, n: 0 };
   function rideOf(st) {
@@ -165,15 +166,22 @@
   // one stretch along a street: walk, ride, or walk–wait–coach–walk
   function stretch(t, x0, x1, zone, to, act) {
     const R = RIDE, mk = (t0, a, b, v, extra) => Object.assign({ kind: 'walk', t0, t1: t0 + Math.abs(b - a) / v, x0: a, x1: b, y: STREET_Y, place: to, act, zone }, extra || {});
-    if (R.mode) return [mk(t, x0, x1, SPEED * R.mult, { ride: R.mode })];
+    // v96: anything on wheels or hooves uses the road, not the sidewalk: step down, ride along it, step back up
+    const onRoad = (t0, a, b, v, ride, extra) => {
+      const down = { kind: 'walk', t0, t1: t0 + ROAD_STEP, x0: a, x1: a, y: STREET_Y, y1: ROAD_Y, place: to, act, zone, ride };
+      const along = mk(down.t1, a, b, v, Object.assign({ ride, y: ROAD_Y }, extra || {}));
+      const up = { kind: 'walk', t0: along.t1, t1: along.t1 + ROAD_STEP, x0: b, x1: b, y: ROAD_Y, y1: STREET_Y, place: to, act: along.act, zone, ride };
+      return [down, along, up];
+    };
+    if (R.mode) return Math.abs(x1 - x0) < 60 ? [mk(t, x0, x1, SPEED)] : onRoad(t, x0, x1, SPEED * R.mult, R.mode);
     const stops = COACH[zone];
     if (R.coach && stops && Math.abs(x1 - x0) >= COACH_MIN) {
       const sa = nearest(stops, x0), sb = nearest(stops, x1);
       if (sa !== sb && Math.abs(sb - sa) > Math.abs(x1 - x0) * 0.5) {
         const out = [], w1 = mk(t, x0, sa, SPEED); out.push(w1);
         const wait = { kind: 'stay', t0: w1.t1, t1: w1.t1 + COACH_WAIT, x0: sa, x1: sa, y: STREET_Y, place: to, act: 'รอรถม้าโดยสารที่ป้าย', zone, milestone: 'coach' + (++R.n) };
-        const ride = mk(wait.t1, sa, sb, SPEED * COACH_SPEED, { ride: 'coach', act: 'นั่งรถม้าโดยสาร' });
-        out.push(wait, ride, mk(ride.t1, sb, x1, SPEED));
+        const ride = onRoad(wait.t1, sa, sb, SPEED * COACH_SPEED, 'coach', { act: 'นั่งรถม้าโดยสาร' });
+        out.push(wait, ...ride, mk(ride[2].t1, sb, x1, SPEED));
         return out;
       }
     }
@@ -287,7 +295,7 @@
     let s = segs[segs.length - 1];
     for (const seg of segs) if (c >= seg.t0 && c < seg.t1) { s = seg; break; }
     const f = s.kind !== 'stay' && s.t1 > s.t0 ? clamp((c - s.t0) / (s.t1 - s.t0), 0, 1) : 0;
-    const x = s.x0 + (s.x1 - s.x0) * f, y = s.kind === 'lane' ? s.y + (s.y1 - s.y) * f : s.y;
+    const x = s.x0 + (s.x1 - s.x0) * f, y = s.y1 !== undefined ? s.y + (s.y1 - s.y) * f : s.y;
     return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
       zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
