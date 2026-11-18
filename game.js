@@ -110,6 +110,17 @@ function drawPlayer(info) {
     ctx.restore();
     return;
   }
+  if (info && info.ride && moving) {                                  // v94 riding: the coach (hero inside), or his own ride
+    const kind = info.ride === 'coach' ? (TownNPCs.heroReady('coach') ? 'coach' : 'coach_old') : 'ride_' + info.ride;
+    if (TownNPCs.heroReady(kind)) {
+      const big = info.ride === 'coach' ? 1.32 : info.ride === 'horse' ? 1.5 : 1.05;
+      CityLighting.actorShadow(ctx, player, playerY, depth, clock);
+      ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
+      TownNPCs.drawHero(ctx, kind, { height: HERO_VISIBLE * big, face, moving: true, d: Math.abs(player) });
+      ctx.restore();
+      return;
+    }
+  }
   if (info && info.lane) {                                            // walking up into the alley (back view) or out of it (front)
     ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
     HeroSprite.draw(ctx, { anim, moving: true, vdir: info.lane === 'in' ? -1 : 1, face: 1 });

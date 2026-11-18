@@ -397,7 +397,8 @@
     swing:  { sheet: 'heroB', row: 0, times: [.42, .1, .22, .7] },  mop: { sheet: 'heroB', row: 1, times: [.4, .3, .32, .38] },
     eat:    { sheet: 'heroB', row: 2, times: [1.1, .6, .9, 1.2] },
     sleep:  { sheet: 'heroC', row: 0, times: [2.2, 1.6, 2.2, 1.4] },  bench: { sheet: 'heroC', row: 1, times: [1.8, 2.4, .5, 2.5] },
-    tired:  { sheet: 'heroC', row: 2 }
+    tired:  { sheet: 'heroC', row: 2 },
+    coach_old: { sheet: 'wagons', row: 0 }                               // v94 stand-in for the passenger coach
   });
   function heroReady(kind) { const P = HERO_POSE[kind]; return !!P && ok(sheets[P.sheet]); }
   function drawHero(ctx, kind, o) {

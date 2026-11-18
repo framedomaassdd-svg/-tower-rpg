@@ -13,7 +13,7 @@
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
   // v93 the bag (bag.js); Node simulations load it with require
   const Bag = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
@@ -30,6 +30,7 @@
     shack:  { x: PX.shack || 19666, y: 792, name: 'เพิงข้างกองขยะ' },
     // v93 places for the after-work order (ซื้อของ / ทำอาหาร / ตีเหล็ก / เก็บของ / ขายของ)
     bazaar: { x: PX.bazaar || 17274, y: 836, name: 'แผงในตลาดใหญ่' },
+    stable: { x: PX.stable || 13283, y: 812, name: 'คอกม้าลานเกวียน' },
     field:  { x: PX.field || 11270, y: 812, name: 'ทุ่งนอกประตูเมือง' },
     campfire: { x: PX.campfire || 11715, y: 840, name: 'กองไฟคาราวาน' },
     streetstall: { x: PX.streetstall || 19029, y: 838, name: 'ร้านริมทางในตลาด' },
@@ -140,7 +141,7 @@
   const SLUM_PLACES = { tenement: 1, soup: 1, scrap: 1, junk: 1, slumyard: 1 };
   // v87: ลานเกวียน (outside the city) is a third scene, reached through the city gate: up the gate lane in town,
   // out of the outer gate on the yard side. Between the slum and the yard the hero crosses town.
-  const CARTS_PLACES = { cargo: 1, shrine: 1, field: 1, campfire: 1 };
+  const CARTS_PLACES = { cargo: 1, shrine: 1, field: 1, campfire: 1, stable: 1 };
   // v90: ตลาดใหญ่ is a fourth scene, reached by the market lane off the main street.
   const MARKET_PLACES = { market: 1, shack: 1, bazaar: 1, streetstall: 1 };
   const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : MARKET_PLACES[place] ? 'market' : 'town';
@@ -148,11 +149,41 @@
   const CROSS = Object.freeze({ slum: { town: LANE.x, other: LANE.x, act: 'เดินเข้าตรอกล่าง' },
                                 carts: { town: 328, other: 15046, act: 'ออกประตูเมืองไปลานเกวียน' },
                                 market: { town: 1864, other: 15986, act: 'เดินเข้าตรอกตลาด' } });
+  // ---- v94 getting around: riding your own horse / bike / scooter, or the coach (รถม้าโดยสาร) on long stretches.
+  // RIDE is set by dayPlan for the state being planned (route() has no state of its own).
+  const COACH = Object.freeze({ town: [420, 1864, 3260, 5828, 6350], carts: [15046, 14202, 12545, 11400] });
+  const COACH_SPEED = 3, COACH_WAIT = 0.1, COACH_FARE = 1, COACH_MIN = 1800;
+  let RIDE = { mode: null, coach: false, n: 0 };
+  function rideOf(st) {
+    // fixed at wake so a change mid-walk never moves the hero; a change shows from the next morning
+    const L = st.life || {}, V = (Bag && Bag.vehicles(st)) || {}, T = L.rideDay && L.rideDay.day === st.day ? L.rideDay : L;
+    const mode = T.ride && V[T.ride] ? T.ride : null;
+    const weak = mode === 'horse' && (V.horse.hungry || 0) >= 2;            // a hungry horse only trots
+    return { mode, mult: mode ? (weak ? 1.6 : Bag.ITEMS[mode].speed) : 1, coach: !mode && !!T.coach, n: 0 };
+  }
+  const nearest = (list, x) => list.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a);
+  // one stretch along a street: walk, ride, or walk–wait–coach–walk
+  function stretch(t, x0, x1, zone, to, act) {
+    const R = RIDE, mk = (t0, a, b, v, extra) => Object.assign({ kind: 'walk', t0, t1: t0 + Math.abs(b - a) / v, x0: a, x1: b, y: STREET_Y, place: to, act, zone }, extra || {});
+    if (R.mode) return [mk(t, x0, x1, SPEED * R.mult, { ride: R.mode })];
+    const stops = COACH[zone];
+    if (R.coach && stops && Math.abs(x1 - x0) >= COACH_MIN) {
+      const sa = nearest(stops, x0), sb = nearest(stops, x1);
+      if (sa !== sb && Math.abs(sb - sa) > Math.abs(x1 - x0) * 0.5) {
+        const out = [], w1 = mk(t, x0, sa, SPEED); out.push(w1);
+        const wait = { kind: 'stay', t0: w1.t1, t1: w1.t1 + COACH_WAIT, x0: sa, x1: sa, y: STREET_Y, place: to, act: 'รอรถม้าโดยสารที่ป้าย', zone, milestone: 'coach' + (++R.n) };
+        const ride = mk(wait.t1, sa, sb, SPEED * COACH_SPEED, { ride: 'coach', act: 'นั่งรถม้าโดยสาร' });
+        out.push(wait, ride, mk(ride.t1, sb, x1, SPEED));
+        return out;
+      }
+    }
+    return [mk(t, x0, x1, SPEED)];
+  }
   function route(t0, from, to, act) {
     const za = zoneOf(from), zb = zoneOf(to);
-    if (za === zb) return [Object.assign(walk(t0, from, to, act), { zone: za })];
     const a = PLACES[from], b = PLACES[to], segs = [];
-    const leg = (t, x0, x1, zone) => ({ kind: 'walk', t0: t, t1: t + Math.abs(x1 - x0) / SPEED, x0, x1, y: STREET_Y, place: to, act, zone });
+    if (za === zb) return stretch(t0, a.x, b.x, za, to, act);
+    const leg = (t, x0, x1, zone) => { const l = stretch(t, x0, x1, zone, to, act); segs.push(...l.slice(0, -1)); return l[l.length - 1]; };
     const hops = [za, 'town', zb].filter((z, i, l) => i === 0 || z !== l[i - 1]);
     let x = a.x, t = t0;
     for (let i = 1; i < hops.length; i++) {
@@ -179,6 +210,7 @@
     return st.money >= dinnerPrice(st) ? 'tavern' : food > 0 ? 'bag' : 'soup';
   }
   function dayPlan(st) {
+    RIDE = rideOf(st);
     const L = st.life, today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
     // v85: guild training happens inside a training yard — the guild's behind the tower arch, or (waking in the slum) the alley yard
     let path = PATHS[L.path];
@@ -259,7 +291,7 @@
     return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
       zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
-      task: s.task || null, room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating };
+      task: s.task || null, ride: s.ride || null, room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating };
   }
 
   // ---- daily effects ----------------------------------------------------
@@ -277,6 +309,7 @@
       st.energy = Math.max(st.energy, room.energy); st.health = clamp(st.health + room.health, 1, 100);
       if (room.focus) L.focusDay = st.day;
     } else st.energy = Math.max(st.energy, o.id === 'jobless' ? 80 : 50);
+    L.rideDay = { day: st.day, ride: L.ride || null, coach: !!L.coach };
     L.todayStars = null; L.dayStart = { day: st.day, place: L.sleptAt, room: L.roomSlept }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
     L.errand = { day: st.day, kind: pickErrand(st) };
     if (st.health < 30) { L.restDay = st.day; return say(st, 'ร่างกายไม่ไหว (สุขภาพ ' + st.health + ') วันนี้ขอพักฟื้น'); }
@@ -366,7 +399,8 @@
     const L = st.life, O = orderToday(st); if (!O) return null;
     if (O.kind === 'buy') {
       const got = buyList(st, O.shop, O.items); orderDone(st);
-      return say(st, got.length ? 'ซื้อ' + Bag.label(got) + ' ใส่กระเป๋า (เหลือเงิน ' + st.money + ')' : 'เงินไม่พอหรือกระเป๋าเต็ม ซื้ออะไรไม่ได้');
+      const ride = got.some(([id]) => Bag.ITEMS[id].kind === 'vehicle');
+      return say(st, got.length ? 'ซื้อ' + Bag.label(got) + (ride ? ' เลือกใช้ได้ในส่วนการเดินทาง' : ' ใส่กระเป๋า') + ' (เหลือเงิน ' + st.money + ')' : 'เงินไม่พอหรือกระเป๋าเต็ม ซื้ออะไรไม่ได้');
     }
     if (O.kind === 'cook') {
       const R = Bag.RECIPES[O.recipe];
@@ -389,20 +423,23 @@
     }
     if (O.kind === 'forge') {
       const need = Bag.FORGE[O.item], fee = L.path === 'smith' ? 0 : Bag.FORGE_FEE; orderDone(st);
-      const short = need.iron - Bag.count(st, 'iron');
+      if (Bag.ITEMS[O.item].kind === 'vehicle' && Bag.vehicles(st)[O.item]) return say(st, 'มี' + Bag.name(O.item) + 'อยู่แล้ว');
+      const short = (need.iron || 0) - Bag.count(st, 'iron');
       if (short > 0) buyList(st, 'smith', { iron: short });
-      if (Bag.count(st, 'iron') < need.iron) return say(st, 'เหล็กไม่พอ (ต้องใช้ ' + need.iron + ' แท่ง ราคาแท่งละ ' + Bag.SHOPS.smith.items.iron + ')');
+      const lack = Object.entries(need).filter(([id, n]) => Bag.count(st, id) < n).map(([id, n]) => [id, n - Bag.count(st, id)]);
+      if (lack.length) return say(st, 'ของไม่ครบ ขาด ' + Bag.label(lack) + (lack.some(([id]) => id !== 'iron') ? ' (หาได้ที่ลานของเก่าหรือร้านรับซื้อของเก่า)' : ''));
       if (st.money < fee) return say(st, 'ไม่มีเงินค่าเช่าเตาหลอม ' + fee + ' เหรียญ');
-      st.money -= fee; st.energy = Math.max(0, st.energy - 12); Bag.take(st, 'iron', need.iron);
+      st.money -= fee; st.energy = Math.max(0, st.energy - 12); for (const [id, n] of Object.entries(need)) Bag.take(st, id, n);
       const odds = clamp(0.6 + 0.03 * (st.smithWork || 0) + 0.02 * (st.strength || 3), 0.6, 0.95);
-      if (Math.random() > odds) return say(st, 'ตี' + Bag.name(O.item) + 'พลาด เหล็กแตกเสียไป (โอกาสสำเร็จ ' + Math.round(odds * 100) + '%)');
+      if (Math.random() > odds) return say(st, 'ตี' + Bag.name(O.item) + 'พลาด ของเสียหายไปหมด (โอกาสสำเร็จ ' + Math.round(odds * 100) + '%)');
       if (!Bag.add(st, O.item, 1)) return say(st, 'ตี' + Bag.name(O.item) + 'เสร็จ แต่กระเป๋าเต็ม ต้องทิ้งไว้ที่โรงตีเหล็ก');
       return say(st, 'ตี' + Bag.name(O.item) + 'เองสำเร็จ' + (fee ? ' (ค่าเตา ' + fee + ')' : '') + ' · ' + (Bag.ITEMS[O.item].desc || 'ขายได้ ' + Bag.ITEMS[O.item].sell + ' เหรียญ'));
     }
     if (O.kind === 'gather') {
       const G = Bag.GATHER[O.spot], got = []; orderDone(st);
       st.energy = Math.max(0, st.energy - 10);
-      G.loot.forEach(([id, a, b], i) => {
+      G.loot.forEach(([id, a, b, chance], i) => {
+        if (chance && Math.random() > chance) return;
         let n = a + Math.floor(Math.random() * (b - a + 1)) + (i === 0 && Bag.count(st, G.tool) ? 1 : 0);
         n = Bag.add(st, id, n); if (n) got.push([id, n]);
       });
@@ -416,6 +453,12 @@
     }
     return null;
   }
+  function applyCoach(st) {                          // the fare, paid when the coach comes
+    const L = st.life;
+    if (st.money >= COACH_FARE + (L.coachDebt || 0)) { st.money -= COACH_FARE + (L.coachDebt || 0); L.coachDebt = 0; return null; }
+    L.coachDebt = (L.coachDebt || 0) + COACH_FARE;
+    return say(st, 'ไม่มีเงินค่ารถม้า คนขับให้ติดไว้ก่อน (ค้าง ' + L.coachDebt + ' เหรียญ)');
+  }
   function setOrder(st, O, clock) {                  // today if the work isn't over yet, otherwise tomorrow
     const L = st.life;
     if (!O) { L.order = null; return null; }
@@ -426,7 +469,12 @@
   // night rollover (called by the town right after the day number goes up): spoil, then make sure they ate
   function night(st) {
     if (!Bag) return [];
-    const L = st.life || {}, msgs = [];
+    const L = st.life || {}, msgs = [], V = Bag.vehicles(st);
+    if (V.horse) {                                     // the horse eats every day
+      if (st.money >= 1) { st.money -= 1; V.horse.hungry = 0; }
+      else if (++V.horse.hungry >= 4) { delete V.horse; if (L.ride === 'horse') L.ride = null; msgs.push('ไม่มีเงินซื้ออาหารม้ามาหลายวัน ม้าหนีออกจากคอกไปแล้ว'); }
+      else msgs.push('ไม่มีเงินซื้ออาหารม้า ม้าหิว' + (V.horse.hungry >= 2 ? ' วิ่งช้าลง' : ''));
+    }
     const gone = Bag.spoil(st, st.day);
     if (gone.length) msgs.push(Bag.label(gone) + ' เสียแล้ว ต้องทิ้ง');
     if (L.fedDay !== st.day - 1) {
@@ -739,7 +787,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

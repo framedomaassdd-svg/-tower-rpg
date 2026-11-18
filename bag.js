@@ -31,13 +31,22 @@
     knife:     { name: 'มีดครัว',           icon: '🔪', kind: 'tool', keep: 0, sell: 5, desc: 'ทำอาหารได้เพิ่มอีก 1 ที่' },
     sickle:    { name: 'เคียว',             icon: '🌙', kind: 'tool', keep: 0, sell: 5, desc: 'เก็บของนอกประตูเมืองได้เพิ่ม 1 ชิ้น' },
     hook:      { name: 'ตะขอคุ้ยของ',       icon: '🪝', kind: 'tool', keep: 0, sell: 5, desc: 'คุ้ยลานของเก่าได้เพิ่ม 1 ชิ้น' },
-    dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14 }
+    dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14 },
+    // v94 parts for vehicles, and the vehicles themselves (kept in st.vehicles, not in the bag)
+    oldwheel:  { name: 'ล้อเก่า',           icon: '🛞', kind: 'material', keep: 0, sell: 3 },
+    chain:     { name: 'โซ่เก่า',           icon: '⛓️', kind: 'material', keep: 0, sell: 2 },
+    plank:     { name: 'ไม้กระดาน',         icon: '🪵', kind: 'material', keep: 0, sell: 0 },
+    horse:     { name: 'ม้า',              icon: '🐎', kind: 'vehicle', keep: 0, sell: 40, speed: 2.5, desc: 'เร็ว 2.5 เท่า ค่าอาหารม้าวันละ 1 เหรียญ' },
+    bike:      { name: 'จักรยาน',           icon: '🚲', kind: 'vehicle', keep: 0, sell: 0, speed: 2.0, desc: 'เร็ว 2 เท่า ไม่ต้องเลี้ยง' },
+    scooter:   { name: 'สกู๊ตเตอร์',         icon: '🛴', kind: 'vehicle', keep: 0, sell: 0, speed: 1.5, desc: 'เร็ว 1.5 เท่า ทำง่าย' }
   });
   // where things are bought (place = LifeSim place id)
   const SHOPS = Object.freeze({
     bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
     bakery: { name: 'ร้านขนมปัง', place: 'bakery', items: { bread: 2 } },
-    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5 } }
+    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5 } },
+    junk:   { name: 'ร้านรับซื้อของเก่า', place: 'junk', items: { plank: 1, chain: 4, oldwheel: 5 } },
+    stable: { name: 'คอกม้าลานเกวียน', place: 'stable', items: { horse: 60 } }
   });
   // who buys what (everything they take is sold in one visit; tools are never sold automatically)
   const BUYERS = Object.freeze({
@@ -59,11 +68,12 @@
   });
   const HOME_STOVE = Object.freeze({ tenement: 'เตาถ่านในห้องเช่า', shrine: 'ก้อนเส้าหน้าศาลเจ้า', shack: 'เตาสังกะสีข้างเพิง' });
   const FORGE = Object.freeze({
-    knife: { iron: 1 }, sickle: { iron: 1 }, hook: { iron: 1 }, dagger: { iron: 2 }
+    knife: { iron: 1 }, sickle: { iron: 1 }, hook: { iron: 1 }, dagger: { iron: 2 },
+    scooter: { iron: 1, oldwheel: 2, plank: 1 }, bike: { iron: 2, oldwheel: 2, chain: 1 }
   });
   const FORGE_FEE = 2;                               // waived for the smith's apprentice
   const GATHER = Object.freeze({
-    scrap: { name: 'คุ้ยลานของเก่าท้ายตรอก', place: 'scrap', tool: 'hook', loot: [['junk', 1, 2], ['scrap', 0, 2]] },
+    scrap: { name: 'คุ้ยลานของเก่าท้ายตรอก', place: 'scrap', tool: 'hook', loot: [['junk', 1, 2], ['scrap', 0, 2], ['oldwheel', 1, 1, 0.25], ['chain', 1, 1, 0.2]] },
     field: { name: 'เก็บของในทุ่งนอกประตูเมือง', place: 'field', tool: 'sickle', loot: [['herb', 1, 2], ['fruit', 0, 2], ['veg', 0, 1]] }
   });
 
@@ -72,8 +82,13 @@
   const total = st => list(st).reduce((n, s) => n + s.n, 0);
   const meals = st => list(st).reduce((n, s) => n + (ITEMS[s.id] && ITEMS[s.id].kind === 'meal' ? s.n : 0), 0);
   const sync = st => { st.food = meals(st); return st; };          // older code and the panel read st.food
+  const vehicles = st => (st.vehicles && typeof st.vehicles === 'object' ? st.vehicles : (st.vehicles = {}));
   function add(st, id, n, day) {
-    const it = ITEMS[id]; n = Math.max(0, Math.min(n === undefined ? 1 : n, CAP - total(st)));
+    const it = ITEMS[id];
+    if (it && it.kind === 'vehicle') {               // one of each, parked rather than carried
+      const V = vehicles(st); if (V[id]) return 0;
+      V[id] = { since: day || st.day || 1, hungry: 0 }; return 1;
+    } n = Math.max(0, Math.min(n === undefined ? 1 : n, CAP - total(st)));
     if (!it || !n) return 0;
     const exp = it.keep ? (day || st.day || 1) + it.keep : 0, L = list(st);
     const s = L.find(x => x.id === id && x.exp === exp);
@@ -117,6 +132,6 @@
     if (!Array.isArray(st.bag)) { st.bag = []; const n = Math.max(0, Math.min(6, Math.floor(st.food || 0))); if (n) add(st, 'ration', n); }
     sync(st);
   }
-  return { CAP, ITEMS, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+  return { vehicles, CAP, ITEMS, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
     list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
 });

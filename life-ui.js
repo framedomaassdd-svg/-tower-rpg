@@ -155,16 +155,25 @@
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
       <div class="lg-stats" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${rows || '<span class="lg-muted">ว่างเปล่า</span>'}</div>
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
+      ${travelHtml()}
       <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p>
       <p class="lg-muted">สั่งก่อนเลิกงาน (16:00) จะทำวันนี้ หลังจากนั้นจะทำพรุ่งนี้</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
-        <button class="lg-btn" data-order="buy">🛒 ซื้อของ<small>ตลาดใหญ่ · ร้านขนมปัง · โรงตีเหล็ก</small></button>
+        <button class="lg-btn" data-order="buy">🛒 ซื้อของ<small>ตลาด · ขนมปัง · เหล็ก · อะไหล่ · ม้า</small></button>
         <button class="lg-btn" data-order="cook">🍳 ทำอาหาร<small>กินเอง เหลือเก็บใส่กระเป๋า</small></button>
-        <button class="lg-btn" data-order="forge">🔨 ตีเหล็ก<small>ตีมีด เคียว ตะขอ มีดสั้น</small></button>
+        <button class="lg-btn" data-order="forge">🔨 ตีเหล็ก<small>มีด เคียว ตะขอ มีดสั้น จักรยาน สกู๊ตเตอร์</small></button>
         <button class="lg-btn" data-order="gather">🧺 เก็บของ<small>ลานของเก่า · ทุ่งนอกประตูเมือง</small></button>
         <button class="lg-btn" data-order="sell">💰 ขายของ<small>ร้านรับซื้อ · ร้านยา · ตลาด · โรงตีเหล็ก</small></button>
         ${O ? '<button class="lg-btn" data-a="nocmd">✖ ยกเลิกธุระ<small>กลับไปใช้ชีวิตตามปกติ</small></button>' : ''}
       </div>`;
+  }
+  function travelHtml() {
+    const b = B(), L = state.life, V = b.vehicles(state);
+    const opts = [['', '🚶 เดิน', 'ฟรี']].concat(['horse', 'bike', 'scooter'].filter(id => V[id]).map(id => [id, b.ITEMS[id].icon + ' ' + b.ITEMS[id].name, b.ITEMS[id].desc + (id === 'horse' && V.horse.hungry ? ' · ม้าหิว ' + V.horse.hungry + ' วัน' : '')]));
+    return `<h3>การเดินทาง</h3><p class="lg-muted">เปลี่ยนแล้วมีผลตั้งแต่เช้าวันพรุ่งนี้</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">${opts.map(([id, t, d]) => `<button class="lg-btn ${(L.ride || '') === id ? 'lg-cur' : ''}" data-ride="${id}">${t}<small>${esc(d)}</small></button>`).join('')}</div>
+      <button class="lg-btn ${L.coach ? 'lg-cur' : ''}" data-a="coach" ${L.ride ? 'disabled' : ''}>${L.coach ? '✓ ' : ''}🐴🚃 นั่งรถม้าโดยสารเมื่อทางไกล<small>${LifeSim.COACH_FARE} เหรียญ/เที่ยว เร็ว 3 เท่า แต่ต้องเดินไปป้ายและรอรถ · มีป้ายในเมือง (ประตูเมือง ปากตรอกตลาด บ่อน้ำ โรงแรม ปลายถนน) และในลานเกวียน</small></button>
+      ${Object.keys(V).length ? '' : '<p class="lg-muted">ม้าซื้อได้ที่คอกม้าลานเกวียน · จักรยานกับสกู๊ตเตอร์ต้องหาล้อเก่า โซ่ ไม้กระดาน มาตีเองที่โรงตีเหล็ก</p>'}`;
   }
   // one card per kind of order; `sel` keeps what's been picked while the card re-renders
   function orderCard(kind, sel) {
@@ -177,6 +186,7 @@
       for (const [id, k] of Object.entries(sel.items)) { cost += k * S.items[id]; n += k; }
       body = `<p>${Object.entries(b.SHOPS).map(([id, x]) => `<button class="lg-btn ${id === sel.shop ? 'lg-cur' : ''}" style="display:inline-block;width:auto;margin-right:6px" data-shop="${id}">${esc(x.name)}</button>`).join('')}</p>
         ${Object.entries(S.items).map(([id, price]) => { const it = b.ITEMS[id];
+          if (it.kind === 'vehicle') return `<button class="lg-btn" data-add="${id}" ${b.vehicles(state)[id] ? 'disabled' : ''}>${icon(id)} · ${price} เหรียญ${sel.items[id] ? '<span class="lg-tag">ซื้อ</span>' : ''}<small>${b.vehicles(state)[id] ? 'มีแล้ว' : esc(it.desc)}</small></button>`;
           return `<button class="lg-btn" data-add="${id}">${icon(id)} · ${price} เหรียญ${sel.items[id] ? '<span class="lg-tag">×' + sel.items[id] + '</span>' : ''}<small>${it.keep ? 'เก็บได้ ' + it.keep + ' วัน' : 'ไม่เสีย'}${it.kind === 'meal' ? ' · กินได้เลย' : it.kind === 'ingredient' ? ' · วัตถุดิบ' : ''}</small></button>`; }).join('')}
         <p>รวม ${n} ชิ้น ${cost} เหรียญ (มี ${money}) ${n ? '<button class="lg-btn" style="display:inline-block;width:auto" data-clear="1">ล้าง</button>' : ''}</p>`;
       ok = n > 0; sel.order = { kind, shop: sel.shop, items: sel.items };
@@ -194,7 +204,9 @@
     } else if (kind === 'forge') {
       sel.item = sel.item || 'knife';
       const fee = L.path === 'smith' ? 0 : b.FORGE_FEE, odds = Math.round(Math.min(0.95, 0.6 + 0.03 * (state.smithWork || 0) + 0.02 * (state.strength || 3)) * 100);
-      body = Object.entries(b.FORGE).map(([id, f]) => `<button class="lg-btn ${id === sel.item ? 'lg-cur' : ''}" data-item="${id}">${icon(id)} · เหล็ก ${f.iron} แท่ง<small>${esc(b.ITEMS[id].desc || 'ขายให้โรงตีเหล็กได้ ' + b.ITEMS[id].sell + ' เหรียญ')}</small></button>`).join('')
+      body = Object.entries(b.FORGE).map(([id, f]) => { const lack = Object.entries(f).filter(([i, n]) => i !== 'iron' && b.count(state, i) < n);
+          const owned = b.ITEMS[id].kind === 'vehicle' && b.vehicles(state)[id];
+          return `<button class="lg-btn ${id === sel.item ? 'lg-cur' : ''}" data-item="${id}" ${owned ? 'disabled' : ''}>${icon(id)} · ${esc(b.label(Object.entries(f)))}<small>${owned ? 'มีแล้ว' : esc(b.ITEMS[id].desc || 'ขายให้โรงตีเหล็กได้ ' + b.ITEMS[id].sell + ' เหรียญ')}${lack.length ? ' · ยังขาด ' + esc(b.label(lack)) : ''}</small></button>`; }).join('')
         + `<p class="lg-muted">มีเหล็กแท่ง ${b.count(state, 'iron')} · ขาดจะซื้อที่โรงตีเหล็กแท่งละ ${b.SHOPS.smith.items.iron} · ค่าเตา ${fee ? fee + ' เหรียญ' : 'ฟรี (ช่างฝึกหัด)'} · โอกาสสำเร็จ ${odds}% · แรง -12</p>`;
       ok = true; sel.order = { kind, item: sel.item };
     } else if (kind === 'gather') {
@@ -229,7 +241,7 @@
     const redo = () => { d.remove(); block(null); orderCard(kind, sel); };
     const on = (attr, fn) => d.querySelectorAll('[data-' + attr + ']').forEach(x => x.onclick = () => { fn(x.dataset[attr]); redo(); });
     on('shop', v => { sel.shop = v; sel.items = {}; });
-    on('add', v => { sel.items[v] = (sel.items[v] || 0) + 1; });
+    on('add', v => { sel.items[v] = b.ITEMS[v].kind === 'vehicle' ? 1 : (sel.items[v] || 0) + 1; });
     on('clear', () => { sel.items = {}; });
     on('recipe', v => { sel.recipe = v; }); on('stove', v => { sel.stove = v; });
     on('item', v => { sel.item = v; }); on('spot', v => { sel.spot = v; }); on('buyer', v => { sel.buyer = v; });
@@ -269,6 +281,8 @@
       d.remove(); block(null); save(); panel();
     });
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
+    d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); d.remove(); block(null); save(); panel(); });
+    const cb = d.querySelector('[data-a=coach]'); if (cb) cb.onclick = () => { L.coach = !L.coach; d.remove(); block(null); save(); panel(); };
     const eb = d.querySelector('[data-a=eatbag]'); if (eb) eb.onclick = () => { L.eatBag = !L.eatBag; d.remove(); block(null); save(); panel(); };
     const cancel = d.querySelector('[data-a=nocmd]'); if (cancel) cancel.onclick = () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); d.remove(); block(null); save(); panel(); };
     d.querySelector('[data-a=close]').onclick = () => closeOverlay(d);
@@ -337,6 +351,7 @@
       else if (k === 'rest') LifeSim.applyRest(state);
       else if (k === 'errand' || k === 'errand2') LifeSim.applyErrand(state, k);
       else if (k === 'cook') LifeSim.applyOrder(state, 'cook');
+      else if (k.startsWith('coach')) LifeSim.applyCoach(state);
       update();
     }
   }
