@@ -56,6 +56,18 @@
   .lc-stats{display:flex;justify-content:space-between;margin-top:10px;font-size:14px;color:var(--lg-muted)} .lc-stats b{color:#f3e6d3}
   .lc-skip{width:auto;margin:10px auto 0;text-align:center;font-weight:400;font-size:13px;padding:8px 14px}
   .lg-result{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));text-align:center}
+  .lg-ic{display:inline-block;flex:none;vertical-align:middle;background:no-repeat;font-style:normal;text-align:center;filter:drop-shadow(0 2px 2px #0007)}
+  .lg-emo{filter:none}
+  #lgloot{position:fixed;left:50%;top:22%;transform:translate(-50%,8px) scale(.96);z-index:13;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:min(520px,calc(100vw - 24px));
+    background:rgba(30,23,18,.92);border:1px solid var(--lg-line);border-radius:16px;padding:10px 14px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;font:700 17px/1.2 system-ui;color:var(--lg-text);box-shadow:0 10px 30px #0008}
+  #lgloot.show{opacity:1;transform:translate(-50%,0) scale(1)}
+  .lg-chip{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:12px;background:#ffffff10}
+  .lg-chip .p{color:#ffd76a} .lg-chip .m{color:#ff9a7a} .lg-chip small{font-weight:400;font-size:12px;color:var(--lg-muted);display:block}
+  .lg-gain{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font:700 16px/1.2 system-ui}
+  .lg-bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+  .lg-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff1c;font-size:12px;line-height:1.25;text-align:center}
+  .lg-slot b{position:absolute;right:6px;top:4px;min-width:20px;padding:0 5px;border-radius:99px;background:#e0a84a;color:#2a1a0c;font-size:12px}
+  .lg-slot .x{color:#ff9a7a} .lg-slot .d{color:var(--lg-muted);font-size:11px}
   .lg-bigstars{font-size:44px;color:#ffd76a;letter-spacing:4px} .lg-sword{display:block;width:88%;margin:4px auto 2px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
   `;
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl);
@@ -137,6 +149,48 @@
 
   // ---------- v93 bag and the after-work order ----------
   const B = () => LifeSim.Bag;
+  // v100 item icons: cut from items_a/items_b.webp (4×4 sheets); until a sheet loads, the item's emoji stands in
+  const sheetOk = {};
+  function loadSheets() { if (loadSheets.done) return; loadSheets.done = true;
+    B().ICON_SHEETS.forEach(src => { const im = new Image(); im.onload = () => { sheetOk[src] = true; }; im.src = src + '?v=100'; }); }
+  function iconHtml(id, px) {
+    const b = B(); loadSheets();
+    const it = id === 'coin' || id === 'coins' ? b.COIN : b.ITEMS[id] || { icon: '❔' }, at = b.ICONS[id], src = at && b.ICON_SHEETS[at[0]];
+    if (src && sheetOk[src]) { const c = at[1] % 4, r = Math.floor(at[1] / 4);
+      return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(${src}?v=100);background-size:400% 400%;background-position:${c * 100 / 3}% ${r * 100 / 3}%"></i>`; }
+    return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.78)}px;line-height:${px}px">${it.icon}</i>`;
+  }
+  // what the hero holds, to spot gains and losses between frames
+  function holding() {
+    const b = B(), c = {}; for (const st of b.list(state)) c[st.id] = (c[st.id] || 0) + st.n;
+    for (const id of Object.keys(b.vehicles(state))) c[id] = 1;
+    return { money: state.money || 0, c };
+  }
+  function diff(a, z) {
+    const out = []; if (z.money !== a.money) out.push(['coin', z.money - a.money]);
+    for (const id of new Set(Object.keys(a.c).concat(Object.keys(z.c)))) { const n = (z.c[id] || 0) - (a.c[id] || 0); if (n) out.push([id, n]); }
+    return out;
+  }
+  function chipHtml([id, n]) {
+    const b = B(), nm = id === 'coin' ? 'เหรียญ' : b.name(id), big = id === 'coin' && Math.abs(n) >= 10 ? 'coins' : id;
+    return `<span class="lg-chip">${iconHtml(big === 'coins' && !b.ICONS.coins ? 'coin' : big, 40)}<span><span class="${n > 0 ? 'p' : 'm'}">${n > 0 ? '+' : '−'}${Math.abs(n)}</span><small>${esc(nm)}</small></span></span>`;
+  }
+  // floating "you got" card: everything that changes while it's up is added to the same card
+  let lootEl = null, lootSum = null, lootTimer = 0, snap = null, snapOf = null;
+  function loot(changes) {
+    if (!lootEl) { lootEl = document.createElement('div'); lootEl.id = 'lgloot'; document.body.appendChild(lootEl); }
+    if (!lootEl.classList.contains('show')) lootSum = new Map();
+    for (const [id, n] of changes) lootSum.set(id, (lootSum.get(id) || 0) + n);
+    const rows = [...lootSum].filter(([, n]) => n).sort((x, y) => (y[0] === 'coin') - (x[0] === 'coin') || y[1] - x[1]);
+    if (!rows.length) { lootEl.classList.remove('show'); return; }
+    lootEl.innerHTML = rows.map(chipHtml).join(''); lootEl.classList.add('show');
+    clearTimeout(lootTimer); lootTimer = setTimeout(() => lootEl.classList.remove('show'), 3400);
+  }
+  function watchLoot() {
+    if (snapOf !== state || !snap) { snapOf = state; snap = holding(); return; }
+    const now = holding(), d = diff(snap, now); snap = now;
+    if (d.length) loot(d);
+  }
   function describeOrder(O) {
     const b = B(); if (!O) return 'ไม่มี (ตัวละครแวะธุระตามปกติ)';
     const when = O.repeat ? 'ทุกวัน' : O.day === state.day ? 'วันนี้' : 'พรุ่งนี้';
@@ -149,11 +203,13 @@
   }
   function bagHtml() {
     const b = B(), L = state.life, bag = b.list(state).slice().sort((x, y) => (x.exp || 1e9) - (y.exp || 1e9));
-    const rows = bag.map(st => { const it = b.ITEMS[st.id], left = b.daysLeft(st, state.day);
-      return `<span>${it.icon} ${esc(it.name)} ×${st.n}${left === Infinity ? '' : left <= 0 ? ' <b style="color:#ff9a7a">เสียคืนนี้</b>' : ' <span class="lg-muted">เหลือ ' + (left + 1) + ' วัน</span>'}</span>`; }).join('');
+    const rows = [`<div class="lg-slot">${iconHtml(state.money >= 10 ? 'coins' : 'coin', 52)}<b>${state.money}</b>เหรียญ</div>`]
+      .concat(Object.keys(b.vehicles(state)).map(id => `<div class="lg-slot">${iconHtml(id, 52)}${esc(b.name(id))}<span class="d">จอดไว้</span></div>`))
+      .concat(bag.map(st => { const it = b.ITEMS[st.id], left = b.daysLeft(st, state.day);
+        return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${esc(it.name)}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
     const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
-      <div class="lg-stats" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${rows || '<span class="lg-muted">ว่างเปล่า</span>'}</div>
+      <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
       ${travelHtml()}
       <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p>
@@ -169,7 +225,7 @@
   }
   function travelHtml() {
     const b = B(), L = state.life, V = b.vehicles(state);
-    const opts = [['', '🚶 เดิน', 'ฟรี']].concat(['horse', 'bike', 'scooter'].filter(id => V[id]).map(id => [id, b.ITEMS[id].icon + ' ' + b.ITEMS[id].name, b.ITEMS[id].desc + (id === 'horse' && V.horse.hungry ? ' · ม้าหิว ' + V.horse.hungry + ' วัน' : '')]));
+    const opts = [['', '🚶 เดิน', 'ฟรี']].concat(['horse', 'bike', 'scooter'].filter(id => V[id]).map(id => [id, iconHtml(id, 26) + ' ' + esc(b.ITEMS[id].name), b.ITEMS[id].desc + (id === 'horse' && V.horse.hungry ? ' · ม้าหิว ' + V.horse.hungry + ' วัน' : '')]));
     return `<h3>การเดินทาง</h3><p class="lg-muted">เปลี่ยนแล้วมีผลตั้งแต่เช้าวันพรุ่งนี้</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">${opts.map(([id, t, d]) => `<button class="lg-btn ${(L.ride || '') === id ? 'lg-cur' : ''}" data-ride="${id}">${t}<small>${esc(d)}</small></button>`).join('')}</div>
       <button class="lg-btn ${L.coach ? 'lg-cur' : ''}" data-a="coach" ${L.ride ? 'disabled' : ''}>${L.coach ? '✓ ' : ''}🐴🚃 นั่งรถม้าโดยสารเมื่อทางไกล<small>${LifeSim.COACH_FARE} เหรียญ/เที่ยว เร็ว 3 เท่า แต่ต้องเดินไปป้ายและรอรถ · มีป้ายในเมือง (ประตูเมือง ปากตรอกตลาด บ่อน้ำ โรงแรม ปลายถนน) และในลานเกวียน</small></button>
@@ -178,7 +234,7 @@
   // one card per kind of order; `sel` keeps what's been picked while the card re-renders
   function orderCard(kind, sel) {
     const b = B(), L = state.life; sel = sel || { items: {} };
-    const money = state.money, icon = id => b.ITEMS[id].icon + ' ' + esc(b.ITEMS[id].name);
+    const money = state.money, icon = id => iconHtml(id, 26) + ' ' + esc(b.ITEMS[id].name);
     let body = '', ok = false;
     if (kind === 'buy') {
       sel.shop = sel.shop || 'bazaar';
@@ -309,10 +365,12 @@
       actions.innerHTML = LifeSim.choicesFor(state, id).map(c =>
         `<button class="lg-btn" data-i="${c.index}" ${c.enabled ? '' : 'disabled'}>${esc(c.label)}<small>${esc(c.enabled ? c.odds : 'ทำไม่ได้: วันนี้ยังไม่ได้ตีอาวุธ')}</small></button>`).join('');
       actions.querySelectorAll('button').forEach(b => b.onclick = () => {
-        const hp = state.health, res = LifeSim.resolveChoice(state, id, +b.dataset.i);
+        const hp = state.health, had = holding(), res = LifeSim.resolveChoice(state, id, +b.dataset.i), got = diff(had, holding());
+        snap = holding(); snapOf = state;                                  // shown here, not again as a floating card
         mood(state.health < hp ? 3 : 1);                                   // worried if it hurt, smiling otherwise
         L.pendingEvent = null; save();
         line.textContent = res ? res.replace(ev.title + ': ', '') : '';
+        if (got.length) line.insertAdjacentHTML('afterend', '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>');
         actions.innerHTML = '<button class="lg-btn lg-primary">ตกลง</button>';
         actions.querySelector('button').onclick = () => closeOverlay(d);
       });
@@ -361,7 +419,7 @@
     if (!started) { window.LIFE_HIDDEN = true; window.LIFE_INFO = null; return; }
     if (state.scene !== 'town') state.scene = 'town';
     if (typeof state._log !== 'function') state._log = m => log(m);
-    if (!open) process();
+    if (!open) { process(); watchLoot(); }
     const s = LifeSim.sample(state, clock);
     player = s.x; playerY = s.y; moving = s.moving; anim = s.anim; if (s.face) face = s.face;
     window.LIFE_HIDDEN = s.hidden; window.LIFE_ACT = s.act; window.LIFE_INFO = s;

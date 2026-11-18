@@ -40,6 +40,15 @@
     bike:      { name: 'จักรยาน',           icon: '🚲', kind: 'vehicle', keep: 0, sell: 0, speed: 2.0, desc: 'เร็ว 2 เท่า ไม่ต้องเลี้ยง' },
     scooter:   { name: 'สกู๊ตเตอร์',         icon: '🛴', kind: 'vehicle', keep: 0, sell: 0, speed: 1.5, desc: 'เร็ว 1.5 เท่า ทำง่าย' }
   });
+  // v100 item art: two 4×4 sheets of 128px cells (items_a/items_b.webp); missing art falls back to the emoji above
+  const ICON_SHEETS = Object.freeze(['items_a.webp', 'items_b.webp']);
+  const ICONS = Object.freeze({
+    coin: [0, 0], ration: [0, 1], bread: [0, 2], riceball: [0, 3], jerky: [0, 4], fruit: [0, 5], meal_veg: [0, 6], meal_fish: [0, 7],
+    meal_spice: [0, 8], rice: [0, 9], veg: [0, 10], fish: [0, 11], spice: [0, 12], herb: [0, 13], junk: [0, 14], scrap: [0, 15],
+    iron: [1, 0], monster: [1, 1], knife: [1, 2], sickle: [1, 3], hook: [1, 4], dagger: [1, 5], sword: [1, 6], oldwheel: [1, 7],
+    chain: [1, 8], plank: [1, 9], horse: [1, 10], bike: [1, 11], scooter: [1, 12], coins: [1, 13], potion: [1, 14], chest: [1, 15]
+  });
+  const COIN = Object.freeze({ name: 'เหรียญ', icon: '🪙' });
   // where things are bought (place = LifeSim place id)
   const SHOPS = Object.freeze({
     bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
@@ -132,6 +141,6 @@
     if (!Array.isArray(st.bag)) { st.bag = []; const n = Math.max(0, Math.min(6, Math.floor(st.food || 0))); if (n) add(st, 'ration', n); }
     sync(st);
   }
-  return { vehicles, CAP, ITEMS, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+  return { vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
     list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
 });
