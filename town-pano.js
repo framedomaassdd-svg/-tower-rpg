@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=95';
+  const V = '?v=99';
   const WORLD_W = 19880, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
@@ -112,8 +112,11 @@
     if (x >= GATE[0] && x <= GATE[1]) return y >= 700;
     return x >= ARCH[0] + 20 && x <= ARCH[1] - 20 && y >= 655;
   }
+  // v99 perspective: the sidewalk (y ≈ 765–840) is the reference; the road below it is nearer the camera,
+  // so anything on it (wagons, the coach, riders) is drawn bigger — about ×1.25 in the middle of the road.
+  const NEAR_FROM = 840, NEAR_RATE = 0.0042;
   function depthScale(x, y) {
-    if (y >= 765) return 1;
+    if (y >= 765) return 1 + Math.max(0, y - NEAR_FROM) * NEAR_RATE;
     return Math.max(0.62, Math.min(1, 0.62 + (y - 650) / 115 * 0.38));
   }
 

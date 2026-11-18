@@ -115,7 +115,7 @@ function drawPlayer(info) {
   if (info && info.ride && moving) {                                  // v94 riding: the coach (hero inside), or his own ride
     const kind = info.ride === 'coach' ? (TownNPCs.heroReady('coach') ? 'coach' : 'coach_old') : 'ride_' + info.ride;
     if (TownNPCs.heroReady(kind)) {
-      const big = ({ coach: 2.0, horse: 1.4, bike: 1.38, scooter: 1.38 })[info.ride] * (kind === 'coach_old' ? 0.66 : 1);   // object height ÷ the hero standing
+      const big = ({ coach: 1.7, horse: 1.4, bike: 1.38, scooter: 1.38 })[info.ride] * (kind === 'coach_old' ? 0.66 : 1);   // object height ÷ the hero standing
       CityLighting.actorShadow(ctx, player, playerY, depth, clock);
       ctx.save(); ctx.translate(player, playerY); ctx.scale(depth, depth);
       TownNPCs.drawHero(ctx, kind, { height: HERO_VISIBLE * big, face, moving: true, d: Math.abs(player) });

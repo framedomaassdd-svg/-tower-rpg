@@ -134,12 +134,12 @@
   // city gate, stop to unload, and drive back out. Stops carry y = road lane; legs are straight along it.
   const ROAD = 905, OFF = -420;
   const CARTS = [
-    { id: 'wagon', name: 'เกวียนพ่อค้า', sheet: 'wagons', vrow: 0, height: HERO * 1.32, speed: 4200, stops: [
+    { id: 'wagon', name: 'เกวียนพ่อค้า', sheet: 'wagons', vrow: 0, height: HERO * 1.45, speed: 4200, stops: [
       { x: OFF, y: ROAD, until: H(6.3), hidden: true },
       { x: 3615, y: ROAD, until: H(8.4) },                                     // unloading flour at the bakery
       { x: 5705, y: ROAD, until: H(10.2) },                                    // then supplies for the inn
       { x: OFF, y: ROAD, until: 20, hidden: true }] },
-    { id: 'haycart', name: 'เกวียนฟาง', sheet: 'wagons', vrow: 1, height: HERO * 0.98, speed: 2600, stops: [
+    { id: 'haycart', name: 'เกวียนฟาง', sheet: 'wagons', vrow: 1, height: HERO * 1.2, speed: 2600, stops: [
       { x: OFF, y: ROAD + 12, until: H(12.4), hidden: true },
       { x: 4535, y: ROAD + 12, until: H(15.6) },                                 // hay for the forge's horse
       { x: OFF, y: ROAD + 12, until: 20, hidden: true }] }
@@ -170,11 +170,11 @@
       { x: 11960, y: 828, until: H(19.5), loop: 'haggle', face: -1 },
       { x: 11715, y: 820, until: 20, loop: 'idle', face: 1 }] },
     // carts: the ox caravan rolls in from the country road in the morning; the mule cart comes and goes
-    { id: 'oxwagon', name: 'เกวียนคาราวาน', sheet: 'wagons2', vrow: 0, height: HERO * 1.4, speed: 1800, stops: [
+    { id: 'oxwagon', name: 'เกวียนคาราวาน', sheet: 'wagons2', vrow: 0, height: HERO * 1.6, speed: 1800, stops: [
       { x: 10900, y: ROAD, until: H(6.6), hidden: true },
       { x: 13480, y: ROAD, until: H(15.8) },                                    // unloading by the stable
       { x: 10900, y: ROAD, until: 20, hidden: true }] },
-    { id: 'mulecart', name: 'เกวียนล่อขนลัง', sheet: 'wagons2', vrow: 1, height: HERO * 1.4 * 179 / 281, speed: 2200, stops: [
+    { id: 'mulecart', name: 'เกวียนล่อขนลัง', sheet: 'wagons2', vrow: 1, height: HERO * 1.75,   /* v99: the walking drover = a person's height */ speed: 2200, stops: [
       { x: 10900, y: ROAD + 14, until: H(8.4), hidden: true },
       { x: 14330, y: ROAD + 14, until: H(11.8) },                               // crates for the warehouse
       { x: 10900, y: ROAD + 14, until: H(13.2), hidden: true },
