@@ -29,7 +29,12 @@
     heroHorse: { cw: 480, ch: 320, base: 310, src: 296 }, heroBike: { cw: 480, ch: 320, base: 310, src: 296 },
     heroScooter: { cw: 480, ch: 320, base: 310, src: 296 }, coach: { cw: 480, ch: 320, base: 310, src: 265 },
     // v98 animals: src 1, so a critter's `height` is the scale of its sheet (see CRITTERS)
-    cats: { ...B, src: 1 }, dogs: { ...B, src: 1 }, rats: { ...B, src: 1 }, gbirds: { ...B, src: 1 }
+    cats: { ...B, src: 1 }, dogs: { ...B, src: 1 }, rats: { ...B, src: 1 }, gbirds: { ...B, src: 1 },
+    // v103 ย่านกิลด์ (src = head top to sole; the porters' loads stick up above their heads)
+    warrior: { ...B, src: 345 }, archer: { ...B, src: 345 }, mage: { ...B, src: 345 }, ironboss: { ...B, src: 345 },
+    explorer: { ...B, src: 345 }, scout: { ...B, src: 345 }, compassboss: { ...B, src: 345 },
+    porterA: { ...B, src: 323 }, porterB: { ...B, src: 284 }, porterboss: { ...B, src: 345 },
+    appraiser: { ...B, src: 345 }, merchboss: { ...B, src: 345 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -40,7 +45,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=98'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=103'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -277,10 +282,53 @@
       { x: 11000, y: DOOR, until: 20, hidden: true }] }
   ];
 
+  // v103 ย่านกิลด์ (zone 'guild'): each guild's people live in their hall. In the morning the parties gather out front,
+  // walk east past the halls and up into the tower (off the east end), and come back down in the late afternoon.
+  const G = { iron: 21258, compass: 21941, porter: 22646, merch: 23358, tower: 24480 };
+  const party = (id, name, sheet, hall, h, speed, gather, loop, out, back, y) => ({ id, name, sheet, height: HERO * h, speed, stops: [
+    { x: hall, y: DOOR, until: H(gather[0]), hidden: true },
+    { x: gather[1], y, until: H(out), loop, face: 1 },
+    { x: G.tower, y: y + 4, until: H(back), hidden: true },                  // in the tower
+    { x: gather[1] + 40, y, until: H(back + 2.2), loop: 'idle', face: -1 },    // back out front, telling the day's story
+    { x: hall, y: DOOR, until: 20, hidden: true }] });
+  const GUILD = [
+    { id: 'ironboss', name: 'หัวหน้ากิลด์โล่เหล็ก', sheet: 'ironboss', height: HERO * 1.08, speed: 1100, stops: [
+      { x: G.iron, y: DOOR, until: H(6.3), hidden: true },
+      { x: G.iron - 150, y: 826, until: H(8.2), loop: 'order', face: 1 },     // briefing the party
+      { x: G.iron, y: DOOR, until: H(16.6), hidden: true },
+      { x: G.iron - 150, y: 826, until: H(18.6), loop: 'order', face: 1 },
+      { x: G.iron, y: DOOR, until: 20, hidden: true }] },
+    party('warrior', 'นักรบโล่เหล็ก', 'warrior', G.iron, 1.0, 1500, [6.4, G.iron - 40], 'swing', 8.0, 16.4, 838),
+    party('archer', 'นักธนูโล่เหล็ก', 'archer', G.iron, 0.95, 1500, [6.6, G.iron + 60], 'swing', 8.05, 16.45, 846),
+    party('mage', 'นักเวทโล่เหล็ก', 'mage', G.iron, 0.93, 1450, [6.8, G.iron + 150], 'offer', 8.1, 16.5, 834),
+    { id: 'compassboss', name: 'หัวหน้ากิลด์เข็มทิศเงิน', sheet: 'compassboss', height: HERO * 0.9, speed: 800, stops: [
+      { x: G.compass, y: DOOR, until: H(7.0), hidden: true },
+      { x: G.compass - 190, y: 822, until: H(17.4), loop: 'write', face: 1 },   // her map book on its lectern
+      { x: G.compass, y: DOOR, until: 20, hidden: true }] },
+    party('explorer', 'นักสำรวจเข็มทิศเงิน', 'explorer', G.compass, 0.97, 1400, [6.5, G.compass + 90], 'write', 8.4, 16.8, 836),
+    party('scout', 'หน่วยสอดแนมเข็มทิศเงิน', 'scout', G.compass, 0.92, 1550, [6.7, G.compass + 190], 'guard', 8.45, 16.85, 846),
+    { id: 'porterboss', name: 'หัวหน้าสมาคมคนแบกของ', sheet: 'porterboss', height: HERO * 1.05, speed: 1000, stops: [
+      { x: G.porter, y: DOOR, until: H(5.8), hidden: true },
+      { x: G.porter - 170, y: 828, until: H(18.4), loop: 'order', face: 1 },
+      { x: G.porter, y: DOOR, until: 20, hidden: true }] },
+    party('porterA', 'คนแบกของ', 'porterA', G.porter, 1.0, 1250, [6.0, G.porter + 40], 'grind', 8.15, 16.55, 840),
+    party('porterB', 'คนแบกของ', 'porterB', G.porter, 0.92, 1200, [6.2, G.porter + 150], 'scrub', 8.5, 16.9, 848),
+    { id: 'merchboss', name: 'หัวหน้ากิลด์พ่อค้าหอคอย', sheet: 'merchboss', height: HERO * 0.94, speed: 900, stops: [
+      { x: G.merch, y: DOOR, until: H(8.5), hidden: true },
+      { x: G.merch - 160, y: 826, until: H(12), loop: 'haggle', face: 1 },
+      { x: G.merch, y: DOOR, until: H(16.8), hidden: true },
+      { x: G.merch - 160, y: 826, until: H(19.5), loop: 'haggle', face: 1 },  // buying what the parties brought back
+      { x: G.merch, y: DOOR, until: 20, hidden: true }] },
+    { id: 'appraiser', name: 'นักตีราคา', sheet: 'appraiser', height: HERO * 0.95, speed: 1100, stops: [
+      { x: G.merch, y: DOOR, until: H(7.6), hidden: true },
+      { x: G.merch + 170, y: 834, until: H(19.8), loop: 'offer', face: -1 },
+      { x: G.merch, y: DOOR, until: 20, hidden: true }] }
+  ];
+  for (const p of GUILD) p.zone = 'guild';
   for (const p of CARTS_YARD) p.zone = 'carts';
   for (const p of MARKET) p.zone = 'market';
   for (const p of SHRINE) p.zone = 'carts';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE);
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE, GUILD);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;

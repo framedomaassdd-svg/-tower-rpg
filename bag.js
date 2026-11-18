@@ -62,7 +62,8 @@
     junk:       { name: 'ร้านรับซื้อของเก่า', place: 'junk', takes: ['junk', 'scrap'] },
     apothecary: { name: 'ร้านยา', place: 'apothecary', takes: ['herb'] },
     bazaar:     { name: 'ตลาดใหญ่', place: 'bazaar', takes: ['fruit', 'veg', 'fish', 'jerky'] },
-    smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['dagger', 'scrap', 'monster'] }
+    smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['dagger', 'scrap', 'monster'] },
+    tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb', 'dagger'] }   // v103 ย่านกิลด์
   });
   const RECIPES = Object.freeze({
     meal_veg:   { needs: { rice: 1, veg: 1 }, makes: 2 },

@@ -13,12 +13,17 @@
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
   // v93 the bag (bag.js); Node simulations load it with require
   const Bag = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24470, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
     market: { x: PX.market, y: 792, name: 'ตลาดใหญ่' },
-    guild:  { x: PX.guild, y: 792, name: 'ลานฝึกกิลด์' },
+    guild:  { x: PX.guild, y: 792, name: 'กิลด์นักรบโล่เหล็ก' },
+    // v103 ย่านกิลด์: the other three guilds and the way up into the tower
+    compass: { x: PX.compass || 21941, y: 792, name: 'กิลด์นักสำรวจเข็มทิศเงิน' },
+    porter: { x: PX.porter || 22646, y: 792, name: 'สมาคมคนแบกของ' },
+    tmerchant: { x: PX.tmerchant || 23358, y: 792, name: 'กิลด์พ่อค้าหอคอย' },
+    tower:  { x: PX.tower || 24470, y: 812, name: 'ทางขึ้นหอคอย' },
     slumyard: { x: PX.slumyard || 10014, y: 792, name: 'ลานฝึกตรอก' },
     cargo:  { x: PX.cargo || 14050, y: 792, name: 'ลานเกวียน' },
     tavern: { x: PX.tavern, y: 792, name: 'ร้านอาหาร' },
@@ -72,7 +77,7 @@
   const RENT = ROOMS.mid.price;
 
   const ORIGINS = Object.freeze([
-    { id: 'office',  name: 'พนักงานบริษัท', stats: { strength: 2, agility: 3, intelligence: 6 }, money: 20, suggest: 'guild',
+    { id: 'office',  name: 'พนักงานบริษัท', stats: { strength: 2, agility: 3, intelligence: 6 }, money: 20, suggest: 'compass',
       perk: 'หัวไว: ปัญญาสูง ช่วยให้จังหวะมินิเกมกว้างขึ้นและอ่านสถานการณ์ในเหตุการณ์ได้ดีกว่า' },
     { id: 'chef',    name: 'พ่อครัว',       stats: { strength: 3, agility: 4, intelligence: 3 }, money: 15, suggest: 'kitchen',
       perk: 'ทำกับข้าวเป็น: ค่าอาหารเย็นถูกลง 1 เหรียญ ค่าแรงในครัว +3 และจังหวะหั่นผักกว้างกว่าคนอื่น' },
@@ -84,8 +89,15 @@
   const PATHS = Object.freeze({
     smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true, room: 'forge', act: 'ตีเหล็กในโรงตีเหล็ก',
               desc: 'ไปช่วยงานโรงตีเหล็กทุกวัน มีมินิเกมตีเหล็ก ค่าแรงขึ้นกับฝีมือ และอาวุธที่ตีจะถูกส่งไปให้นักสู้ในหอคอย' },
-    guild:  { name: 'ฝึกเพื่อเข้ากิลด์',   place: 'guild',  energy: 20,
-              desc: 'ฝึกร่างกายที่ลานกิลด์ทุกวัน ยังไม่มีค่าแรง จนกว่าจะสอบผ่าน (กำลัง + คล่องตัว ≥ 8) แล้วรับงานขนเสบียง' },
+    guild:  { name: 'กิลด์นักรบโล่เหล็ก',   place: 'guild',  energy: 20,
+              desc: 'ฝึกที่ลานกิลด์โล่เหล็กในย่านกิลด์ ยังไม่มีค่าแรงจนกว่าจะสอบผ่าน (กำลัง + คล่องตัว ≥ 8) แล้วเข้าหอคอยกับทีมนักรบ ค่าแรง 14 เหรียญ มีโอกาสบาดเจ็บ และบางวันได้ชิ้นส่วนมอนสเตอร์' },
+    // v103 the other guilds of ย่านกิลด์
+    compass: { name: 'กิลด์นักสำรวจเข็มทิศเงิน', place: 'compass', energy: 22,
+              desc: 'ฝึกอ่านและวาดแผนที่ จนสอบผ่าน (ปัญญา ≥ 6) แล้วตามทีมสำรวจเข้าหอคอยไปทำแผนที่ ค่าแรง 6 + ปัญญา เหรียญ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
+    porter: { name: 'สมาคมคนแบกของ', place: 'porter', energy: 35,
+              desc: 'ไม่ต้องสอบ แบกเสบียงตามทีมเข้าหอคอยแล้วแบกของกลับ ค่าแรงรอบละ 8 เหรียญ (+3 ถ้ากำลัง ≥ 6) งานหนักและเสี่ยงโดนมอนสเตอร์บ้าง ทุก 4 วันกำลัง +1' },
+    tmerchant: { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', energy: 15,
+              desc: 'เริ่มเป็นลูกมือตีราคา ค่าแรง 4 เหรียญ ชื่อเสียงขึ้นทุกวัน เมื่อชื่อเสียงถึง 5 ได้เป็นนักตีราคา ค่าแรง 6 + ชื่อเสียง/2 เหรียญ (สูงสุด 12) และรับซื้อชิ้นส่วนมอนสเตอร์ราคาดี' },
     market: { name: 'รับจ้างที่ตลาด',     place: 'market', energy: 25,
               desc: 'ขนของให้แม่ค้า ค่าแรงไม่มาก แต่ได้อาหารติดมือกลับมาทุกวัน' },
     hotel:  { name: 'พนักงานโรงแรม',     place: 'inn',    energy: 20, room: 'laundry', act: 'ซักผ้าและจัดห้องพัก',
@@ -144,11 +156,14 @@
   const CARTS_PLACES = { cargo: 1, shrine: 1, field: 1, campfire: 1, stable: 1 };
   // v90: ตลาดใหญ่ is a fourth scene, reached by the market lane off the main street.
   const MARKET_PLACES = { market: 1, shack: 1, bazaar: 1, streetstall: 1 };
-  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : MARKET_PLACES[place] ? 'market' : 'town';
+  // v103: ย่านกิลด์ is a fifth scene, up the steps under the tower arch
+  const GUILD_PLACES = { guild: 1, guildhall: 1, compass: 1, porter: 1, tmerchant: 1, tower: 1 };
+  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : MARKET_PLACES[place] ? 'market' : GUILD_PLACES[place] ? 'guild' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
   const CROSS = Object.freeze({ slum: { town: LANE.x, other: LANE.x, act: 'เดินเข้าตรอกล่าง' },
                                 carts: { town: 328, other: 15046, act: 'ออกประตูเมืองไปลานเกวียน' },
-                                market: { town: 1864, other: 15986, act: 'เดินเข้าตรอกตลาด' } });
+                                market: { town: 1864, other: 15986, act: 'เดินเข้าตรอกตลาด' },
+                                guild: { town: 2786, other: 20472, act: 'ขึ้นบันไดซุ้มหอคอยไปย่านกิลด์' } });
   // ---- v94 getting around: riding your own horse / bike / scooter, or the coach (รถม้าโดยสาร) on long stretches.
   // RIDE is set by dayPlan for the state being planned (route() has no state of its own).
   const COACH = Object.freeze({ town: [120, 1340, 4430, 6300], carts: [11290, 12160, 13720, 14620] });   // = the stop signs in town-pano
@@ -225,6 +240,11 @@
     if (L.path === 'guild') path = today.place === 'tenement'
       ? Object.assign({}, path, { place: 'slumyard', room: 'slumyard', act: 'ฝึกร่างกายที่ลานฝึกตรอก' })
       : Object.assign({}, path, { room: 'yard', act: st.guild ? 'ซ้อมกับครูฝึกที่ลานฝึกกิลด์' : 'ฝึกที่ลานฝึกกิลด์' });
+    if (L.path === 'guild' && st.guild && today.place !== 'tenement') path = Object.assign({}, path, { place: 'tower', room: null, inside: true, act: 'เข้าหอคอยกับทีมนักรบโล่เหล็ก' });
+    if (L.path === 'compass') path = st.compassMember ? Object.assign({}, path, { place: 'tower', inside: true, act: 'ตามทีมสำรวจเข้าไปทำแผนที่ในหอคอย' })
+      : Object.assign({}, path, { inside: true, act: 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน' });
+    if (L.path === 'porter') path = Object.assign({}, path, { place: 'tower', inside: true, act: 'แบกเสบียงตามทีมเข้าหอคอย' });
+    if (L.path === 'tmerchant') path = Object.assign({}, path, { inside: true, act: st.merchMember ? 'ตีราคาของจากหอคอยในกิลด์พ่อค้า' : 'เป็นลูกมือตีราคาในกิลด์พ่อค้า' });
     const work = path.place;
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
     const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : 'นอนบนม้านั่งในสวน';
@@ -236,7 +256,7 @@
     }
     const w = end(route(WAKE, start, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)).map(x => (segs.push(x), x)));
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
-      { milestone: 'work', room: path.room || null, hidden: !!path.room, working: true });
+      { milestone: 'work', room: path.room || null, hidden: !!(path.room || path.inside), working: true });
     segs.push(atWork);
     let from = work, free = atWork.t1;
     const O = orderToday(st), plan = O ? orderStops(st, O) : null;
@@ -493,6 +513,8 @@
     return msgs;
   }
 
+  // v103 a repeatable 0–1 roll per day (so a reload never re-rolls the day's luck)
+  function roll(st, k) { const x = Math.sin((st.day || 1) * 12.9898 + k * 78.233 + (st.life && st.life.age || 0) * 3.7) * 43758.5453; return x - Math.floor(x); }
   function payWork(st, wage, core, ordinary) {
     const w = core && core.workWage ? core.workWage(wage, st.taxDue || 0, ordinary) : wage;
     st.money += w; st.work = (st.work || 0) + 1; st.jobDay = st.day; st.life.workedDay = st.day;
@@ -523,7 +545,46 @@
       }
       const w = payWork(st, tired ? 7 : 14, core, false);
       st.supplies = Math.min(30, (st.supplies || 0) + 2); st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      return say(st, 'ขนเสบียงให้กิลด์ ได้ ' + w + ' เหรียญ · เสบียงเมือง +2');
+      let msg = 'เข้าหอคอยกับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ';
+      // v103 the tower bites back: tired or weak fighters get hurt more often; sometimes there's something to bring home
+      if (roll(st, 1) < (tired ? 0.3 : 0.12) + (st.health < 50 ? 0.1 : 0)) { st.health = Math.max(1, st.health - 12); msg += ' · โดนกรงเล็บมอนสเตอร์ (สุขภาพ −12)'; }
+      if (roll(st, 2) < 0.3 && Bag && Bag.add(st, 'monster', 1, st.day)) msg += ' · ได้ชิ้นส่วนมอนสเตอร์ 1 ชิ้น';
+      return say(st, msg);
+    }
+    if (L.path === 'compass') {
+      st.compassWork = (st.compassWork || 0) + 1; L.workedDay = st.day; st.jobDay = st.day;
+      if (!st.compassMember) {
+        if (!tired && st.intelligence < 12) st.intelligence++;
+        let msg = tired ? 'ง่วงจนอ่านแผนที่ไม่เข้าหัว' : 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน ปัญญา +1';
+        if (st.intelligence >= 6) { st.compassMember = true; msg += ' · สอบผ่าน! ได้เข็มทิศเงินประจำตัว เข้ากิลด์นักสำรวจแล้ว'; }
+        return say(st, msg);
+      }
+      const w = payWork(st, Math.round((6 + clamp(st.intelligence, 1, 12)) * (tired ? 0.5 : 1)), core, false);
+      st.rep = (st.rep || 0) + 1;
+      let msg = 'ทำแผนที่ในหอคอยกับทีมสำรวจ ได้ ' + w + ' เหรียญ';
+      if (roll(st, 3) < 0.35 && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
+      if (roll(st, 5) < 0.06) { st.health = Math.max(1, st.health - 8); msg += ' · พลัดตกหลุมในหอคอย (สุขภาพ −8)'; }
+      return say(st, msg);
+    }
+    if (L.path === 'porter') {
+      const strong = st.strength >= 6;
+      const w = payWork(st, Math.round((8 + (strong ? 3 : 0)) * (tired ? 0.5 : 1)), core, true);
+      st.porterWork = (st.porterWork || 0) + 1; st.rep = (st.rep || 0) + 1;
+      if (!tired && st.porterWork % 4 === 0 && st.strength < 12) st.strength++;
+      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'แบกเสบียงตามทีมเข้าหอคอย ได้ ' + w + ' เหรียญ' + (!tired && st.porterWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : '');
+      if (roll(st, 6) < (tired ? 0.22 : 0.1)) { st.health = Math.max(1, st.health - 8); msg += ' · โดนมอนสเตอร์ข่วนตอนแบกของ (สุขภาพ −8)'; }
+      return say(st, msg);
+    }
+    if (L.path === 'tmerchant') {
+      st.tmerchWork = (st.tmerchWork || 0) + 1; st.rep = (st.rep || 0) + 1;
+      if (!st.merchMember) {
+        const w = payWork(st, tired ? 2 : 4, core, true);
+        let msg = 'เป็นลูกมือตีราคาในกิลด์พ่อค้า ได้ ' + w + ' เหรียญ ชื่อเสียง +1';
+        if (st.rep >= 5) { st.merchMember = true; msg += ' · หัวหน้ากิลด์รับเป็นนักตีราคาเต็มตัวแล้ว'; }
+        return say(st, msg);
+      }
+      const w = payWork(st, Math.round(Math.min(12, 6 + Math.floor((st.rep || 0) / 2)) * (tired ? 0.5 : 1)), core, true);
+      return say(st, 'ตีราคาของจากหอคอย ได้ ' + w + ' เหรียญ');
     }
     if (L.path === 'cargo') {
       const caravan = st.day % 3 === 0;

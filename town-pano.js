@@ -6,12 +6,13 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=99';
-  const WORLD_W = 19880, BASE = 794;
+  const V = '?v=103';
+  const WORLD_W = 24400, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.
-  const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, 11120], carts: [10700, 15400], market: [15500, WORLD_W] });
-  const zoneAt = x => x >= ZONES.market[0] ? 'market' : x >= 11300 ? 'carts' : x > ZONES.town[1] ? 'slum' : 'town';
+  // v103: ย่านกิลด์ (guild) is a fifth scene, up the steps under the tower arch
+  const ZONES = Object.freeze({ town: [0, 7203], slum: [6450, 11120], carts: [10700, 15400], market: [15500, 19880], guild: [20000, WORLD_W] });
+  const zoneAt = x => x >= ZONES.guild[0] ? 'guild' : x >= ZONES.market[0] ? 'market' : x >= 11300 ? 'carts' : x > ZONES.town[1] ? 'slum' : 'town';
   const hasImage = typeof Image !== 'undefined';
   const load = f => { if (!hasImage) return null; const i = new Image(); i.src = f + V; return i; };
 
@@ -51,6 +52,12 @@
     { id: 'mkt_cloth', x: 18220, y: 443, w: 528, h: 351 },
     { id: 'mkt_food', x: 18765, y: 444, w: 528, h: 350 },
     { id: 'mkt_shack', x: 19310, y: 529, w: 513, h: 265 },          // v92 เพิงข้างกองขยะ: a free place to sleep
+    // v103 ย่านกิลด์: the gate with the four guilds' banners, then one hall per guild; the tower lies beyond the east end
+    { id: 'ggate', x: 20050, y: 234, w: 843, h: 560 },
+    { id: 'giron', x: 20960, y: 404, w: 597, h: 390 },             // กิลด์นักรบโล่เหล็ก
+    { id: 'gcompass', x: 21620, y: 354, w: 642, h: 440 },          // กิลด์นักสำรวจเข็มทิศเงิน
+    { id: 'gporter', x: 22330, y: 369, w: 632, h: 425 },           // สมาคมคนแบกของ
+    { id: 'gmerch', x: 23040, y: 349, w: 636, h: 445 },            // กิลด์พ่อค้าหอคอย
     // v95 coach stops (รถม้าโดยสาร): x = centre - 167; life-sim COACH lists the same centres (drawn last: in front)
     { id: 'stop0', img: 'coachstop', zone: 'town', x: -47, y: 578, w: 335, h: 216 },
     { id: 'stop1', img: 'coachstop', zone: 'town', x: 1173, y: 578, w: 335, h: 216 },
@@ -63,6 +70,7 @@
   ]);
   const art = { sky: load('town6_sky.webp'), road: load('town6_road.webp'), tower: load('town6_tower.webp'),
     slumBg: load('town6_slum_bg.webp'), slumRoad: load('town6_slum_road.webp'), cartsBg: load('town6_carts_bg.webp'), mktBg: load('town6_mkt_bg.webp'), backRow: load('v47_backstreet.webp'), benchSleep: load('sleep_bench.webp?v=82') };
+  art.guildBg = load('town6_guild_bg.webp');
   art.coachstop = load('town6_coachstop.webp'); art.glow_coachstop = load('town6_glow_coachstop.webp');
   for (const b of BUILDINGS) if (!b.img) { art[b.id] = load('town6_' + b.id + '.webp'); art['glow_' + b.id] = load('town6_glow_' + b.id + '.webp'); }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -78,13 +86,13 @@
     junkDoor: 8932, junkWindow: 9185, shackA: 9691, scrapDoor: 10014, scrapCart: 10413, shackB: 10873,
     campFire: 11715, officeDoor: 12545, stableDoor: 13283, dock: 14202, outerGate: 15046,
     marketGate: 15986, produce: 16733, spice: 17274, fountain: 17876, cloth: 18484, foodStall: 19029,
-    shrine: 11000, shack: 19666
+    shrine: 11000, shack: 19666,
+    guildLane: 20472, ironDoor: 21258, compassDoor: 21941, porterDoor: 22646, merchDoor: 23358, towerPath: 24470
   });
   const GATE = [240, 420];                                   // the lane up through the city gate
   const ARCH = [2665, 2905];                                 // the steps up toward the tower
   const PLACES = Object.freeze({
     tavern: SPOTS.tavernDoor,
-    guild:  SPOTS.stairs,                                    // training plate in front of the arch
     market: SPOTS.stall,
     smith:  4847,                                            // just right of the anvil
     inn:    SPOTS.innDoor,
@@ -96,14 +104,17 @@
     cargo:  14050,                                           // v87: ลานเกวียน, by the warehouse dock
     shrine: SPOTS.shrine,                                    // v92 free shelters
     shack:  SPOTS.shack,
-    market: SPOTS.produce                                    // v90: งานรับจ้างที่ตลาดใหญ่ (was the bakery stall)
+    market: SPOTS.produce,                                   // v90: งานรับจ้างที่ตลาดใหญ่ (was the bakery stall)
+    guild: SPOTS.ironDoor,                                   // v103 the four guild halls, and the way into the tower
+    compass: SPOTS.compassDoor, porter: SPOTS.porterDoor, tmerchant: SPOTS.merchDoor, tower: SPOTS.towerPath
   });
   const BENCH_SEAT = 52, BENCH_PATCH = [280, 438];     // patch position in the garden image's pixels
   const NAMES = [
     [660, 'ประตูเมือง'], [1250, 'ร้านอาหาร'], [2435, 'ปากตรอกตลาด'], [3140, 'ลานหน้าหอคอย'], [3383, 'บ่อน้ำกลางเมือง'],
     [3975, 'ตลาดขนมปัง'], [4415, 'สวนริมทาง'], [4975, 'โรงตีเหล็ก'], [5395, 'ร้านยา'], [6305, 'โรงแรม'], [7205, 'ทางเข้าตรอกล่าง'], [7645, 'ห้องเช่าตรอก'], [8245, 'โรงทาน'],
     [8768, 'ลานซักผ้า'], [9395, 'ร้านรับซื้อของเก่า'], [9888, 'ตรอกล่าง'], [10525, 'ลานของเก่า'], [11300, 'ท้ายตรอก'], [12220, 'ค่ายคาราวาน'], [12975, 'ซุ้มหัวหน้าคนงาน'], [13850, 'คอกสัตว์'], [14700, 'โกดังสินค้า'], [15450, 'ประตูเมืองฝั่งนอก'],
-    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [19300, 'ร้านอาหารริมทาง'], [Infinity, 'กองขยะท้ายตลาด']
+    [16460, 'ปากตรอกฝั่งตลาด'], [17000, 'แผงผักผลไม้'], [17550, 'แผงเครื่องเทศ'], [18215, 'น้ำพุลานตลาด'], [18760, 'แผงผ้า'], [19300, 'ร้านอาหารริมทาง'], [20000, 'กองขยะท้ายตลาด'],
+    [20950, 'ซุ้มประตูย่านกิลด์'], [21600, 'กิลด์นักรบโล่เหล็ก'], [22320, 'กิลด์นักสำรวจเข็มทิศเงิน'], [23030, 'สมาคมคนแบกของ'], [23700, 'กิลด์พ่อค้าหอคอย'], [Infinity, 'ทางขึ้นหอคอย']
   ];
   function sceneName(x) { for (const [limit, name] of NAMES) if (x < limit) return name; return 'ถนนในเมือง'; }
   function walkable(x, y) {
@@ -195,6 +206,17 @@
       if (ok(art.mktBg)) tiled(ctx, art.mktBg, 0, 0, art.mktBg.naturalHeight, 0, SKY_BOTTOM + 20 - art.mktBg.naturalHeight * 1.05, 1.05, camera, w, SKY_RATE);
       if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t, 0.5);
       ctx.fillStyle = 'rgba(240,226,206,0.3)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
+      if (ok(art.road)) road(art.road);
+    } else if (zone === 'guild') {                       // v103: one wide painting, slid so its two ends meet the zone's ends
+      ctx.fillStyle = '#a9c4ec'; ctx.fillRect(camera, 0, w, h);
+      const im = art.guildBg;
+      if (ok(im)) {
+        const s = Math.max(1.22, (w * 1.15) / im.naturalWidth), iw = im.naturalWidth * s, Z = ZONES.guild;
+        const f = Math.max(0, Math.min(1, (camera - Z[0]) / Math.max(1, Z[1] - Z[0] - w)));
+        ctx.drawImage(im, camera - f * (iw - w), 780 - 630 * s, iw, im.naturalHeight * s);
+      }
+      if (root.Ambient && t !== undefined) root.Ambient.drawClouds(ctx, camera, w, t, 0.45);
+      ctx.fillStyle = 'rgba(240,226,206,0.22)'; ctx.fillRect(camera, 0, w, SKY_BOTTOM);
       if (ok(art.road)) road(art.road);
     } else if (zone === 'slum') {
       // backdrop smaller and hazed so its rooftops read as far away behind the real shacks

@@ -338,7 +338,7 @@
     return `<h2>ตัวละคร</h2>
       <p>ตัวตนในโลกเดิม: <b>${esc(o.name)}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
       <p class="lg-muted">${esc(o.perk)}</p>
-      <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${state.guild ? ' · สมาชิกกิลด์' : ''}</p>
+      <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
@@ -349,7 +349,7 @@
   }
   function skillHtml() {
     const bar = (label, v, max, note) => `<span>${label}</span><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, v / max * 100))}%"></i></div><b>${v}</b><span></span><small class="lg-muted" style="grid-column:2/4;margin-top:-4px">${note}</small>`;
-    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'ฝึกที่ลานกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
+    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
       .filter(([k]) => state[k] > 0);
     return `<h2>สกิล</h2>
       <h3>ค่าสถานะ</h3><div class="lg-skill">
@@ -363,7 +363,7 @@
   }
   function mapHtml() {
     const s = window.LIFE_INFO || {}, L = state.life, P = LifeSim.PLACES, Z = TownPano.ZONES;
-    const names = { town: 'ในเมือง', slum: 'ตรอกล่าง', carts: 'ลานเกวียนนอกประตูเมือง', market: 'ตลาดใหญ่' };
+    const names = { town: 'ในเมือง', slum: 'ตรอกล่าง', carts: 'ลานเกวียนนอกประตูเมือง', market: 'ตลาดใหญ่', guild: 'ย่านกิลด์ (ขึ้นบันไดซุ้มหอคอย)' };
     const work = LifeSim.PATHS[L.path] && LifeSim.PATHS[L.path].place, home = L.homeTonight || L.roomPref;
     const skip = { guildhall: 1, bazaar: 1 };
     return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + Object.keys(names).map(z => {
