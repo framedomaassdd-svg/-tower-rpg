@@ -443,6 +443,7 @@
   }
   function init() {
     if (inited) return; inited = true;
+    try { loadSheets(); } catch (e) {}                                  // item icons ready before the first loot card
     window.LIFE_AUTO = true;
     hudEl = document.createElement('div'); hudEl.id = 'hud';
     hudEl.innerHTML = '<canvas></canvas><div><div class="l1"></div><div class="bars"></div><div class="l3"></div></div>';
