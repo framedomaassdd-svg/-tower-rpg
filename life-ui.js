@@ -77,6 +77,15 @@
   .lg-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff1c;font-size:12px;line-height:1.25;text-align:center}
   .lg-slot b{position:absolute;right:6px;top:4px;min-width:20px;padding:0 5px;border-radius:99px;background:#e0a84a;color:#2a1a0c;font-size:12px}
   .lg-slot .x{color:#ff9a7a} .lg-slot .d{color:var(--lg-muted);font-size:11px}
+  .lg-safe-card{max-width:800px}
+  .lg-safe-head{position:sticky;top:-22px;z-index:2;background:var(--lg-bg);padding:4px 0 12px;border-bottom:1px solid #ffffff24}
+  .lg-safe-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}
+  .lg-safe-tabs button{border-radius:10px;padding:10px 3px;background:#3a2c20;color:#f6ecd8;font-size:13px}
+  .lg-safe-tabs button.on{background:#9e7538;border-color:#f2c14e;color:#fff}
+  .lg-safe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+  .lg-safe-grid .lg-btn{margin:0;font-size:14px;min-height:76px}
+  .lg-safe-note{color:#eccc75;min-height:22px;margin:6px 0;font-size:14px}
+  .lg-tower-directions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0}
   .lg-reels{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
   .lg-reel{width:74px;height:82px;border-radius:14px;background:linear-gradient(#120b07,#2a1c12 50%,#120b07);border:2px solid var(--lg-line);font-size:46px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 14px #000c}
   .lg-reel.stop{border-color:#ffd76a;box-shadow:inset 0 0 14px #000c,0 0 12px #ffd76a66}
@@ -231,6 +240,7 @@
         return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${esc(it.name)}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
     const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
+      ${X() && X().safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดร้านและหีบเซฟโซนชั้น ' + X().X(state).floor + '</button>' : ''}
       <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
       ${stashHtml()}
@@ -365,6 +375,7 @@
         <p>ค้นหาศิลา</p><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, x.search / need * 100))}%"></i></div>
         <p class="lg-muted">${x.search}/${need}${K.exit ? ' · ✦ รู้ตำแหน่งศิลาทางออก' : ''}${K.up ? ' · ✦ รู้ตำแหน่งศิลาทางขึ้น' : ''} · ทางออกจากหอคอยมีทางเดียวคือศิลาทางออก</p>
         <p class="lg-muted">ของกิน ${B().meals(state)} มื้อ · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · ชนะ ${x.wins} ครั้ง</p>
+        ${E.safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เข้าบริการเซฟโซน · ซื้อ/ขาย/พัก/ฝาก/ศิลา</button>' : ''}
         <div class="lg-log">${esc(x.log.slice(0, 5).map(e => 'วันที่ ' + e.day + ' · ' + e.title + ': ' + e.lines.join(' / ')).join('\n'))}</div>`;
     }
     if (x && !x.over) return `<h3>หอคอย</h3><p>จะเข้าหอคอยเช้าวันที่ ${x.start}${x.party ? ' กับ' + esc(E.PARTY[x.party].name) : ' คนเดียว'}</p>
@@ -396,6 +407,66 @@
         log('เตรียมเข้าหอคอยเช้าวันที่ ' + r.start + (sel.party ? ' กับ' + E.PARTY[sel.party].name : ' คนเดียว')); save(); }
       d.remove(); block(null); panel('char'); });
   }
+  // v111 safe zone: one persistent shop-like overlay, not one action per encounter/day.
+  function safeCard() {
+    const E = X(), info = E && E.safeInfo(state);
+    if (!info || open) return false;
+    const exp = E.X(state);
+    exp.safePending = false;                         // opening is not a daily action
+    let section = 'shop', note = '';
+    const d = el(`<div class="lg-card lg-safe-card"><div class="lg-safe-head">
+      <h2>🏕 เซฟโซน · ชั้น ${info.floor}</h2>
+      <p class="lg-muted">ไม่มีการโจมตีระหว่างใช้บริการ · เลือกซื้อ/ขาย/อ่าน/ฝากได้ไม่จำกัดครั้ง · ศิลาทางออกและศิลาทางขึ้นใช้งานได้ทันที</p>
+      <p class="lg-safe-stats"></p>
+      <div class="lg-safe-tabs"></div><p class="lg-safe-note" role="status" aria-live="polite"></p></div>
+      <div class="lg-safe-inner"></div><button class="lg-btn lg-primary" data-safe-close="1">ปิดหน้าบริการ</button></div>`);
+    block(d);
+    const tabs = [['shop','ร้าน'],['sell','รับซื้อ'],['rest','ที่พัก'],['chest','หีบ'],['hire','จ้างคน'],['stone','ศิลา']];
+    const b = B();
+    const smallButton = (kind, id, title, desc, disabled) => `<button class="lg-btn" data-safe-action="${kind}" data-safe-id="${esc(id || '')}" ${disabled ? 'disabled' : ''}>${title}<small>${desc || ''}</small></button>`;
+    function render() {
+      const x = E.X(state), floor = x.floor;
+      d.querySelector('.lg-safe-stats').textContent = 'เงิน ' + state.money + ' เหรียญ · สุขภาพ ' + state.health + '/100 · แรง ' + state.energy + '/100 · กระเป๋า ' + b.total(state) + '/' + b.CAP;
+      d.querySelector('.lg-safe-tabs').innerHTML = tabs.map(([id,n]) => `<button data-safe-tab="${id}" class="${section === id ? 'on' : ''}">${n}</button>`).join('');
+      d.querySelector('.lg-safe-note').textContent = note;
+      let html = '';
+      if (section === 'shop') {
+        html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ ราคาสูงกว่าร้านในเมือง</p><div class="lg-safe-grid">' +
+          Object.keys(b.SAFE_SHOP).map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor) || b.total(state) >= b.CAP)).join('') + '</div>';
+      } else if (section === 'sell') {
+        const items = Object.keys(b.ITEMS).filter(id => b.SAFE_BUYER.includes(id) && b.count(state, id));
+        html = '<h3>จุดรับซื้อวัสดุ</h3><p class="lg-muted">ขายทีละชิ้น รับเหรียญทันที (ไม่ขายของสวมใส่อัตโนมัติ)</p>' +
+          (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>');
+      } else if (section === 'rest') {
+        html = '<h3>ที่พักในเซฟโซน</h3><p>พักปลอดภัย สุขภาพ +32 และแรงเต็ม ค่าพัก 16 เหรียญ · หนึ่งครั้งต่อวัน</p>' +
+          smallButton('rest', '', '🛏️ เข้าพัก', x.safeRestDay === state.day ? 'พักแล้ววันนี้' : '16 เหรียญ', x.safeRestDay === state.day || state.money < 16);
+      } else if (section === 'chest') {
+        const stashed = b.stash(state).filter(y => b.ITEMS[y.id]);
+        const carrying = b.list(state).filter(y => b.ITEMS[y.id] && b.ITEMS[y.id].kind !== 'meal');
+        html = '<h3>หีบเก็บของในหอคอย</h3><p class="lg-muted">ฝาก/ถอนทีละชิ้น กดซ้ำได้ หีบเดียวกับหีบฝากของในเมือง ของกินไม่รับฝาก</p>' +
+          '<h3>ฝากจากกระเป๋า</h3>' + (carrying.length ? '<div class="lg-safe-grid">' + carrying.map(y => smallButton('deposit', y.id, 'ฝาก ' + iconHtml(y.id, 24) + esc(b.name(y.id)), 'ในกระเป๋า ×' + b.count(state, y.id))).join('') + '</div>' : '<p class="lg-muted">ไม่มีของที่ฝากได้</p>') +
+          '<h3>ถอนจากหีบ</h3>' + (stashed.length ? '<div class="lg-safe-grid">' + [...new Set(stashed.map(y => y.id))].map(id => smallButton('withdraw', id, 'รับคืน ' + iconHtml(id, 24) + esc(b.name(id)), 'ในหีบ ×' + stashed.filter(y => y.id === id).reduce((a,y) => a+y.n,0), b.total(state) >= b.CAP)).join('') + '</div>' : '<p class="lg-muted">หีบว่าง</p>');
+      } else if (section === 'hire') {
+        html = '<h3>ผู้รับจ้างร่วมทาง</h3><p>ค่าจ้างครั้งเดียว 180 เหรียญ นักรบคุ้มกัน +83 พลัง อยู่ด้วยระหว่างการเดินทางจนสิ้นสุดรอบสำรวจ</p>' +
+          (x.ally ? '<p>ร่วมทางแล้ว: ' + esc(x.ally.name) + ' · พลัง +' + x.ally.power + '</p>' : smallButton('hire', '', '🤝 จ้างผู้คุ้มกัน', '180 เหรียญ', state.money < 180));
+      } else if (section === 'stone') {
+        html = '<h3>ศิลาเดินทาง · พร้อมใช้งาน</h3><p>ศิลาทางออกจะพากลับไปประตูหอคอยในเมือง ศิลาทางขึ้นส่งขึ้นอีกหนึ่งชั้น ไม่สามารถเดินออกจากชั้นได้เอง</p>' +
+          smallButton('stone', 'exit', '🔹 ศิลาทางออก · กลับเมือง', 'ปิดการสำรวจครั้งนี้') +
+          smallButton('stone', 'up', '🟡 ศิลาทางขึ้น · ชั้น ' + (floor + 1), esc(E.terrainOf(floor + 1).name));
+      }
+      d.querySelector('.lg-safe-inner').innerHTML = html;
+      d.querySelectorAll('[data-safe-tab]').forEach(btn => btn.onclick = () => { section = btn.dataset.safeTab; note = ''; render(); });
+      d.querySelectorAll('[data-safe-action]').forEach(btn => btn.onclick = () => {
+        const result = E.safeAction(state, btn.dataset.safeAction, btn.dataset.safeId, clock);
+        note = result.why; if (result.ok) { log('เซฟโซน: ' + result.why); save(); }
+        if (result.travel) { closeOverlay(d); return; }
+        render();                     // keep same card open, allowing any number of transactions
+      });
+    }
+    d.querySelector('[data-safe-close]').onclick = () => closeOverlay(d);
+    render(); save(); return true;
+  }
+
   // an encounter in the tower: choose → spin the three reels → see what happened
   function encounterCard(enc) {
     const E = X(), Eng = window.TowerSlotEngine;
@@ -478,6 +549,7 @@
       if (trial && spec) tr = trial.accepted ? `<small style="display:block;color:var(--lg-gold)">ภารกิจเลื่อนขั้น: ${esc(spec.text)} · ${trial.done}/${spec.need}</small>`
         : `<button class="lg-btn" data-trial="${id}">รับภารกิจเลื่อนขั้นจาก${esc(D.teacher)}<small>${esc(spec.text)}</small></button>`;
       return `<div class="lg-zone"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
+        ${D.type === 'active' ? `<button class="lg-btn ${S.activeOf(state) === id ? 'lg-cur' : ''}" data-active="${id}">${S.activeOf(state) === id ? '✓ กำลังใช้สกิลนี้' : 'เลือกเป็นสกิลแอ็กทีฟ'}</button>` : ''}
         ${cap ? `<div class="lg-bar" style="margin:6px 0 2px"><i style="width:${Math.max(3, sk.xp / cap * 100)}%"></i></div><small class="lg-muted">ความชำนาญ ${sk.xp}/${cap}${sk.xp >= cap ? ' · เต็มขั้นแล้ว' : ''}</small>` : '<small class="lg-muted">ขั้นสูงสุด</small>'}${tr}</div>`;
     }).join('') || '<p class="lg-muted">ยังไม่มีสกิล ทำงานหรือฝึกแล้วจะได้สกิลแรก</p>';
     const gear = Object.entries(S.SLOTS).map(([slot, name]) => {
@@ -496,7 +568,9 @@
         ${bar('ชื่อเสียง', state.rep || 0, 50, 'คนในเมืองเกรงใจมากขึ้น')}
         ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
-      <h3>สกิล</h3>${skills}
+      <h3>สกิล</h3><p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
+      ${Object.entries(S.BOOK_SKILL).filter(([book,id]) => B().count(state, book) && !state.skills[id]).map(([book,id]) => `<button class="lg-btn" data-read="${book}">📖 อ่าน ${esc(B().name(book))} <small>เรียน ${esc(S.SKILLS[id].name)} แล้วตำราจะถูกใช้ไป</small></button>`).join('')}
+      ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการเซฟโซน (ร้าน/อ่านตำรา/ศิลา)</button>' : ''}
       <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
       <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}
       <h3>ประสบการณ์งาน</h3>${jobs.length ? '<div class="lg-stats">' + jobs.map(([k, n]) => `<span>${n} · ${state[k]} ${k === 'towerWins' ? 'ครั้ง' : 'วัน'}</span>`).join('') + '</div>' : '<p class="lg-muted">ยังไม่เคยทำงานครบวัน</p>'}`;
@@ -506,7 +580,9 @@
     const names = { town: 'ในเมือง', slum: 'ตรอกล่าง', carts: 'ลานเกวียนนอกประตูเมือง', market: 'ตลาดใหญ่', guild: 'ย่านกิลด์ (ขึ้นบันไดซุ้มหอคอย)' };
     const work = LifeSim.PATHS[L.path] && LifeSim.PATHS[L.path].place, home = L.homeTonight || L.roomPref;
     const skip = { guildhall: 1, bazaar: 1 };
-    return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + Object.keys(names).map(z => {
+    const E = X(), x = E && E.active(state) ? E.X(state) : null;
+    const towerMap = x ? (() => { const f = E.floorWorld(state, x.floor); return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(E.terrainOf(x.floor).name)}</h3><p class="lg-muted">สี่อาณาเขตของอสูร (เหนือ→ตะวันออก→ใต้→ตะวันตก→เหนือ) แต่ละทิศมีอสูรชนิดหนึ่งล่าอีกชนิดหนึ่ง จำนวนเปลี่ยนทุกวันแม้ผู้เล่นไม่อยู่</p><div class="lg-tower-directions">${f.species.map(y => `<div class="lg-zone"><b>${esc(y.direction)}</b><p>${esc(y.name)}</p><small>จำนวน ${y.count} · ระดับ ${esc(E.RANKS[Math.min(6,[60,120,210,340,480,650].filter(z=>y.champion>=z).length)])} · พลังหัวฝูง ${Math.round(y.champion)}</small></div>`).join('')}</div>${E.safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซนชั้นนี้</button>' : ''}`; })() : '';
+    return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + towerMap + Object.keys(names).map(z => {
       const [a, b] = Z[z], W = 380, X = x => 14 + (x - a) / (b - a) * (W - 28);
       const pl = Object.entries(P).filter(([id, p]) => !skip[id] && (LifeSim.zoneOf(id) || TownPano.zoneAt(p.x)) === z && p.x >= a - 50 && p.x <= b + 50).sort((u, v) => u[1].x - v[1].x);
       const here = s.zone === z, LV = [[44, 30], [44, 14], [64, 80], [64, 96]];   // [line end, label y] above ×2, below ×2
@@ -537,6 +613,9 @@
     d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); again(); });
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
     on('[data-a=xprep]', () => { d.remove(); block(null); prepCard(); });
+    on('[data-safe]', () => { d.remove(); block(null); safeCard(); });
+    d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read); log(r.why); again(); });
+    d.querySelectorAll('[data-active]').forEach(b => b.onclick = () => { if (Skills.selectActive(state, b.dataset.active)) log('เลือกสกิลแอ็กทีฟ ' + Skills.SKILLS[b.dataset.active].name); again(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
 
     d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
@@ -609,6 +688,7 @@
     const L = state.life;
     if (L.dead) { deathCard(); return; }
     if (L.exp && L.exp.pending) { encounterCard(L.exp.pending); return; }
+    if (L.exp && L.exp.safePending && X().safeInfo(state)) { safeCard(); return; }
     if (L.pendingEvent && LifeSim.EVENTS[L.pendingEvent]) { event(L.pendingEvent); return; }
     for (const k of LifeSim.due(state, clock)) {
       if (k === 'work' && L.path === 'smith') { smith(); return; }
@@ -681,5 +761,5 @@
       wait();
     }
   }
-  window.LifeUI = { init, drive, panel, newLife, event, _state: () => ({ open: !!open }) };
+  window.LifeUI = { init, drive, panel, safeCard, newLife, event, _state: () => ({ open: !!open }) };
 })();

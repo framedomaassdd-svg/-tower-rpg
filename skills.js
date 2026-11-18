@@ -23,6 +23,9 @@
                  teacher: 'ครูฝึกกิลด์', trial: t => ({ on: 'clean_win', need: 2 + t, text: 'ชนะการต่อสู้โดยไม่บาดเจ็บ ' + (2 + t) + ' ครั้ง' }) },
     keen:      { name: 'ตาไว', type: 'passive', icon: '👁️', stat: { intelligence: [4, 9, 15, 22, 30] }, desc: 'ปัญญาเพิ่มตามขั้น',
                  teacher: 'หัวหน้ากิลด์เข็มทิศเงิน', trial: t => ({ on: 'study', need: 4 + t, text: 'ศึกษาแผนที่หรือตีราคาของ ' + (4 + t) + ' วัน' }) },
+    fire:      { name: 'เพลิงวิญญาณ', type: 'active', icon: '🔥', power: [6, 12, 21, 32, 46], desc: 'ไฟปรากฏบนวงล้อต่อสู้เมื่อเลือกใช้สกิลนี้', teacher: 'ผู้จดตำราในเซฟโซน', trial: t => ({ on: 'win', min: 10 + 10 * t, need: 3, text: 'ชนะมอนสเตอร์พลังสูง 3 ครั้ง' }) },
+    ice:       { name: 'ไอเยือกแข็ง', type: 'active', icon: '🧊', power: [5, 11, 19, 29, 42], desc: 'น้ำแข็งปรากฏบนวงล้อต่อสู้เมื่อเลือกใช้สกิลนี้', teacher: 'ผู้จดตำราในเซฟโซน', trial: t => ({ on: 'win', min: 10 + 10 * t, need: 3, text: 'ชนะมอนสเตอร์พลังสูง 3 ครั้ง' }) },
+    dangerSense: { name: 'ญาณระวังภัย', type: 'passive', icon: '👁️', stat: { agility: [2, 5, 8, 12, 17] }, desc: 'ลดโอกาสอันตรายในการสำรวจ', teacher: 'ผู้จดตำราในเซฟโซน', trial: t => ({ on: 'deep_map', need: 1 + t, text: 'สำรวจชั้นลึกเพิ่มเติม' }) },
     sword:     { name: 'วิชาดาบ', type: 'active', icon: '⚔️', power: [4, 9, 16, 25, 36], desc: 'ฟันสองจังหวะเมื่อ ✨ ขึ้นบนวงล้อ เพิ่มพลังต่อสู้',
                  teacher: 'หัวหน้ากิลด์โล่เหล็ก', trial: t => { const m = [15, 30, 50, 75][t - 1]; return { on: 'win', min: m, need: 3, text: 'ชนะมอนสเตอร์พลัง ' + m + ' ขึ้นไป 3 ครั้ง' }; } },
     smithing:  { name: 'ตีเหล็ก', type: 'life', icon: '🔨', desc: 'จังหวะมินิเกมตีเหล็กกว้างขึ้น ค่าแรงช่างเพิ่ม',
@@ -62,6 +65,9 @@
     if (!st.equip || typeof st.equip !== 'object') st.equip = {};
     if (!st.trials || typeof st.trials !== 'object') st.trials = {};
     if (!st.wounds || typeof st.wounds !== 'object') st.wounds = { until: 0 };
+    // Migration: older saves never stored a selected active skill.
+    if (!st.activeSkill || !SKILLS[st.activeSkill] || SKILLS[st.activeSkill].type !== 'active' || !st.skills[st.activeSkill])
+      st.activeSkill = st.skills.sword ? 'sword' : (['fire', 'ice'].find(k => !!st.skills[k]) || null);
     return st;
   }
   const tierOf = (st, id) => (st.skills && st.skills[id] ? st.skills[id].tier : 0);
@@ -85,7 +91,7 @@
     if (!s) s = st.skills[id] = { tier: 1, xp: 0 };
     const cap = TIERS[s.tier - 1].cap;
     if (cap) s.xp = Math.min(cap, s.xp + xp);
-    if (fresh) { recalc(st); return 'ได้สกิลใหม่ "' + S.name + '"'; }
+    if (fresh) { if (S.type === 'active' && !st.activeSkill) st.activeSkill = id; recalc(st); return 'ได้สกิลใหม่ "' + S.name + '"'; }
     if (cap && s.xp >= cap && !st.trials[id]) { st.trials[id] = { offered: true, accepted: false, done: 0 }; return 'ความชำนาญ ' + S.name + ' เต็มขั้น — ' + S.teacher + 'มีภารกิจเลื่อนขั้นให้'; }
     return null;
   }
@@ -109,10 +115,30 @@
   function earnTitle(st, id) { data(st); if (!TITLES[id] || st.titles.includes(id)) return null; st.titles.push(id); return 'ได้ฉายา "' + TITLES[id].name + '"'; }
   function wearTitle(st, id) { data(st); if (!st.titles.includes(id)) return false; st.title = id; recalc(st); return true; }
 
-  // ---- combat: stats + active skill + weapon/armor against a monster's power
+  const activeOf = st => { data(st); return st.activeSkill && st.skills[st.activeSkill] ? st.activeSkill : null; };
+  function selectActive(st, id) {
+    data(st);
+    if (id !== null && (!SKILLS[id] || SKILLS[id].type !== 'active' || !st.skills[id])) return false;
+    st.activeSkill = id; return true;
+  }
+  const BOOK_SKILL = Object.freeze({ book_fire: 'fire', book_ice: 'ice', book_sense: 'dangerSense' });
+  function readBook(st, book) {
+    data(st);
+    const id = BOOK_SKILL[book];
+    if (!id) return { ok: false, why: 'ไม่ใช่ตำราที่อ่านได้' };
+    if (st.skills[id]) return { ok: false, why: 'เรียนสกิลนี้แล้ว' };
+    // Skills does not mutate Bag; its Node/browser dependency is injected via the same module loaded by LifeSim.
+    const B = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
+    if (!B || !B.count(st, book)) return { ok: false, why: 'ไม่มีตำราในกระเป๋า' };
+    if (!B.take(st, book, 1)) return { ok: false, why: 'ใช้ตำราไม่สำเร็จ' };
+    const notice = train(st, id, 1);
+    return { ok: true, why: (notice || 'ได้สกิล ' + SKILLS[id].name) + (SKILLS[id].type === 'active' ? ' · เลือกใช้ในแท็บสกิล' : '') };
+  }
+
+  // ---- combat: stats + selected active skill + weapon/armor against a monster's power
   function power(st) {
-    data(st); const w = GEAR[st.equip.weapon], a = GEAR[st.equip.armor], sw = st.skills.sword;
-    return Math.round(st.strength + 0.6 * st.agility + 0.25 * st.intelligence + (w ? w.atk : 0) + (a ? a.def * 0.6 : 0) + (sw ? SKILLS.sword.power[sw.tier - 1] : 0));
+    data(st); const w = GEAR[st.equip.weapon], a = GEAR[st.equip.armor], id = activeOf(st), sk = id && st.skills[id];
+    return Math.round(st.strength + 0.6 * st.agility + 0.25 * st.intelligence + (w ? w.atk : 0) + (a ? a.def * 0.6 : 0) + (sk ? SKILLS[id].power[sk.tier - 1] : 0));
   }
   // chance to win against `mon` (power) with `ally` power fighting alongside: 1 / (1 + (m/h)^3)
   //   hero 50 vs rabbit 10 → 99.2% · equal → 50% · half as strong → 11%
@@ -136,5 +162,5 @@
     return { money, gear, until: st.wounds.until };
   }
   return { TIERS, SKILLS, TITLES, GEAR, SLOTS, STAT_NAME, data, bonus, recalc, train, trialOf, accept, progress, earnTitle, wearTitle, tierOf,
-    power, winChance, fight, rescuePenalty };
+    power, winChance, fight, rescuePenalty, activeOf, selectActive, readBook, BOOK_SKILL };
 });

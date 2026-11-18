@@ -37,6 +37,9 @@
     ore:       { name: 'แร่เหล็กดิบ',        icon: '🪨', kind: 'material', keep: 0, sell: 3 },
     crystal:   { name: 'คริสตัลหอคอย',      icon: '💎', kind: 'material', keep: 0, sell: 15 },
     potion:    { name: 'ยาฟื้นแรง',          icon: '🧪', kind: 'tool', keep: 0, sell: 2, desc: 'ในหอคอย ดื่มเองเมื่อสุขภาพต่ำกว่า 40 (+30)' },
+    book_fire: { name: 'ตำราเพลิงวิญญาณ', icon: '📕', kind: 'book', keep: 0, sell: 40, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ เพลิงวิญญาณ' },
+    book_ice:  { name: 'ตำราไอเยือกแข็ง', icon: '📘', kind: 'book', keep: 0, sell: 48, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ ไอเยือกแข็ง' },
+    book_sense:{ name: 'ตำราญาณระวังภัย', icon: '📗', kind: 'book', keep: 0, sell: 55, desc: 'อ่านเพื่อเรียนสกิลพาสซีฟ ญาณระวังภัย' },
     // v108 gear (Skills.GEAR has the numbers)
     sword:     { name: 'ดาบเหล็ก',          icon: '⚔️', kind: 'goods', keep: 0, sell: 24, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +11' },
     leather:   { name: 'เสื้อหนัง',          icon: '🦺', kind: 'goods', keep: 0, sell: 7, equip: 'armor', desc: 'เกราะ ป้องกัน +5' },
@@ -58,6 +61,26 @@
     chain: [1, 8], plank: [1, 9], horse: [1, 10], bike: [1, 11], scooter: [1, 12], coins: [1, 13], potion: [1, 14], chest: [1, 15]
   });
   const COIN = Object.freeze({ name: 'เหรียญ', icon: '🪙' });
+  // v111 tower safe-zone traders: rates are deliberately higher than in the city.
+  const SAFE_SHOP = Object.freeze({ bread: 4, jerky: 6, potion: 10, leather: 22, sword: 72,
+    book_fire: 137, book_ice: 168, book_sense: 198 });
+  const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain']);
+  const safeBuyPrice = (id, floor) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13));
+  const safeSellPrice = (id, floor) => SAFE_BUYER.includes(id) ? Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1))) : 0;
+  function safeBuy(st, id, floor) {
+    if (!Object.prototype.hasOwnProperty.call(SAFE_SHOP, id)) return { ok: false, why: 'ร้านนี้ไม่มีสินค้าดังกล่าว' };
+    const price = safeBuyPrice(id, floor);
+    if ((st.money || 0) < price) return { ok: false, why: 'เหรียญไม่เพียงพอ' };
+    if (total(st) >= CAP) return { ok: false, why: 'กระเป๋าเต็ม' };
+    if (add(st, id, 1, st.day) !== 1) return { ok: false, why: 'ซื้อไม่สำเร็จ' };
+    st.money -= price; return { ok: true, why: 'ซื้อ' + name(id) + ' −' + price + ' เหรียญ' };
+  }
+  function safeSell(st, id, floor) {
+    const price = safeSellPrice(id, floor);
+    if (!price || !count(st, id)) return { ok: false, why: 'ไม่มีสินค้าที่ร้านรับซื้อ' };
+    if (!take(st, id, 1)) return { ok: false, why: 'ขายไม่สำเร็จ' };
+    st.money = (st.money || 0) + price; return { ok: true, why: 'ขาย' + name(id) + ' + ' + price + ' เหรียญ' };
+  }
   // where things are bought (place = LifeSim place id)
   const SHOPS = Object.freeze({
     bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
@@ -165,7 +188,31 @@
       if (s.n > k) left.push({ id: s.id, n: s.n - k, exp: s.exp }); }
     st.stash = left; sync(st); return n;
   }
+  // Transfers retain each stack's expiration; unlike the old guild chest they can be repeated for individual items.
+  function depositItem(st, id, n = 1) {
+    if (!ITEMS[id] || ITEMS[id].kind === 'meal' || !Number.isInteger(n) || n < 1 || count(st, id) < n) return 0;
+    const chunks = list(st).filter(s => s.id === id).sort((a,b) => (a.exp || 1e9) - (b.exp || 1e9));
+    let left = n;
+    for (const s of chunks) {
+      const k = Math.min(left, s.n), target = stash(st).find(x => x.id === id && x.exp === s.exp);
+      if (target) target.n += k; else stash(st).push({ id, n: k, exp: s.exp });
+      s.n -= k; left -= k; if (!left) break;
+    }
+    st.bag = list(st).filter(s => s.n > 0); sync(st); return n;
+  }
+  function withdrawItem(st, id, n = 1) {
+    if (!ITEMS[id] || !Number.isInteger(n) || n < 1) return 0;
+    let left = Math.min(n, CAP - total(st));
+    let moved = 0;
+    for (const s of stash(st).filter(s => s.id === id)) {
+      const k = Math.min(left, s.n), target = list(st).find(x => x.id === id && x.exp === s.exp);
+      if (!k) break;
+      if (target) target.n += k; else list(st).push({ id, n: k, exp: s.exp });
+      s.n -= k; moved += k; left -= k; if (!left) break;
+    }
+    st.stash = stash(st).filter(s => s.n > 0); sync(st); return moved;
+  }
   const stashCount = st => stash(st).reduce((n, s) => n + s.n, 0);
-  return { stash, deposit, withdraw, stashCount, vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+  return { stash, deposit, withdraw, depositItem, withdrawItem, stashCount, safeBuy, safeSell, SAFE_SHOP, SAFE_BUYER, safeBuyPrice, safeSellPrice, vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
     list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
 });

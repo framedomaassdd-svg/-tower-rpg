@@ -148,7 +148,7 @@
     st.profession = origin.name;
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
     st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5 };
-    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.trials = {}; st.wounds = { until: 0 };
+    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null;
     Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; if (Bag) Bag.add(st, 'ration', 1);
     st.life = { v: 1, origin: origin.id, age: 18 + Math.floor(r() * 28), path: origin.suggest, pendingPath: null,
@@ -169,6 +169,7 @@
     for (const k of ['roomPref', 'roomSlept', 'roomTonight']) if (!ROOMS[L[k]]) L[k] = 'mid';
     if (Bag) Bag.migrate(st);
     if (Skills) Skills.recalc(st);
+    if (Exp) { Exp.ensureWorld(st); if (L.exp && !L.exp.over && Exp.isSafeFloor(L.exp.floor)) Exp.safeInfo(st); }
     if (L.eatBag === undefined) L.eatBag = true;
     return true;
   }
@@ -621,6 +622,7 @@
       if (id) msgs.push('ไม่ได้กินข้าวเย็น เลยกิน' + Bag.name(id) + 'จากกระเป๋าก่อนนอน');
       else { st.health = Math.max(1, st.health - 5); msgs.push('ไม่มีอาหาร สุขภาพลดลง 5'); }
     }
+    if (Exp) msgs.push(...Exp.tickWorld(st, st.day));
     return msgs;
   }
 
