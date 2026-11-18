@@ -229,6 +229,7 @@
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
       <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
+      ${stashHtml()}
       ${travelHtml()}
       <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p>
       <p class="lg-muted">สั่งก่อนเลิกงาน (16:00) จะทำวันนี้ หลังจากนั้นจะทำพรุ่งนี้</p>
@@ -340,6 +341,7 @@
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
+      ${guildHtml()}
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
         return `<button class="lg-btn ${L.roomPref === id ? 'lg-cur' : ''}" data-room="${id}">${esc(r.name)} · ${price ? price + ' เหรียญ/คืน' : 'ฟรี'}${price < r.price ? '<span class="lg-tag">ราคาพนักงาน</span>' : ''}${L.roomPref === id ? '<span class="lg-tag">เลือกอยู่</span>' : ''}<small>${esc(r.desc)}</small></button>`; }).join('')}
@@ -347,9 +349,32 @@
       <h3>บันทึก</h3><div class="lg-log">${esc(state.events.slice(0, 8).join('\n') || 'ยังไม่มีบันทึก')}</div>
       <button class="lg-btn" data-a="new">เริ่มชีวิตใหม่<small>สุ่มตัวตนใหม่ ความคืบหน้าเดิมจะหายไป</small></button>`;
   }
+  // v105 the guild: quest board (tower paths), which kitchen the guild chef works in
+  function guildHtml() {
+    const L = state.life, G = LifeSim.guildOf(state); if (!G) return '';
+    let h = `<h3>${esc(G.name)}</h3><p class="lg-muted">${G.member ? 'สมาชิก: กินข้าวเย็นที่โรงอาหารกิลด์ ' + (L.path === 'gchef' ? 'ฟรี' : LifeSim.GUILD_MEAL + ' เหรียญ') + ' · เลือก "ห้องพักกิลด์" ในที่พักได้ · ฝากของในหีบกิลด์ได้ (แท็บกระเป๋า)' : 'ยังไม่ได้เป็นสมาชิก สิทธิ์โรงอาหาร ห้องพัก และหีบฝากของจะได้หลังสอบผ่าน'}</p>`;
+    if (G.member && ['guild', 'compass', 'porter'].includes(L.path)) {
+      const cur = L.quest || 'normal';
+      h += '<p>กระดานภารกิจ (ตัวละครแวะรับที่โถงกิลด์ทุกเช้า)</p>' + Object.entries(LifeSim.QUESTS).map(([id, q]) =>
+        `<button class="lg-btn ${cur === id ? 'lg-cur' : ''}" data-quest="${id}">${cur === id ? '✓ ' : ''}${esc(q.name)}<small>${esc(q.desc)}</small></button>`).join('');
+    }
+    if (L.path === 'gchef') h += '<p>ทำงานในครัวของ</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px">' + [['iron', 'โล่เหล็ก'], ['compass', 'เข็มทิศเงิน'], ['porter', 'คนแบกของ']].map(([k, n]) =>
+      `<button class="lg-btn ${(state.life.chefNext || G.key) === k ? 'lg-cur' : ''}" data-chef="${k}">${n}</button>`).join('') + '</div><p class="lg-muted">เปลี่ยนแล้วมีผลพรุ่งนี้</p>';
+    return h;
+  }
+  function stashHtml() {
+    const G = LifeSim.guildOf(state), b = B(); if (!G || !G.member) return '';
+    const L = state.life, n = b.stashCount(state);
+    const items = b.stash(state).map(st => `<div class="lg-slot">${iconHtml(st.id, 44)}<b>${st.n}</b>${esc(b.name(st.id))}</div>`).join('');
+    return `<h3>หีบฝากของ ${esc(G.name)} (${n} ชิ้น)</h3>${items ? '<div class="lg-bag">' + items + '</div>' : ''}
+      ${L.stashReq ? '<p class="lg-muted">จะแวะ' + (L.stashReq === 'in' ? 'ฝากของ' : 'รับของ') + 'ที่ห้องเก็บของกิลด์หลังเลิกงาน</p>' : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
+        <button class="lg-btn" data-stash="in">ฝากของ<small>ทุกอย่างยกเว้นของกิน</small></button>
+        <button class="lg-btn" data-stash="out" ${n ? '' : 'disabled'}>รับของคืน<small>เท่าที่กระเป๋าใส่ได้</small></button></div>`;
+  }
   function skillHtml() {
     const bar = (label, v, max, note) => `<span>${label}</span><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, v / max * 100))}%"></i></div><b>${v}</b><span></span><small class="lg-muted" style="grid-column:2/4;margin-top:-4px">${note}</small>`;
-    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
+    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['gchefWork', 'พ่อครัวกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
       .filter(([k]) => state[k] > 0);
     return `<h2>สกิล</h2>
       <h3>ค่าสถานะ</h3><div class="lg-skill">
@@ -396,6 +421,10 @@
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
     d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); again(); });
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
+    d.querySelectorAll('[data-quest]').forEach(b => b.onclick = () => { L.quest = b.dataset.quest; log('ภารกิจที่จะรับ: ' + LifeSim.QUESTS[L.quest].name); again(); });
+    d.querySelectorAll('[data-chef]').forEach(b => b.onclick = () => { L.chefNext = b.dataset.chef; log('พรุ่งนี้ไปทำครัวที่กิลด์ใหม่'); again(); });
+    d.querySelectorAll('[data-stash]').forEach(b => b.onclick = () => { const day = LifeSim.requestStash(state, b.dataset.stash, clock);
+      log((b.dataset.stash === 'in' ? 'ฝากของ' : 'รับของ') + 'ที่ห้องเก็บของกิลด์' + (day === state.day ? 'หลังเลิกงานวันนี้' : 'พรุ่งนี้')); again(); });
     on('[data-a=eatbag]', () => { L.eatBag = !L.eatBag; again(); });
     on('[data-a=nocmd]', () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); again(); });
     on('[data-a=close]', () => closeOverlay(d));
@@ -457,7 +486,8 @@
     if (L.pendingEvent && LifeSim.EVENTS[L.pendingEvent]) { event(L.pendingEvent); return; }
     for (const k of LifeSim.due(state, clock)) {
       if (k === 'work' && L.path === 'smith') { smith(); return; }
-      if (k === 'work' && L.path === 'kitchen' && window.CarrotGame) { kitchen(); return; }
+      if (k === 'work' && (L.path === 'kitchen' || L.path === 'gchef') && window.CarrotGame) { kitchen(); return; }
+      if (k === 'gtalk') { L.done[k] = state.day; const ev = L.talk && L.talk.ev; L.talk = null; save(); if (ev && LifeSim.EVENTS[ev]) { event(ev); return; } continue; }
       L.done[k] = state.day;
       if (k === 'wake') LifeSim.applyWake(state);
       else if (k === 'work') LifeSim.applyWork(state, CityCore);

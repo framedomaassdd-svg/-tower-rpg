@@ -142,6 +142,20 @@
     if (!Array.isArray(st.bag)) { st.bag = []; const n = Math.max(0, Math.min(6, Math.floor(st.food || 0))); if (n) add(st, 'ration', n); }
     sync(st);
   }
-  return { vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+  // v105 the guild storeroom chest: everything but food goes in; out comes as much as the bag can hold
+  const stash = st => (Array.isArray(st.stash) ? st.stash : (st.stash = []));
+  function deposit(st) {
+    let n = 0; const keep = [];
+    for (const s of list(st)) { if (ITEMS[s.id] && ITEMS[s.id].kind !== 'meal') { stash(st).push(s); n += s.n; } else keep.push(s); }
+    st.bag = keep; sync(st); return n;
+  }
+  function withdraw(st) {
+    let n = 0; const left = [];
+    for (const s of stash(st)) { const k = Math.min(s.n, CAP - total(st)); if (k > 0) { const b = list(st).find(x => x.id === s.id && x.exp === s.exp); if (b) b.n += k; else list(st).push({ id: s.id, n: k, exp: s.exp }); n += k; }
+      if (s.n > k) left.push({ id: s.id, n: s.n - k, exp: s.exp }); }
+    st.stash = left; sync(st); return n;
+  }
+  const stashCount = st => stash(st).reduce((n, s) => n + s.n, 0);
+  return { stash, deposit, withdraw, stashCount, vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
     list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
 });

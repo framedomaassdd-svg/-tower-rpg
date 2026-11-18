@@ -38,9 +38,31 @@
     tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };
+  // v105 guild rooms (gi_<guild>_<room>.webp). Per guild: master's office, hall (quest board), dining hall, kitchen,
+  // members' bedroom, storeroom. The merchants' guild has no paintings yet and borrows the Iron Shield's rooms.
+  const GUILD_ROOMS = {
+    iron: { boss: 'ironboss', office: { desk: 830, top: 458 }, hall: null, store: 836, dine: { x: 845, table: 548 }, cook: [720, 1150, 1420], bed: [300, 505] },
+    compass: { boss: 'compassboss', office: { desk: 840, top: 455 }, hall: { board: 835, clerk: 300, top: 538 }, store: 836, dine: { x: 410, table: 545 }, cook: [660, 1150, 1460], bed: [545, 455] },
+    porter: { boss: 'porterboss', office: { desk: 860, top: 446 }, hall: { board: 840, clerk: 340, top: 505 }, store: 836, dine: { x: 470, table: 520 }, cook: [650, 1080, 1360], bed: [590, 470] }
+  };
+  GUILD_ROOMS.merch = Object.assign({}, GUILD_ROOMS.iron, { boss: 'merchboss', borrow: 'iron' });
+  const GNAME = { iron: 'กิลด์โล่เหล็ก', compass: 'กิลด์เข็มทิศเงิน', porter: 'สมาคมคนแบกของ', merch: 'กิลด์พ่อค้าหอคอย' };
+  for (const g in GUILD_ROOMS) {
+    const R = GUILD_ROOMS[g], f = room => 'gi_' + (R.borrow || g) + '_' + room, n = GNAME[g], K = 1.12;
+    SCENES['g_' + g + '_office'] = { file: f('office'), name: 'ห้องทำงานหัวหน้า' + n, k: K, stand: { x: R.office.desk - 340, look: 'back' },
+      npcs: [{ sheet: R.boss, x: R.office.desk, loop: 'idle', face: 1, h: 0.95, foot: 640, behind: R.office.top + 4 }] };
+    SCENES['g_' + g + '_hall'] = R.hall || R.borrow ? (R.hall
+      ? { file: f('hall'), name: 'โถง' + n, k: K, stand: { x: R.hall.board, look: 'back' }, npcs: [{ sheet: 'elder', x: R.hall.clerk, loop: 'write', face: 1, h: 0.72, foot: 660, behind: R.hall.top }] }
+      : Object.assign({}, SCENES.guild, { name: 'โถง' + n })) : Object.assign({}, SCENES.guild, { name: 'โถง' + n });
+    SCENES['g_' + g + '_store'] = { file: f('store'), name: 'ห้องเก็บของ' + n, k: K, stand: { x: R.store + 170, look: 'back' },
+      npcs: [{ sheet: 'elder', x: R.store - 80, loop: 'write', face: 1, h: 0.72, foot: 660, behind: 520 }] };
+    SCENES['g_' + g + '_dining'] = { file: f('dining'), name: 'โรงอาหาร' + n, k: K, seat: { x: R.dine.x, table: R.dine.table, h: 200, foot: R.dine.table + 160, cut: R.dine.table } };
+    SCENES['g_' + g + '_kitchen'] = { file: f('kitchen'), name: 'ครัว' + n, k: K, route: R.cook, pose: 'chop' };
+    SCENES['g_' + g + '_bed'] = { file: f('bed'), name: 'ห้องพัก' + n, k: K, bed: { head: R.bed[0] + 190, y: R.bed[1], nohero: true, zz: [R.bed[0] + 10, R.bed[1] - 40] } };
+  }
   const hasImage = typeof Image !== 'undefined';
   const img = {};
-  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : V); img[k] = i; } }
+  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : SCENES[k].file.startsWith('gi_') ? '?v=105' : V); img[k] = i; } }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   // v81: the hero asleep is painted into each bed (a patch of the room, laid over it), and eats facing the camera
   const SLEEP = { bed_cheap: [755, 440], bed_mid: [985, 405], bed_luxe: [1120, 380], tenement: [345, 425] };
@@ -194,7 +216,7 @@
     if (asleep && !wasAsleep) sleepSince = t; wasAsleep = asleep;
     if (act && act.sleep && sc.bed) {
       if (ok(patch)) { ctx.save(); ctx.globalAlpha = Math.min(1, (t - Math.max(enteredAt, sleepSince)) / 600); ctx.drawImage(patch, SLEEP[info.room][0], SLEEP[info.room][1]); ctx.restore(); }
-      else sleeper(ctx, sc.bed, t);
+      else if (!sc.bed.nohero) sleeper(ctx, sc.bed, t);
     }
     else if (act && act.work) { shadow(ctx, act.x, FLOOR, K);
       if (!pose(ctx, act.work.kind, act.x, FLOOR, { sec: t / 1000, face: act.work.face, k: K })) hero(ctx, act.x, FLOOR, { vdir: -1, moving: true, anim: t * 0.012, k: K }); }
@@ -209,7 +231,7 @@
     } else if (act) {
       shadow(ctx, act.x, FLOOR, K);
       if (act.moving) hero(ctx, act.x, FLOOR, { moving: true, anim, face: act.face, horizontal: true, k: K });
-      else if (sc.route && WORK_POSE[info.room] && pose(ctx, WORK_POSE[info.room], act.x, FLOOR, { sec: t / 1000, face: act.face, k: K })) { /* working at a station */ }
+      else if (sc.route && (WORK_POSE[info.room] || sc.pose) && pose(ctx, WORK_POSE[info.room] || sc.pose, act.x, FLOOR, { sec: t / 1000, face: act.face, k: K })) { /* working at a station */ }
       else if (act.look === 'back') hero(ctx, act.x, FLOOR, { vdir: -1, moving: !!sc.route, anim: t * 0.012, k: K });   // busy at the counter
       else hero(ctx, act.x, FLOOR, { vdir: 1, moving: false, anim, k: K });
     }

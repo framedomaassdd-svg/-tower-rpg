@@ -61,7 +61,7 @@
   const DINNER_MIN = 0.42;       // at least ~30 game minutes at the table
   const CHECKIN = 0.22;          // a moment at the inn's front desk before going up
   // Inn rooms. The player sets a preference; if the money is short the character takes the best room it can pay for.
-  const ROOMS = Object.freeze({
+  const ROOMS = ({
     cheap: { name: 'ห้องประหยัด', price: 2,  energy: 80,  health: 0,  room: 'bed_cheap', desc: 'เตียงไม้กับผ้าห่มผืนเดียว ตื่นมาแรง 80' },
     mid:   { name: 'ห้องธรรมดา',  price: 5,  energy: 100, health: 5,  room: 'bed_mid',   desc: 'ห้องสะอาด นอนเต็มอิ่ม แรง 100 สุขภาพ +5' },
     luxe:  { name: 'ห้องหรู',     price: 12, energy: 100, health: 12, room: 'bed_luxe',  focus: 1.15, desc: 'เตียงสี่เสา แรง 100 สุขภาพ +12 และวันถัดไปจังหวะมินิเกมกว้างขึ้น' },
@@ -71,9 +71,32 @@
     shrine: { name: 'ศาลเจ้าร้าง', price: 0, energy: 70, health: -2, room: null, place: 'shrine', free: true, desc: 'ศาลเจ้าเก่าท้ายลานเกวียน นอนฟรีบนเสื่อกับหลวงตาเร่ร่อน ตื่นมาแรง 70 สุขภาพ -2 ใกล้งานกรรมกร' },
     shack:  { name: 'เพิงข้างกองขยะ', price: 0, energy: 60, health: -4, room: null, place: 'shack', free: true, desc: 'เพิงไม้ผุท้ายตลาดใหญ่ นอนฟรีแต่กลิ่นแรง ตื่นมาแรง 60 สุขภาพ -4 ใกล้งานในตลาด' }
   });
-  const ROOM_ORDER = ['luxe', 'mid', 'cheap', 'slum', 'shrine', 'shack'];
+    // v105 a bed in your own guild (members only, chosen by hand); the place is your guild's hall
+  ROOMS.gbed = Object.freeze({ name: 'ห้องพักกิลด์', price: 1, energy: 100, health: 4, room: null, place: 'guildbed', guild: true, desc: 'เตียงในกิลด์ของคุณ 1 เหรียญ ใกล้ประตูหอคอย ตื่นมาแรง 100 สุขภาพ +4 (เฉพาะสมาชิก)' });
+  const ROOM_ORDER = ['luxe', 'mid', 'gbed', 'cheap', 'slum', 'shrine', 'shack'];
   const SHELTER = { shrine: 1, shack: 1 };
-  const roomPlace = id => (ROOMS[id] && ROOMS[id].place) || 'inn';
+  // v105 guilds: which guild the current path belongs to, and whether the hero counts as a member there
+  const GUILD_KEY = { guild: 'iron', compass: 'compass', porter: 'porter', tmerchant: 'merch' };
+  const GUILD_NAME = { iron: 'กิลด์โล่เหล็ก', compass: 'กิลด์เข็มทิศเงิน', porter: 'สมาคมคนแบกของ', merch: 'กิลด์พ่อค้าหอคอย' };
+  const KEY_PLACE = { iron: 'guild', compass: 'compass', porter: 'porter', merch: 'tmerchant' };
+  function guildOf(st) {
+    const L = st.life || {}, key = L.path === 'gchef' ? (KEY_PLACE[L.chefAt] ? L.chefAt : 'iron') : GUILD_KEY[L.path];
+    if (!key) return null;
+    const member = L.path === 'gchef' || L.path === 'porter' || (L.path === 'guild' && !!st.guild) || (L.path === 'compass' && !!st.compassMember) || (L.path === 'tmerchant' && !!st.merchMember);
+    return { key, place: KEY_PLACE[key], member, name: GUILD_NAME[key] };
+  }
+  const placeKey = place => Object.keys(KEY_PLACE).find(k => KEY_PLACE[k] === place) || null;
+  const gscene = (key, room) => 'g_' + key + '_' + room;              // Interiors scene id
+  const TOWER_PATH = { guild: 1, compass: 1, porter: 1 };
+  // v105 the quest board: how deep today's party goes (pay, injury risk and loot multiply)
+  const QUESTS = Object.freeze({
+    safe:   { name: 'คุ้มกันชั้นตื้น', pay: 0.7, risk: 0.4, loot: 0.5, desc: 'ค่าแรง ×0.7 แทบไม่เจ็บ ของน้อย' },
+    normal: { name: 'สำรวจชั้นกลาง', pay: 1, risk: 1, loot: 1, desc: 'ค่าแรงปกติ' },
+    deep:   { name: 'บุกชั้นลึก', pay: 1.5, risk: 2, loot: 2, desc: 'ค่าแรง ×1.5 เจ็บง่ายขึ้นสองเท่า ได้ของมากขึ้น' }
+  });
+  const questOf = st => QUESTS[st.life && st.life.quest] || QUESTS.normal;
+  let PLAN_ST = null;                                     // the state dayPlan is planning (roomPlace needs the guild)
+  const roomPlace = (id, st) => { const r = ROOMS[id]; if (!r) return 'inn'; if (r.guild) { const g = guildOf(st || PLAN_ST || {}); return g ? g.place : 'inn'; } return r.place || 'inn'; };
   const RENT = ROOMS.mid.price;
 
   const ORIGINS = Object.freeze([
@@ -96,6 +119,8 @@
               desc: 'ฝึกอ่านและวาดแผนที่ จนสอบผ่าน (ปัญญา ≥ 6) แล้วตามทีมสำรวจเข้าหอคอยไปทำแผนที่ ค่าแรง 6 + ปัญญา เหรียญ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
     porter: { name: 'สมาคมคนแบกของ', place: 'porter', energy: 35,
               desc: 'ไม่ต้องสอบ แบกเสบียงตามทีมเข้าหอคอยแล้วแบกของกลับ ค่าแรงรอบละ 8 เหรียญ (+3 ถ้ากำลัง ≥ 6) งานหนักและเสี่ยงโดนมอนสเตอร์บ้าง ทุก 4 วันกำลัง +1' },
+    gchef:  { name: 'พ่อครัวกิลด์', place: 'guild', energy: 25, minigame: true, act: 'ทำอาหารในครัวกิลด์',
+              desc: 'ทำอาหารให้สมาชิกในครัวกิลด์ (เลือกกิลด์ได้) มีมินิเกมหั่นผัก ค่าแรง 5 + ดาว เหรียญ กินข้าวเย็นที่โรงอาหารกิลด์ฟรี และนอนห้องพักกิลด์ได้' },
     tmerchant: { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', energy: 15,
               desc: 'เริ่มเป็นลูกมือตีราคา ค่าแรง 4 เหรียญ ชื่อเสียงขึ้นทุกวัน เมื่อชื่อเสียงถึง 5 ได้เป็นนักตีราคา ค่าแรง 6 + ชื่อเสียง/2 เหรียญ (สูงสุด 12) และรับซื้อชิ้นส่วนมอนสเตอร์ราคาดี' },
     market: { name: 'รับจ้างที่ตลาด',     place: 'market', energy: 25,
@@ -224,16 +249,19 @@
   const end = segs => segs[segs.length - 1];
   const WORK_ACT = { cargo: 'แบกกระสอบขึ้นโกดังที่ลานเกวียน', smith: 'ช่วยงานในโรงตีเหล็ก', guild: 'ฝึกที่ลานฝึกกิลด์', market: 'ขนของในตลาด', scrap: 'คัดของเก่าในลานท้ายตรอก' };
   // Dinner: the restaurant, or the soup kitchen when there is no money for a meal. Fixed once dinner has happened.
-  function dinnerPrice(st) { return st.life.path === 'kitchen' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
+  const GUILD_MEAL = 2;                                   // v105 members eat in their guild's dining hall
+  function dinnerPrice(st) { return st.life.path === 'kitchen' || st.life.path === 'gchef' ? 0 : originOf(st).id === 'chef' ? 3 : 4; }
   function dinnerPlace(st) {
     const L = st.life;
     if (L.dinnerAt && L.dinnerAt.day === st.day) return L.dinnerAt.place;
     const food = Bag ? Bag.meals(st) : 0;
-    if (L.eatBag && food > 0 && L.path !== 'kitchen') return 'bag';           // v93: eat what's in the bag first
+    if (L.eatBag && food > 0 && L.path !== 'kitchen' && L.path !== 'gchef') return 'bag';           // v93: eat what's in the bag first
+    const G = guildOf(st);
+    if (G && G.member && (L.path === 'gchef' || st.money >= GUILD_MEAL)) return 'gdine';
     return st.money >= dinnerPrice(st) ? 'tavern' : food > 0 ? 'bag' : 'soup';
   }
   function dayPlan(st) {
-    RIDE = rideOf(st);
+    RIDE = rideOf(st); PLAN_ST = st;
     const L = st.life, today = L.dayStart && L.dayStart.day === st.day ? L.dayStart : { place: L.sleptAt, room: L.roomSlept };
     // v85: guild training happens inside a training yard — the guild's behind the tower arch, or (waking in the slum) the alley yard
     let path = PATHS[L.path];
@@ -245,22 +273,41 @@
       : Object.assign({}, path, { inside: true, act: 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน' });
     if (L.path === 'porter') path = Object.assign({}, path, { place: 'tower', inside: true, act: 'แบกเสบียงตามทีมเข้าหอคอย' });
     if (L.path === 'tmerchant') path = Object.assign({}, path, { inside: true, act: st.merchMember ? 'ตีราคาของจากหอคอยในกิลด์พ่อค้า' : 'เป็นลูกมือตีราคาในกิลด์พ่อค้า' });
+    const G = guildOf(st);
+    if (L.path === 'compass' && !st.compassMember) path = Object.assign({}, path, { room: gscene('compass', 'hall'), act: 'ฝึกอ่านแผนที่ที่โถงกิลด์เข็มทิศเงิน' });
+    if (L.path === 'gchef') path = Object.assign({}, path, { place: G.place, room: gscene(G.key, 'kitchen'), act: 'ทำอาหารในครัว' + G.name });
     const work = path.place;
     const start = today.place, bed = ROOMS[today.room] || ROOMS.mid;
-    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : 'นอนบนม้านั่งในสวน';
-    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' } : SHELTER[place] ? { lie: true, shelter: place } : { lie: true };
+    const asleep = place => place === 'inn' ? 'นอนหลับอยู่ในโรงแรม' : place === 'tenement' ? 'นอนในห้องเช่าตรอก' : SHELTER[place] ? 'นอนหลับใน' + PLACES[place].name : placeKey(place) ? 'นอนในห้องพัก' + GUILD_NAME[placeKey(place)] : 'นอนบนม้านั่งในสวน';
+    const inBed = (place, room) => place === 'inn' ? { hidden: true, room: room.room, sleep: true } : place === 'tenement' ? { hidden: true, sleep: true, room: 'tenement' }
+      : SHELTER[place] ? { lie: true, shelter: place } : placeKey(place) ? { hidden: true, sleep: true, room: gscene(placeKey(place), 'bed') } : { lie: true };
     const segs = [stay(0, WAKE, start, asleep(start), Object.assign(inBed(start, bed), { milestoneEnd: 'wake' }))];
     if (L.restDay === st.day) {
       segs.push(stay(WAKE, 20, start, 'ป่วย พักฟื้นทั้งวัน', Object.assign(inBed(start, bed), { rest: true, milestones: [['rest', 12], ['home', 17]] })));
       return segs;
     }
-    const w = end(route(WAKE, start, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)).map(x => (segs.push(x), x)));
+    // v105 tower days start at the guild's quest board: take today's job, then up to the tower with the party
+    let w0 = { t1: WAKE }, wfrom = start;
+    if (TOWER_PATH[L.path] && G && G.member && work === 'tower') {
+      const toHall = end(route(WAKE, start, G.place, 'เดินไป' + G.name).map(x => (segs.push(x), x)));
+      const board = stay(toHall.t1, toHall.t1 + 0.22, G.place, 'รับภารกิจ "' + questOf(st).name + '" จากกระดาน', { room: gscene(G.key, 'hall'), hidden: true });
+      segs.push(board); w0 = board; wfrom = G.place;
+    }
+    const w = end(route(w0.t1, wfrom, work, 'เดินไป' + (path.room === 'laundry' ? 'ทำงานที่โรงแรม' : PLACES[work].name)).map(x => (segs.push(x), x)));
     const atWork = stay(w.t1, Math.max(w.t1 + 0.3, WORK_END), work, path.act || WORK_ACT[L.path],
       { milestone: 'work', room: path.room || null, hidden: !!(path.room || path.inside), working: true });
     segs.push(atWork);
     let from = work, free = atWork.t1;
+    // v105 called to the guild master's office (decided at wake)
+    if (G && L.talk && L.talk.day === st.day && EVENTS[L.talk.ev]) {
+      const go = end(route(free, from, G.place, 'หัวหน้ากิลด์เรียกพบ').map(x => (segs.push(x), x)));
+      const at = stay(go.t1, go.t1 + 0.35, G.place, 'คุยกับหัวหน้ากิลด์ในห้องทำงาน', { milestone: 'gtalk', room: gscene(G.key, 'office'), hidden: true });
+      segs.push(at); from = G.place; free = at.t1;
+    }
     const O = orderToday(st), plan = O ? orderStops(st, O) : null;
-    const E = !plan && L.errand && L.errand.day === st.day && ERRANDS[L.errand.kind];
+    let E = !plan && L.errand && L.errand.day === st.day && ERRANDS[L.errand.kind];
+    if (!plan && L.errand && L.errand.day === st.day && L.errand.kind === 'gstore' && G)
+      E = { place: G.place, room: gscene(G.key, 'store'), act: 'ฝากและรับของที่ห้องเก็บของ' + G.name, dur: 0.3 };
     if (plan) {
       plan.stops.forEach((p, i) => {
         const go = end(route(free, from, p.place, 'เดินไป' + PLACES[p.place].name).map(x => (segs.push(x), x)));
@@ -270,7 +317,7 @@
       });
     }
     if (E) {
-      const go = end(route(free, work, E.place, 'เดินไป' + PLACES[E.place].name).map(x => (segs.push(x), x)));
+      const go = end(route(free, from, E.place, 'เดินไป' + PLACES[E.place].name).map(x => (segs.push(x), x)));
       const at = stay(go.t1, go.t1 + E.dur, E.place, E.act, { milestone: 'errand', room: E.room, hidden: true });
       segs.push(at); from = E.place; free = at.t1;
     }
@@ -280,18 +327,21 @@
       dinner = stay(free, Math.max(free + DINNER_MIN, Math.min(DINNER_UNTIL, free + 0.6)), from,
         eatAt === 'cooked' ? 'กินข้าวที่ทำเอง' : 'นั่งกินของในกระเป๋า', { milestone: 'dinner', eating: true, task: 'eat' });
     } else {
-      const toTavern = end(route(free, from, eatAt, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : 'เดินไปกินข้าวเย็น').map(x => (segs.push(x), x)));
-      dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), eatAt, soup ? 'รับซุปฟรีที่โรงทาน' : 'กินข้าวเย็นที่ร้านอาหาร',
-        { milestone: 'dinner', room: soup ? 'soup' : 'restaurant', hidden: true, eating: true });
+      const gd = eatAt === 'gdine', dest = gd ? G.place : eatAt;
+      const toTavern = end(route(free, from, dest, soup ? 'ไม่มีเงินกินข้าว เดินไปโรงทาน' : gd ? 'เดินไปโรงอาหารกิลด์' : 'เดินไปกินข้าวเย็น').map(x => (segs.push(x), x)));
+      dinner = stay(toTavern.t1, Math.max(toTavern.t1 + DINNER_MIN, DINNER_UNTIL), dest, soup ? 'รับซุปฟรีที่โรงทาน' : gd ? 'กินข้าวเย็นที่โรงอาหาร' + G.name : 'กินข้าวเย็นที่ร้านอาหาร',
+        { milestone: 'dinner', room: soup ? 'soup' : gd ? gscene(G.key, 'dining') : 'restaurant', hidden: true, eating: true });
+      from = dest;
     }
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
-    const back = end(route(dinner.t1, eatAt === 'cooked' || eatAt === 'bag' ? from : eatAt, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : SHELTER[home] ? 'เดินไปนอนที่' + PLACES[home].name : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
+    const back = end(route(dinner.t1, from, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : SHELTER[home] ? 'เดินไปนอนที่' + PLACES[home].name : placeKey(home) ? 'เดินกลับห้องพักกิลด์' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
     if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
     } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, room: 'tenement', milestone: 'home' }));
     else if (SHELTER[home]) segs.push(stay(back.t1, 20, home, asleep(home), { lie: true, shelter: home, milestone: 'home' }));
+    else if (placeKey(home)) segs.push(stay(back.t1, 20, home, asleep(home), { hidden: true, sleep: true, room: gscene(placeKey(home), 'bed'), milestone: 'home' }));
     else segs.push(stay(back.t1, 20, 'bench', asleep('bench'), { lie: true, milestone: 'home' }));
     for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
     return segs;
@@ -331,8 +381,9 @@
   }
   function applyWake(st) {
     const L = st.life, o = originOf(st);
+    if (L.chefNext) { L.chefAt = L.chefNext; L.chefNext = null; }
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
-    if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt]) {
+    if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt] || placeKey(L.sleptAt)) {
       const room = ROOMS[L.roomSlept] || ROOMS.mid;
       st.energy = Math.max(st.energy, room.energy); st.health = clamp(st.health + room.health, 1, 100);
       if (room.focus) L.focusDay = st.day;
@@ -340,6 +391,10 @@
     L.rideDay = { day: st.day, ride: L.ride || null, coach: !!L.coach };
     L.todayStars = null; L.dayStart = { day: st.day, place: L.sleptAt, room: L.roomSlept }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
     L.errand = { day: st.day, kind: pickErrand(st) };
+    // v105 does the guild master call you in after work today? (fixed at wake so the day's walk never changes)
+    const G = guildOf(st), gev = GUILD_EVENT[L.path];
+    L.talk = null;
+    if (G && gev && (L.path !== 'guild' || st.guild) && st.day - (L.lastEventDay || 0) >= 2 && roll(st, 9) < (L.seen.includes(gev) ? 0.2 : 0.6)) L.talk = { day: st.day, ev: gev };
     if (st.health < 30) { L.restDay = st.day; return say(st, 'ร่างกายไม่ไหว (สุขภาพ ' + st.health + ') วันนี้ขอพักฟื้น'); }
     return null;
   }
@@ -349,8 +404,20 @@
     if (st.health < 60 && st.money >= MEDICINE.price) return 'apothecary';
     if (L.path === 'scrap' && ((st.scrapWork || 0) + 1) % 4 === 0) return 'junk';
     if (L.path === 'market') return 'bakery';
-    if (L.path === 'guild' && st.guild) return 'guildhall';
+    if (L.stashReq && guildOf(st) && guildOf(st).member) return 'gstore';
     return null;
+  }
+  // v105 the guild's storeroom: a locked chest that holds what the bag can't
+  function stashNow(st) {
+    const L = st.life, how = L.stashReq; L.stashReq = null;
+    if (!Bag || !how) return null;
+    const n = how === 'in' ? Bag.deposit(st) : Bag.withdraw(st);
+    return say(st, how === 'in' ? 'ฝากของ ' + n + ' ชิ้นไว้ในหีบของกิลด์' : 'รับของ ' + n + ' ชิ้นคืนจากหีบของกิลด์');
+  }
+  function requestStash(st, how, clock) {
+    const L = st.life; L.stashReq = how;
+    if (clock < WORK_END && (!L.errand || L.errand.day !== st.day || !L.errand.kind)) { L.errand = { day: st.day, kind: 'gstore' }; return st.day; }
+    return st.day + 1;
   }
   function applyErrand(st, which) {
     if (orderToday(st)) return applyOrder(st, which || 'errand');
@@ -362,6 +429,7 @@
     }
     if (k === 'junk') return say(st, 'เอาของดีจากกองขยะไปขายที่ร้านรับซื้อของเก่า');
     if (k === 'bakery') return say(st, 'แวะรับค่าแรงจากแม่ค้าในร้านขนมปัง');
+    if (k === 'gstore') return stashNow(st);
     if (k === 'guildhall') return say(st, 'รายงานตัวที่ห้องโถงกิลด์ ดูใบประกาศงานบนกระดาน');
     return null;
   }
@@ -374,7 +442,7 @@
     return O.day === st.day || (O.repeat && O.day <= st.day) ? O : null;
   }
   function stovePlace(st, O) {
-    const home = roomPlace(pickRoom(st) || 'mid');
+    const home = roomPlace(pickRoom(st) || 'mid', st);
     if ((!O.stove || O.stove === 'home') && Bag.HOME_STOVE[home]) return { place: home, name: Bag.HOME_STOVE[home], fee: 0 };
     const S = Bag.STOVES[O.stove] || Bag.STOVES.tavern;
     return { place: S.place, name: S.name, fee: st.life.path === 'kitchen' && S.place === 'tavern' ? 0 : S.fee, room: S.room };
@@ -521,7 +589,8 @@
     return w;
   }
   function applyWork(st, core) {
-    const L = st.life, path = PATHS[L.path];
+    const L = st.life, path = PATHS[L.path], Q = questOf(st);
+    if (L.path === 'gchef') return finishKitchen(st, 5, core, true);   // without the minigame (Node sims): an average day
     const tired = st.energy < path.energy;
     st.energy = Math.max(0, st.energy - path.energy);
     if (L.path === 'market') {
@@ -543,12 +612,12 @@
         st.jobDay = st.day; L.workedDay = st.day;
         return say(st, msg);
       }
-      const w = payWork(st, tired ? 7 : 14, core, false);
+      const w = payWork(st, Math.round((tired ? 7 : 14) * Q.pay), core, false);
       st.supplies = Math.min(30, (st.supplies || 0) + 2); st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      let msg = 'เข้าหอคอยกับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ';
+      let msg = 'ภารกิจ' + Q.name + 'กับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ';
       // v103 the tower bites back: tired or weak fighters get hurt more often; sometimes there's something to bring home
-      if (roll(st, 1) < (tired ? 0.3 : 0.12) + (st.health < 50 ? 0.1 : 0)) { st.health = Math.max(1, st.health - 12); msg += ' · โดนกรงเล็บมอนสเตอร์ (สุขภาพ −12)'; }
-      if (roll(st, 2) < 0.3 && Bag && Bag.add(st, 'monster', 1, st.day)) msg += ' · ได้ชิ้นส่วนมอนสเตอร์ 1 ชิ้น';
+      if (roll(st, 1) < ((tired ? 0.3 : 0.12) + (st.health < 50 ? 0.1 : 0)) * Q.risk) { st.health = Math.max(1, st.health - 12); msg += ' · โดนกรงเล็บมอนสเตอร์ (สุขภาพ −12)'; }
+      if (roll(st, 2) < 0.3 * Q.loot && Bag && Bag.add(st, 'monster', 1, st.day)) msg += ' · ได้ชิ้นส่วนมอนสเตอร์ 1 ชิ้น';
       return say(st, msg);
     }
     if (L.path === 'compass') {
@@ -559,20 +628,20 @@
         if (st.intelligence >= 6) { st.compassMember = true; msg += ' · สอบผ่าน! ได้เข็มทิศเงินประจำตัว เข้ากิลด์นักสำรวจแล้ว'; }
         return say(st, msg);
       }
-      const w = payWork(st, Math.round((6 + clamp(st.intelligence, 1, 12)) * (tired ? 0.5 : 1)), core, false);
+      const w = payWork(st, Math.round((6 + clamp(st.intelligence, 1, 12)) * (tired ? 0.5 : 1) * Q.pay), core, false);
       st.rep = (st.rep || 0) + 1;
-      let msg = 'ทำแผนที่ในหอคอยกับทีมสำรวจ ได้ ' + w + ' เหรียญ';
-      if (roll(st, 3) < 0.35 && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
-      if (roll(st, 5) < 0.06) { st.health = Math.max(1, st.health - 8); msg += ' · พลัดตกหลุมในหอคอย (สุขภาพ −8)'; }
+      let msg = 'ภารกิจ' + Q.name + ' ทำแผนที่กับทีมสำรวจ ได้ ' + w + ' เหรียญ';
+      if (roll(st, 3) < 0.35 * Q.loot && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
+      if (roll(st, 5) < 0.06 * Q.risk) { st.health = Math.max(1, st.health - 8); msg += ' · พลัดตกหลุมในหอคอย (สุขภาพ −8)'; }
       return say(st, msg);
     }
     if (L.path === 'porter') {
       const strong = st.strength >= 6;
-      const w = payWork(st, Math.round((8 + (strong ? 3 : 0)) * (tired ? 0.5 : 1)), core, true);
+      const w = payWork(st, Math.round((8 + (strong ? 3 : 0)) * (tired ? 0.5 : 1) * Q.pay), core, true);
       st.porterWork = (st.porterWork || 0) + 1; st.rep = (st.rep || 0) + 1;
       if (!tired && st.porterWork % 4 === 0 && st.strength < 12) st.strength++;
-      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'แบกเสบียงตามทีมเข้าหอคอย ได้ ' + w + ' เหรียญ' + (!tired && st.porterWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : '');
-      if (roll(st, 6) < (tired ? 0.22 : 0.1)) { st.health = Math.max(1, st.health - 8); msg += ' · โดนมอนสเตอร์ข่วนตอนแบกของ (สุขภาพ −8)'; }
+      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'ภารกิจ' + Q.name + ' แบกเสบียงตามทีม ได้ ' + w + ' เหรียญ' + (!tired && st.porterWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : '');
+      if (roll(st, 6) < (tired ? 0.22 : 0.1) * Q.risk) { st.health = Math.max(1, st.health - 8); msg += ' · โดนมอนสเตอร์ข่วนตอนแบกของ (สุขภาพ −8)'; }
       return say(st, msg);
     }
     if (L.path === 'tmerchant') {
@@ -631,11 +700,13 @@
     return (1 + 0.05 * (clamp(st.intelligence || 3, 1, 12) - 3)) * (o.id === 'chef' ? 1.35 : 1) * rested;
   }
   function finishKitchen(st, stars, core, skipped) {
-    const L = st.life, s = clamp(Math.round(stars) || 0, 0, 9), tired = st.energy < PATHS.kitchen.energy;
-    st.energy = Math.max(0, st.energy - PATHS.kitchen.energy);
-    const base = 3 + s + (originOf(st).id === 'chef' ? 3 : 0);
+    const L = st.life, s = clamp(Math.round(stars) || 0, 0, 9), P = PATHS[L.path] || PATHS.kitchen, tired = st.energy < P.energy;
+    st.energy = Math.max(0, st.energy - P.energy);
+    const guild = L.path === 'gchef';
+    const base = (guild ? 5 : 3) + s + (originOf(st).id === 'chef' ? 3 : 0);
+    if (guild) { L.workedDay = st.day; st.gchefWork = (st.gchefWork || 0) + 1; }
     const w = payWork(st, Math.max(2, Math.round(base * (tired ? 0.5 : 1))), core, true);
-    if (Bag) Bag.add(st, 'ration'); else st.food++; st.tavernWork = (st.tavernWork || 0) + 1;
+    if (!guild) { if (Bag) Bag.add(st, 'ration'); else st.food++; st.tavernWork = (st.tavernWork || 0) + 1; }
     if (s >= 6) st.rep = (st.rep || 0) + 1;
     L.todayStars = null;
     return say(st, (skipped ? 'ให้ลูกมือช่วย ' : '') + 'หั่นผักได้ ' + s + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ และอาหาร 1 ชุด' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : ''));
@@ -647,7 +718,11 @@
   // best room at or below the preference that the character can pay for right now
   function pickRoom(st) {
     const from = Math.max(0, ROOM_ORDER.indexOf(st.life.roomPref));
-    for (const id of ROOM_ORDER.slice(from)) if ((!ROOMS[id].free || id === st.life.roomPref) && st.money >= roomPrice(st, id)) return id;
+    for (const id of ROOM_ORDER.slice(from)) {
+      const R = ROOMS[id];
+      if (R.guild && !(id === st.life.roomPref && guildOf(st) && guildOf(st).member)) continue;
+      if ((!R.free || id === st.life.roomPref) && st.money >= roomPrice(st, id)) return id;
+    }
     return null;
   }
   function applyDinner(st, core) {
@@ -664,21 +739,23 @@
     }
     if (at === 'hungry') msgs.push('คืนนี้ไม่มีอะไรกิน');
     if (at === 'soup' || at === 'cooked' || at === 'bag' || at === 'hungry') { /* settled above */ }
+    else if (at === 'gdine') { const p = L.path === 'gchef' ? 0 : GUILD_MEAL;
+      if (st.money >= p) { st.money -= p; L.fedDay = st.day; msgs.push('กินข้าวเย็นที่โรงอาหาร' + guildOf(st).name + (p ? ' ' + p + ' เหรียญ' : ' ฟรี (พ่อครัวกิลด์)')); } else msgs.push('เงินไม่พอกินข้าวเย็น'); }
     else if (staff) { L.fedDay = st.day; msgs.push('กินข้าวพนักงานในครัว ไม่เสียเงิน'); }
     else if (st.money >= price) { st.money -= price; L.fedDay = st.day; msgs.push('กินข้าวเย็น ' + price + ' เหรียญ'); }
     else msgs.push('เงินไม่พอกินข้าวเย็น');
     const room = pickRoom(st);
-    L.homeTonight = room ? roomPlace(room) : 'bench'; L.roomTonight = room || L.roomPref;
+    L.homeTonight = room ? roomPlace(room, st) : 'bench'; L.roomTonight = room || L.roomPref;
     if (!room) msgs.push('ไม่มีค่าห้องคืนนี้');
     else if (room !== L.roomPref) msgs.push('เงินไม่พอ' + ROOMS[L.roomPref].name + ' คืนนี้พัก' + ROOMS[room].name);
     return msgs.length ? say(st, msgs.join(' · ')) : null;
   }
   function applyHome(st) {
     const L = st.life, planned = L.homeTonight !== 'bench' ? pickRoom(st) : null;
-    const room = planned && roomPlace(planned) === L.homeTonight ? planned : null;   // stay where the walk led
+    const room = planned && roomPlace(planned, st) === L.homeTonight ? planned : null;   // stay where the walk led
     if (room) {
       const price = roomPrice(st, room);
-      st.money -= price; L.sleptAt = roomPlace(room); L.roomSlept = room; L.roomTonight = room;
+      st.money -= price; L.sleptAt = roomPlace(room, st); L.roomSlept = room; L.roomTonight = room;
       if (!price) return say(st, 'เข้านอนที่' + ROOMS[room].name + ' ไม่เสียเงิน');
       return say(st, 'จ่ายค่า' + ROOMS[room].name + ' ' + price + ' เหรียญ' + (L.path === 'hotel' && room !== 'slum' ? ' (ราคาพนักงาน)' : '') + ' แล้วเข้านอน');
     }
@@ -907,7 +984,7 @@
     }
     // v104 a guild master stops you after a day's work (first time likely, then now and then)
     const gev = GUILD_EVENT[L.path];
-    if (gev && L.workedDay === st.day && st.day - L.lastEventDay >= 2 && (L.path !== 'guild' || st.guild) && r() < (L.seen.includes(gev) ? 0.2 : 0.6)) return gev;
+    void gev;                                             // v105: guild talks happen in the master's office (L.talk, milestone gtalk)
     if (!slumToday(st)) return null;
     if (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup' && !L.seen.includes('soup_granny')) return 'soup_granny';
     if (st.day - L.lastEventDay < 2) return null;
@@ -929,7 +1006,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });
