@@ -2,8 +2,8 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.TownResidents=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const PEOPLE=Object.freeze([
-  Object.freeze({id:'mali',name:'มะลิ',job:'แม่ค้าขนมปัง',home:1557,homeY:778,work:3560,y:806,wage:5,image:'merchant'}),
-  Object.freeze({id:'thana',name:'ธนา',job:'คนช่วยร้านอาหาร',home:2005,homeY:778,work:1115,y:806,wage:6,image:'worker'})
+  Object.freeze({id:'mali',name:'มะลิ',job:'แม่ค้าขนมปัง',home:1602,homeY:778,work:3845,y:806,wage:5,image:'merchant'}),
+  Object.freeze({id:'thana',name:'ธนา',job:'คนช่วยร้านอาหาร',home:1864,homeY:778,work:1115,y:806,wage:6,image:'worker'})
  ]);
  function ensure(s){if(!s.townResidents||typeof s.townResidents!=='object'||Array.isArray(s.townResidents))s.townResidents={};for(const p of PEOPLE){let r=s.townResidents[p.id];if(!r||typeof r!=='object'||Array.isArray(r))r={};s.townResidents[p.id]={coins:Number.isFinite(r.coins)?Math.max(0,Math.floor(r.coins)):8,shifts:Number.isFinite(r.shifts)?Math.max(0,Math.floor(r.shifts)):0,lastDay:Number.isFinite(r.lastDay)?Math.floor(r.lastDay):0};}return s.townResidents;}
  // Follow the passage out of the home before turning onto the main street.

@@ -53,51 +53,51 @@
   // carry on a stop: they carry their load (row 1) while walking TO it.
   const PEOPLE = Object.freeze([
     { id: 'smith', name: 'ช่างตีเหล็ก', sheet: 'smith', height: HERO * 1.03, speed: 1500, stops: [
-      { x: 6162, y: DOOR, until: H(6.4), hidden: true },                         // east house
-      { x: 4415, y: 800, until: H(18), loop: 'hammer', face: 1 },               // left of the anvil
-      { x: 6162, y: DOOR, until: 20, hidden: true }] },
+      { x: 1864, y: DOOR, until: H(6.4), hidden: true },                         // lives up the market lane
+      { x: 4700, y: 800, until: H(18), loop: 'hammer', face: 1 },               // left of the anvil
+      { x: 1864, y: DOOR, until: 20, hidden: true }] },
     { id: 'clerk', name: 'เสมียนกิลด์', sheet: 'elder', height: HERO * 0.92, speed: 1450, stops: [
-      { x: 5543, y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
-      { x: 2706, y: 826, until: H(16.8), loop: 'write', face: -1 },            // right of the arch
-      { x: 5543, y: DOOR, until: 20, hidden: true }] },
+      { x: 5828, y: DOOR, until: H(5.9), hidden: true },                     // lodges at the inn
+      { x: 2991, y: 826, until: H(16.8), loop: 'write', face: -1 },            // right of the arch
+      { x: 5828, y: DOOR, until: 20, hidden: true }] },
     { id: 'chef', name: 'พ่อครัว', sheet: 'chef', height: HERO * 1.12, speed: 1450, stops: [
-      { x: 1557, y: DOOR, until: H(5.4), hidden: true },
-      { x: 3445, y: 842, until: H(7.6), loop: 'idle' },                       // picking vegetables at the market
+      { x: 1602, y: DOOR, until: H(5.4), hidden: true },
+      { x: 3730, y: 842, until: H(7.6), loop: 'idle' },                       // picking vegetables at the market
       { x: 897, y: DOOR, until: H(21.6), hidden: true, carry: true },          // carries the crate back, cooks all day
-      { x: 1557, y: DOOR, until: 20, hidden: true }] },
+      { x: 1602, y: DOOR, until: 20, hidden: true }] },
     { id: 'innkeeper', name: 'เจ้าของโรงแรม', sheet: 'innkeeper', height: HERO * 0.95, speed: 1100, stops: [
-      { x: 5543, y: DOOR, until: H(6.6), hidden: true },
-      { x: 5650, y: 818, until: H(8.2), loop: 'sweep', face: 1 },
-      { x: 5543, y: DOOR, until: H(15.4), hidden: true },
-      { x: 5440, y: 818, until: H(16.6), loop: 'sweep', face: -1 },
-      { x: 5543, y: DOOR, until: 20, hidden: true }] },
+      { x: 5828, y: DOOR, until: H(6.6), hidden: true },
+      { x: 5935, y: 818, until: H(8.2), loop: 'sweep', face: 1 },
+      { x: 5828, y: DOOR, until: H(15.4), hidden: true },
+      { x: 5725, y: 818, until: H(16.6), loop: 'sweep', face: -1 },
+      { x: 5828, y: DOOR, until: 20, hidden: true }] },
     { id: 'apothecary', name: 'หมอยา', sheet: 'apothecary', height: HERO * 0.93, speed: 1450, stops: [
-      { x: 4803, y: DOOR, until: H(7.6), hidden: true },                         // lives above the shop
-      { x: 4935, y: 822, until: H(17.5), loop: 'grind', face: -1 },
-      { x: 4803, y: DOOR, until: 20, hidden: true }] },
+      { x: 5088, y: DOOR, until: H(7.6), hidden: true },                         // lives above the shop
+      { x: 5220, y: 822, until: H(17.5), loop: 'grind', face: -1 },
+      { x: 5088, y: DOOR, until: 20, hidden: true }] },
     { id: 'instructor', name: 'ครูฝึกกิลด์', sheet: 'instructor', height: HERO * 1.0, speed: 1500, stops: [
-      { x: 2501, y: 690, until: H(16.2), hidden: true },                      // teaching in the training yard behind the arch
+      { x: 2786, y: 690, until: H(16.2), hidden: true },                      // teaching in the training yard behind the arch
       { x: 897, y: DOOR, until: H(18.6), hidden: true },                       // supper at the tavern
-      { x: 2501, y: 690, until: 20, hidden: true }] },
+      { x: 2786, y: 690, until: 20, hidden: true }] },
     { id: 'summoned', name: 'ผู้ถูกอัญเชิญอีกคน', sheet: 'summoned', height: HERO * 1.0, speed: 1500, stops: [
-      { x: 5543, y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
-      { x: 2930, y: 832, until: H(8.4), loop: 'phone', face: 1 },             // still trying his phone by the well
-      { x: 3300, y: 832, until: H(15.4), shuttle: { A: 80, speed: 760, sheet: 'summoned_work' } },
-      { x: 2640, y: 834, until: H(17.2), loop: 'phone', face: -1 },
-      { x: 5543, y: DOOR, until: 20, hidden: true }] }
+      { x: 5828, y: DOOR, until: H(5.4), hidden: true },                     // also lodges at the inn
+      { x: 3215, y: 832, until: H(8.4), loop: 'phone', face: 1 },             // still trying his phone by the well
+      { x: 3585, y: 832, until: H(15.4), shuttle: { A: 80, speed: 760, sheet: 'summoned_work' } },
+      { x: 2925, y: 834, until: H(17.2), loop: 'phone', face: -1 },
+      { x: 5828, y: DOOR, until: 20, hidden: true }] }
   ]);
   // A farm woman walks in through the west gate and sells apples by the well; two kids play tag (their dog trails them).
   const MORE = [
     { id: 'farmer', name: 'แม่ค้าผลไม้', sheet: 'farmer', height: HERO * 0.93, speed: 1300, stops: [
       { x: 328, y: 770, until: H(6.9), hidden: true },                           // through the city gate
-      { x: 3075, y: 846, until: H(15.2), loop: 'offer', face: 1 },
+      { x: 3360, y: 846, until: H(15.2), loop: 'offer', face: 1 },
       { x: 328, y: 770, until: 20, hidden: true }] },
     { id: 'kids', name: 'เด็ก ๆ', sheet: 'kids', height: HERO * 0.74, speed: 1400, stops: [
-      { x: 2005, y: DOOR, until: H(8), hidden: true },
-      { x: 2960, y: 858, until: H(11.5), shuttle: { A: 130, speed: 1500, play: true } },
-      { x: 2005, y: DOOR, until: H(13), hidden: true },
-      { x: 3900, y: 856, until: H(17.2), shuttle: { A: 150, speed: 1500, play: true } },
-      { x: 2005, y: DOOR, until: 20, hidden: true }] }
+      { x: 1864, y: DOOR, until: H(8), hidden: true },
+      { x: 3245, y: 858, until: H(11.5), shuttle: { A: 130, speed: 1500, play: true } },
+      { x: 1864, y: DOOR, until: H(13), hidden: true },
+      { x: 4185, y: 856, until: H(17.2), shuttle: { A: 150, speed: 1500, play: true } },
+      { x: 1864, y: DOOR, until: 20, hidden: true }] }
   ];
   // ตรอกล่าง (the poor district east of town)
   const SLUM = [   // zone 'slum': drawn only in the ตรอกล่าง scene
@@ -127,12 +127,12 @@
   const CARTS = [
     { id: 'wagon', name: 'เกวียนพ่อค้า', sheet: 'wagons', vrow: 0, height: HERO * 1.32, speed: 4200, stops: [
       { x: OFF, y: ROAD, until: H(6.3), hidden: true },
-      { x: 3330, y: ROAD, until: H(8.4) },                                     // unloading flour at the bakery
-      { x: 5420, y: ROAD, until: H(10.2) },                                    // then supplies for the inn
+      { x: 3615, y: ROAD, until: H(8.4) },                                     // unloading flour at the bakery
+      { x: 5705, y: ROAD, until: H(10.2) },                                    // then supplies for the inn
       { x: OFF, y: ROAD, until: 20, hidden: true }] },
     { id: 'haycart', name: 'เกวียนฟาง', sheet: 'wagons', vrow: 1, height: HERO * 0.98, speed: 2600, stops: [
       { x: OFF, y: ROAD + 12, until: H(12.4), hidden: true },
-      { x: 4250, y: ROAD + 12, until: H(15.6) },                                 // hay for the forge's horse
+      { x: 4535, y: ROAD + 12, until: H(15.6) },                                 // hay for the forge's horse
       { x: OFF, y: ROAD + 12, until: 20, hidden: true }] }
   ];
   // ลานเกวียน (zone 'carts', outside the west gate): porters carry sacks from the carts up to the warehouse dock,
@@ -174,8 +174,8 @@
   ];
   // Two guards walk the whole street day and night, one on each half.
   const PATROLS = Object.freeze([
-    { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3200, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
-    { id: 'guard2', name: 'ทหารยาม', sheet: 'guard2', height: HERO * 1.0, from: 3260, to: 6300, y: 832, speed: 650, offset: 4.2, rest: 0.45 }
+    { id: 'guard1', name: 'ทหารยาม', sheet: 'guard1', height: HERO * 1.02, from: 300, to: 3485, y: 846, speed: 650, offset: 0.0, rest: 0.45 },
+    { id: 'guard2', name: 'ทหารยาม', sheet: 'guard2', height: HERO * 1.0, from: 3545, to: 6280, y: 832, speed: 650, offset: 4.2, rest: 0.45 }
   ]);
   // Existing residents (town-residents.js) → sheet, size, and the stretch they carry sacks along at work.
   const RESIDENT_LOOK = Object.freeze({
@@ -217,8 +217,25 @@
   }
 
   for (const p of SLUM) p.zone = 'slum';
+  // v90 ตลาดใหญ่ (zone 'market'): stall keepers come out of the market lane in the morning and go home at dusk.
+  // They borrow existing sheets for now (a boy, an old clerk, an auntie) until the market gets its own people.
+  const MARKET = [
+    { id: 'mkt_boy', name: 'เด็กแผงผัก', sheet: 'teen', height: HERO * 0.9, speed: 1400, stops: [
+      { x: 15986, y: DOOR, until: H(5.6), hidden: true },
+      { x: 16640, y: 830, until: H(17.8), loop: 'offer', face: 1 },
+      { x: 15986, y: DOOR, until: 20, hidden: true }] },
+    { id: 'mkt_cloth', name: 'ลุงร้านผ้า', sheet: 'elder', height: HERO * 0.92, speed: 1300, stops: [
+      { x: 15986, y: DOOR, until: H(7.2), hidden: true },
+      { x: 17960, y: 826, until: H(18.4), loop: 'write', face: 1 },
+      { x: 15986, y: DOOR, until: 20, hidden: true }] },
+    { id: 'mkt_cook', name: 'ป้าร้านข้าว', sheet: 'granny', height: HERO * 0.9, speed: 1200, stops: [
+      { x: 15986, y: DOOR, until: H(5.2), hidden: true },
+      { x: 18560, y: 812, until: H(20.6), loop: 'stir', face: 1 },
+      { x: 15986, y: DOOR, until: 20, hidden: true }] }
+  ];
   for (const p of CARTS_YARD) p.zone = 'carts';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD);
+  for (const p of MARKET) p.zone = 'market';
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;
@@ -270,11 +287,11 @@
   }
 
   // ---- animals (one sheet: row 0 cat · row 1 dog walk · row 2 pigeons) ----
-  const PIGEONS = [-70, 15, 80].map((dx, i) => ({ id: 'pigeon' + i, x: 2975 + dx, y: 852 + i * 6 }));
+  const PIGEONS = [-70, 15, 80].map((dx, i) => ({ id: 'pigeon' + i, x: 3260 + dx, y: 852 + i * 6 }));
   function cat(clock) {
     const h = finiteClock(clock) * 1.2, night = h < 6 || h >= 21;
     const col = night ? 2 : [0, 1, 0, 2, 2, 3][Math.floor(finiteClock(clock) * 4) % 6];      // sit · lick · sit · nap · nap · stretch
-    return { id: 'cat', name: 'แมว', sheet: 'animals', height: HERO * 0.32, visible: true, x: 5870, y: 808, face: -1, still: [0, col] };
+    return { id: 'cat', name: 'แมว', sheet: 'animals', height: HERO * 0.32, visible: true, x: 6155, y: 808, face: -1, still: [0, col] };
   }
   function dog(clock) {
     // trails the kids along their own path, a moment behind them
@@ -354,7 +371,7 @@
   // v84: work props standing on the street right where the hammer, ladle or washboard lands (the painted ones sit too deep).
   // h = height in world px (image scaled to it), x/foot = bottom centre, z = draw order among people (lower = further back).
   const PROPS = Object.freeze([
-    { id: 'anvil',    x: 4466, foot: 803, z: 799, h: HERO * 0.5 },                    // the smith hammers it from the left
+    { id: 'anvil',    x: 4751, foot: 803, z: 799, h: HERO * 0.5 },                    // the smith hammers it from the left
     { id: 'cauldron', x: 8012, foot: 812, z: 807, h: HERO * 0.46, zone: 'slum', fire: true }, // ป้าโรงทาน stirs from the left
     { id: 'tub',      x: 8418, foot: 816, z: 811, h: HERO * 0.34, zone: 'slum' }        // แม่ซักผ้า's washboard stands in it
   ]);

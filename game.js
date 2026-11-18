@@ -72,7 +72,7 @@ function benchZzz() {
   for (let i = 0; i < 3; i++) {
     const k = ((t * 0.00035) + i / 3) % 1;
     ctx.globalAlpha = Math.sin(k * Math.PI) * 0.9 * Math.min(1, a); ctx.font = '700 ' + Math.round(12 + 10 * k) + 'px system-ui';
-    ctx.fillText('z', 3852 + 14 * k + 6 * Math.sin(k * 5), 712 - 50 * k);
+    ctx.fillText('z', 4137 + 14 * k + 6 * Math.sin(k * 5), 712 - 50 * k);
   }
   ctx.restore();
 }

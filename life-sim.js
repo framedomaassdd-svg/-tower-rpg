@@ -11,11 +11,11 @@
 
   // street positions come from the painted town (town-pano.js); the fallback keeps Node simulations identical
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
-  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2501, market: 3445, smith: 4562, inn: 5543, bench: 3886, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050 };
+  const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 2786, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
     smith:  { x: PX.smith, y: 792, name: 'โรงตีเหล็ก' },
-    market: { x: PX.market, y: 792, name: 'ตลาดขนมปัง' },
+    market: { x: PX.market, y: 792, name: 'ตลาดใหญ่' },
     guild:  { x: PX.guild, y: 792, name: 'ลานฝึกกิลด์' },
     slumyard: { x: PX.slumyard || 10014, y: 792, name: 'ลานฝึกตรอก' },
     cargo:  { x: PX.cargo || 14050, y: 792, name: 'ลานเกวียน' },
@@ -25,8 +25,8 @@
     soup:   { x: PX.soup, y: 812, name: 'โรงทาน' },
     scrap:  { x: PX.scrap, y: 812, name: 'ลานของเก่า' },
     // doors used for short errands after work (each has an interior in interiors.js)
-    bakery: { x: 3236, y: 792, name: 'ร้านขนมปัง' },
-    apothecary: { x: 4803, y: 792, name: 'ร้านยา' },
+    bakery: { x: 3521, y: 792, name: 'ร้านขนมปัง' },
+    apothecary: { x: 5088, y: 792, name: 'ร้านยา' },
     guildhall: { x: PX.guild, y: 792, name: 'ห้องโถงกิลด์' },
     junk:   { x: 8932, y: 792, name: 'ร้านรับซื้อของเก่า' }
   });
@@ -126,10 +126,13 @@
   // v87: ลานเกวียน (outside the city) is a third scene, reached through the city gate: up the gate lane in town,
   // out of the outer gate on the yard side. Between the slum and the yard the hero crosses town.
   const CARTS_PLACES = { cargo: 1 };
-  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : 'town';
+  // v90: ตลาดใหญ่ is a fourth scene, reached by the market lane off the main street.
+  const MARKET_PLACES = { market: 1 };
+  const zoneOf = place => SLUM_PLACES[place] ? 'slum' : CARTS_PLACES[place] ? 'carts' : MARKET_PLACES[place] ? 'market' : 'town';
   const LANE = Object.freeze({ x: 6836, top: 724, dur: 0.13 });   // dur: clock units per half (≈0.8 s at ×1)
   const CROSS = Object.freeze({ slum: { town: LANE.x, other: LANE.x, act: 'เดินเข้าตรอกล่าง' },
-                                carts: { town: 328, other: 15046, act: 'ออกประตูเมืองไปลานเกวียน' } });
+                                carts: { town: 328, other: 15046, act: 'ออกประตูเมืองไปลานเกวียน' },
+                                market: { town: 1864, other: 15986, act: 'เดินเข้าตรอกตลาด' } });
   function route(t0, from, to, act) {
     const za = zoneOf(from), zb = zoneOf(to);
     if (za === zb) return [Object.assign(walk(t0, from, to, act), { zone: za })];

@@ -74,10 +74,10 @@
   }
 
   // ---- the street (world coordinates): flower spots for butterflies, trees that shed leaves
-  const FLOWERS = [[1115, 700, 0], [2210, 690, 1], [2905, 730, 0], [3790, 690, 1], [3990, 700, 0], [4935, 700, 1], [6100, 720, 0]];
+  const FLOWERS = [[1115, 700, 0], [2495, 690, 1], [3190, 730, 0], [4075, 690, 1], [4275, 700, 0], [5220, 700, 1], [1484, 552, 1]];
   const SLUM_FLOWERS = [[8455, 730, 0], [9691, 720, 1]];
-  const TREES = [{ x0: 3690, x1: 4120, y0: 540, y1: 650, gy: 905, petals: 0.35 },   // the garden
-                 { x0: 2250, x1: 2650, y0: 560, y1: 700, gy: 905, petals: 0.8 },     // flowers on the arch
+  const TREES = [{ x0: 3975, x1: 4405, y0: 540, y1: 650, gy: 905, petals: 0.35 },   // the garden
+                 { x0: 2535, x1: 2935, y0: 560, y1: 700, gy: 905, petals: 0.8 },     // flowers on the arch
                  { x0: 600, x1: 1300, y0: 520, y1: 700, gy: 905, petals: 0.5 }];
   const SLUM_TREES = [{ x0: 7000, x1: 7600, y0: 560, y1: 700, gy: 905, petals: 0.1 },
                       { x0: 9300, x1: 10200, y0: 560, y1: 700, gy: 905, petals: 0.1 }];
