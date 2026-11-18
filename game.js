@@ -266,12 +266,35 @@ function resize() {
 addEventListener('resize', resize); resize();
 
 let sceneReady = false, wasInside = false, wipeStart = -1e9, lieSince = 0;
+// v106 no night to watch: once the hero is in bed the screen blinks like closing eyes, goes black, and opens on the morning
+let sleepFx = null;
+const SLEEP_FX = { close: 1.1, jump: 1.35, black: 1.9, open: 2.6 };
+function lidsAt(k) {                       // 0 = eyes open … 1 = shut
+  if (k < 0.35) return 0.75 * k / 0.35;
+  if (k < 0.5) return 0.75 - 0.5 * (k - 0.35) / 0.15;                 // a blink: half open again
+  if (k < SLEEP_FX.close) return 0.25 + 0.75 * (k - 0.5) / (SLEEP_FX.close - 0.5);
+  if (k < SLEEP_FX.black) return 1;
+  return Math.max(0, 1 - (k - SLEEP_FX.black) / (SLEEP_FX.open - SLEEP_FX.black));
+}
+function drawLids(c01, label) {
+  const W = c.width, H = c.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (c01 > 0.001) {
+    ctx.fillStyle = 'rgba(10,6,4,' + (0.35 * c01).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H);
+    const ry = Math.max(0, (1 - c01) * H * 0.78), rx = W * 0.78;
+    ctx.fillStyle = '#0a0604'; ctx.beginPath(); ctx.rect(0, 0, W, H);
+    if (ry > 0.5) ctx.ellipse(W / 2, H / 2, rx, ry, 0, 0, Math.PI * 2, true);
+    ctx.fill();
+  }
+  if (label) { ctx.fillStyle = '#f6ecd8'; ctx.globalAlpha = label[1]; ctx.font = '600 ' + Math.round(H * 0.035) + 'px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(label[0], W / 2, H / 2); ctx.globalAlpha = 1; }
+}
 function frame(t) {
   requestAnimationFrame(frame);
   if (!sceneReady) { last = t; return; }
   const elapsed = Math.min((t - last) / 1000 || 0, .2); last = t;
   if (!document.hidden) {
-    if (!state.paused && !window.LIFE_BLOCK) {
+    if (!state.paused && !window.LIFE_BLOCK && !sleepFx) {
       clock += CityLighting.clockDelta(elapsed, state.timeSpeed);
       if (clock >= 20) { const overflow = clock - 20; nextDay(); clock = overflow; }
     }
@@ -279,6 +302,9 @@ function frame(t) {
   }
   LifeUI.drive();
   window.LIFE_STATE_OK = !!(state.life && state.life.started);
+  const I = window.LIFE_INFO;
+  if (!sleepFx && window.LIFE_STATE_OK && I && (I.sleep || I.lie) && !I.rest && !state.paused && !window.LIFE_BLOCK && (clock >= 10 || clock < 4.95))
+    { sleepFx = { t0: t, jumped: false }; const lc = document.getElementById('lgloot'); if (lc) lc.classList.remove('show'); }
   const lie = !!(window.LIFE_INFO && window.LIFE_INFO.lie && !window.LIFE_INFO.shelter);         // fade the sleeper on the garden bench in
   if (lie && !lieSince) lieSince = t; if (!lie) lieSince = 0;
   window.BENCH_SLEEP = lie ? Math.min(1, (t - lieSince) / 600) : 0;
@@ -291,6 +317,15 @@ function frame(t) {
     const e = 1 - Math.pow(1 - wk, 3), R = Math.hypot(c.width, c.height) / 2 * e;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#140e0a'; ctx.beginPath();
     ctx.rect(0, 0, c.width, c.height); ctx.arc(c.width / 2, c.height * 0.55, Math.max(1, R), 0, Math.PI * 2, true); ctx.fill();
+  }
+  if (sleepFx) {
+    const k = (t - sleepFx.t0) / 1000;
+    if (k >= SLEEP_FX.jump && !sleepFx.jumped) {          // straight to 06:00 (the next day if it's still evening)
+      sleepFx.jumped = true; if (clock >= 5) nextDay(); clock = 5; save();
+    }
+    const txt = k > SLEEP_FX.jump ? ['วันที่ ' + state.day + ' · เช้าวันใหม่', Math.min(1, (k - SLEEP_FX.jump) / 0.25) * Math.min(1, Math.max(0, (SLEEP_FX.open - 0.15 - k) / 0.4))] : null;
+    drawLids(lidsAt(k), txt);
+    if (k >= SLEEP_FX.open) sleepFx = null;
   }
 }
 

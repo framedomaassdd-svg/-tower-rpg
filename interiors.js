@@ -45,7 +45,7 @@
     compass: { boss: 'compassboss', office: { desk: 840, top: 455 }, hall: { board: 835, clerk: 300, top: 538 }, store: 836, dine: { x: 410, table: 545 }, cook: [660, 1150, 1460], bed: [545, 455] },
     porter: { boss: 'porterboss', office: { desk: 860, top: 446 }, hall: { board: 840, clerk: 340, top: 505 }, store: 836, dine: { x: 470, table: 520 }, cook: [650, 1080, 1360], bed: [590, 470] }
   };
-  GUILD_ROOMS.merch = Object.assign({}, GUILD_ROOMS.iron, { boss: 'merchboss', borrow: 'iron' });
+  GUILD_ROOMS.merch = { boss: 'merchboss', office: { desk: 840, top: 527 }, hall: { board: 840, clerk: 290, top: 527 }, store: 836, dine: { x: 840, table: 553 }, cook: [460, 860, 1150], bed: [550, 495] };
   const GNAME = { iron: 'กิลด์โล่เหล็ก', compass: 'กิลด์เข็มทิศเงิน', porter: 'สมาคมคนแบกของ', merch: 'กิลด์พ่อค้าหอคอย' };
   for (const g in GUILD_ROOMS) {
     const R = GUILD_ROOMS[g], f = room => 'gi_' + (R.borrow || g) + '_' + room, n = GNAME[g], K = 1.12;
@@ -62,7 +62,7 @@
   }
   const hasImage = typeof Image !== 'undefined';
   const img = {};
-  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : SCENES[k].file.startsWith('gi_') ? '?v=105' : V); img[k] = i; } }
+  function load() { if (!hasImage) return; for (const k in SCENES) if (!img[k]) { const i = new Image(); i.src = SCENES[k].file + '.webp' + (SCENES[k].file.startsWith('int_') ? '?v=79' : SCENES[k].file.startsWith('gi_') ? '?v=106' : V); img[k] = i; } }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
   // v81: the hero asleep is painted into each bed (a patch of the room, laid over it), and eats facing the camera
   const SLEEP = { bed_cheap: [755, 440], bed_mid: [985, 405], bed_luxe: [1120, 380], tenement: [345, 425] };
