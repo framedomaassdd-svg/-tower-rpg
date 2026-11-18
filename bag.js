@@ -33,6 +33,7 @@
     hook:      { name: 'ตะขอคุ้ยของ',       icon: '🪝', kind: 'tool', keep: 0, sell: 5, desc: 'คุ้ยลานของเก่าได้เพิ่ม 1 ชิ้น' },
     dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +5' },
     // v109 from the tower
+    meat:      { name: 'เนื้อมอนสเตอร์ย่าง', icon: '🍖', kind: 'meal', keep: 2, sell: 1 },
     ore:       { name: 'แร่เหล็กดิบ',        icon: '🪨', kind: 'material', keep: 0, sell: 3 },
     crystal:   { name: 'คริสตัลหอคอย',      icon: '💎', kind: 'material', keep: 0, sell: 15 },
     potion:    { name: 'ยาฟื้นแรง',          icon: '🧪', kind: 'tool', keep: 0, sell: 2, desc: 'ในหอคอย ดื่มเองเมื่อสุขภาพต่ำกว่า 40 (+30)' },

@@ -360,41 +360,40 @@
   function expHtml() {
     const L = state.life, x = L.exp, E = X(); if (!E) return '';
     if (x && !x.over && state.day >= x.start) {
-      const T = E.terrainOf(x.floor);
-      return `<h3>กำลังสำรวจหอคอย</h3><p>ชั้น ${x.floor} · ${esc(T.name)} · วันที่ ${state.day - x.start + 1}${x.endDay ? ' · ออกจากหอคอยวันที่ ' + x.endDay : ' · จนกว่าเสบียงจะหมด'}${x.party ? ' · ไปกับ' + esc(E.PARTY[x.party].name) : ' · ไปคนเดียว'}</p>
+      const T = E.terrainOf(x.floor), K = x.stones[x.floor] || {}, need = E.needOf(x.floor);
+      return `<h3>อยู่ในหอคอย</h3><p>ชั้น ${x.floor} · ${esc(T.name)} · วันที่ ${state.day - x.start + 1}${x.party ? (x.separated ? ' · <b style="color:#ff9a7a">หลงจาก' + esc(E.PARTY[x.party].name) + '</b>' : ' · กับ' + esc(E.PARTY[x.party].name)) : ' · คนเดียว'}${x.ally ? ' · มี' + esc(x.ally.name) + 'ร่วมทาง' : ''}</p>
+        <p>ค้นหาศิลา</p><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, x.search / need * 100))}%"></i></div>
+        <p class="lg-muted">${x.search}/${need}${K.exit ? ' · ✦ รู้ตำแหน่งศิลาทางออก' : ''}${K.up ? ' · ✦ รู้ตำแหน่งศิลาทางขึ้น' : ''} · ทางออกจากหอคอยมีทางเดียวคือศิลาทางออก</p>
         <p class="lg-muted">ของกิน ${B().meals(state)} มื้อ · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · ชนะ ${x.wins} ครั้ง</p>
-        <div class="lg-log">${esc(x.log.slice(0, 5).map(e => 'วันที่ ' + e.day + ' · ' + e.title + ': ' + e.lines.join(' / ')).join('\n'))}</div>
-        ${x.endDay === state.day + 1 || x.endDay === state.day ? '' : '<button class="lg-btn" data-a="xback">ถอนตัวกลับเมือง<small>ออกจากหอคอยพรุ่งนี้เช้า</small></button>'}`;
+        <div class="lg-log">${esc(x.log.slice(0, 5).map(e => 'วันที่ ' + e.day + ' · ' + e.title + ': ' + e.lines.join(' / ')).join('\n'))}</div>`;
     }
-    if (x && !x.over) return `<h3>หอคอย</h3><p>จะออกสำรวจเช้าวันที่ ${x.start} · ${x.days ? x.days + ' คืน' : 'จนกว่าเสบียงจะหมด'}${x.party ? ' · ไปกับ' + esc(E.PARTY[x.party].name) : ' · ไปคนเดียว'}</p>
-      <button class="lg-btn" data-a="xcancel">ยกเลิกการออกสำรวจ</button>`;
-    return `<h3>หอคอย</h3><button class="lg-btn lg-primary" data-a="xprep">เตรียมออกสำรวจหอคอย<small style="color:#2a1a0c">หลายวัน · เจอเหตุการณ์ เลือกทาง แล้วหมุนสล็อต · เวลาในเมืองเดินต่อ</small></button>`;
+    if (x && !x.over) return `<h3>หอคอย</h3><p>จะเข้าหอคอยเช้าวันที่ ${x.start}${x.party ? ' กับ' + esc(E.PARTY[x.party].name) : ' คนเดียว'}</p>
+      <button class="lg-btn" data-a="xcancel">ยกเลิก</button>`;
+    return `<h3>หอคอย</h3><button class="lg-btn lg-primary" data-a="xprep">เตรียมเข้าหอคอย<small style="color:#2a1a0c">เริ่มชั้น 1 เสมอ · ออกได้ทางศิลาทางออกเท่านั้น · เวลาในเมืองเดินต่อ</small></button>`;
   }
   const PREP_SHOP = [['jerky', 5, 'เก็บได้ 10 วัน'], ['bread', 3, 'เก็บได้ 3 วัน'], ['potion', 7, 'ดื่มเองเมื่อสุขภาพต่ำ']];
   function prepCard(sel) {
-    const E = X(), L = state.life; sel = sel || { days: 5, party: null };
+    const E = X(), L = state.life; sel = sel || { party: null };
     const path = L.path, G = LifeSim.guildOf(state), guildOK = G && G.member && E.PARTY[path];
     const parties = [[null, 'ไปคนเดียว', 'ไม่มีใครช่วยถ้าพลาด อาจตายได้จริง']]
       .concat(guildOK ? [[path, 'ไปกับ' + E.PARTY[path].name, 'พลังทีม +' + E.PARTY[path].power + ' · แพ้หนักแล้วทีมช่วยไว้ (เสียเงิน อุปกรณ์ ครึ่งหนึ่ง)']] : [])
-      .concat([['guard', 'จ้างนักรบคุ้มกัน', E.GUARD_FEE + ' เหรียญ/วัน · พลัง +' + E.PARTY.guard.power + ' · ช่วยชีวิตได้' + (sel.days ? ' · รวม ' + E.GUARD_FEE * sel.days + ' เหรียญ' : ' (ต้องกำหนดจำนวนวัน)')]]);
-    const meals = B().meals(state), need = sel.days || 0;
+      .concat([['guard', 'จ้างนักรบคุ้มกัน', E.GUARD_FEE + ' เหรียญ/วัน (มัดจำ 5 วัน ' + E.GUARD_FEE * 5 + ' เหรียญ ที่เหลือจ่ายตอนออก) · พลัง +' + E.PARTY.guard.power + ' · ช่วยชีวิตได้ถ้าไม่หลงกัน']]);
+    const meals = B().meals(state), need = 0;
     const d = el(`<div class="lg-card"><h2>เตรียมออกสำรวจหอคอย</h2>
-      <p class="lg-muted">ออกเดินทางเช้าพรุ่งนี้ที่ประตูขึ้นหอคอย ทุกคืนในหอคอยกินของ 1 มื้อจากกระเป๋า ถ้าของกินหมด หรือบาดเจ็บหนัก จะกลับเมืองเอง</p>
-      <h3>กี่คืน</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0 6px">${[3, 5, 10, 0].map(n => `<button class="lg-btn ${sel.days === n ? 'lg-cur' : ''}" data-days="${n}" style="text-align:center">${n || 'ไม่กำหนด'}</button>`).join('')}</div>
-      <h3>ไปกับใคร</h3>${parties.map(([id, n, dsc]) => `<button class="lg-btn ${sel.party === id ? 'lg-cur' : ''}" data-party="${id || ''}" ${id === 'guard' && !sel.days ? 'disabled' : ''}>${esc(n)}<small>${esc(dsc)}</small></button>`).join('')}
-      <h3>เสบียง</h3><p>ของกิน ${meals} มื้อ${need && meals < need ? ' <b style="color:#ff9a7a">ไม่พอ ' + need + ' คืน</b>' : ''} · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · กระเป๋า ${B().total(state)}/${B().CAP} · เงิน ${state.money}</p>
+      <p class="lg-muted">เข้าหอคอยเช้าพรุ่งนี้ แสงจากประตูจะพาไปโผล่ที่ใดที่หนึ่งในชั้น 1 (บางครั้งหลุดจากทีม) ออกได้ทางเดียวคือหา<b>ศิลาทางออก</b> ส่วน<b>ศิลาทางขึ้น</b>พาไปชั้นถัดไป ไม่รู้ว่าจะใช้เวลากี่วัน ทุกคืนกินของ 1 มื้อ ในหอคอยหาผลไม้หรือล่าสัตว์กินได้</p>
+      <h3>ไปกับใคร</h3>${parties.map(([id, n, dsc]) => `<button class="lg-btn ${sel.party === id ? 'lg-cur' : ''}" data-party="${id || ''}" ${id === 'guard' && state.money < E.GUARD_FEE * 5 ? 'disabled' : ''}>${esc(n)}<small>${esc(dsc)}</small></button>`).join('')}
+      <h3>เสบียง</h3><p>ของกิน ${meals} มื้อ${meals < 3 ? ' <b style="color:#ff9a7a">น้อยมาก</b>' : ''} · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · กระเป๋า ${B().total(state)}/${B().CAP} · เงิน ${state.money}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 6px">${PREP_SHOP.map(([id, p, n]) => `<button class="lg-btn" data-buy="${id}" ${state.money < p || B().total(state) >= B().CAP ? 'disabled' : ''}>${iconHtml(id, 24)} ${esc(B().name(id))}<small>${p} เหรียญ · ${n}</small></button>`).join('')}</div>
       <p class="lg-muted">ซื้อจากแผงเสบียงหน้าประตูหอคอย (แพงกว่าในตลาดนิดหน่อย) · ฝากของที่ไม่ใช้ไว้ในหีบกิลด์ จะได้มีที่ใส่ของที่หาได้</p>
-      <button class="lg-btn lg-primary" data-go="1">ออกเดินทางพรุ่งนี้เช้า</button><button class="lg-btn" data-go="">ยังก่อน</button></div>`);
+      <button class="lg-btn lg-primary" data-go="1">เข้าหอคอยพรุ่งนี้เช้า</button><button class="lg-btn" data-go="">ยังก่อน</button></div>`);
     block(d);
     const redo = () => { d.remove(); block(null); prepCard(sel); };
-    d.querySelectorAll('[data-days]').forEach(b => b.onclick = () => { sel.days = +b.dataset.days; if (!sel.days && sel.party === 'guard') sel.party = null; redo(); });
     d.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { sel.party = b.dataset.party || null; redo(); });
     d.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const [id, p] = PREP_SHOP.find(q => q[0] === b.dataset.buy);
       if (state.money >= p && B().add(state, id, 1, state.day)) state.money -= p; save(); redo(); });
     d.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
-      if (b.dataset.go) { const r = E.plan(state, { days: sel.days, party: sel.party }); if (!r.ok) { alert(r.why); return; }
-        log('เตรียมออกสำรวจหอคอยเช้าวันที่ ' + r.start + (sel.party ? ' กับ' + E.PARTY[sel.party].name : ' คนเดียว')); save(); }
+      if (b.dataset.go) { const r = E.plan(state, { party: sel.party }); if (!r.ok) { alert(r.why); return; }
+        log('เตรียมเข้าหอคอยเช้าวันที่ ' + r.start + (sel.party ? ' กับ' + E.PARTY[sel.party].name : ' คนเดียว')); save(); }
       d.remove(); block(null); panel('char'); });
   }
   // an encounter in the tower: choose → spin the three reels → see what happened
@@ -404,8 +403,17 @@
     block(d);
     const cv = d.querySelector('canvas'), actions = d.querySelector('.lg-actions'), line = d.querySelector('.line');
     drawFace(cv, 'hero', enc.scene === 'combat' ? 2 : 0);
-    actions.innerHTML = '<p class="lg-muted" style="margin:0">เลือกแล้วจะหมุนสล็อตสามวง ตัวเลือกเปลี่ยนโอกาสที่สัญลักษณ์แต่ละแบบจะออก</p>' + E.choiceView(enc).map(c => `<button class="lg-btn" data-i="${c.index}">${esc(c.label)}<small>${esc(c.hint)}</small></button>`).join('');
+    actions.innerHTML = (enc.noSpin ? '' : '<p class="lg-muted" style="margin:0">เลือกแล้วจะหมุนสล็อตสามวง ตัวเลือกเปลี่ยนโอกาสที่สัญลักษณ์แต่ละแบบจะออก</p>') + E.choiceView(enc).map(c => `<button class="lg-btn" data-i="${c.index}">${esc(c.label)}<small>${esc(c.hint)}</small></button>`).join('');
     actions.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+      const view = E.choiceView(enc)[+b.dataset.i];
+      if (view.noSpin) {                                   // using a stone, sharing food...: no reels
+        const had = holding(), res = E.resolve(state, enc, +b.dataset.i), got = diff(had, holding()); snap = holding(); snapOf = state; save();
+        line.textContent = enc.choices[+b.dataset.i].label;
+        actions.innerHTML = `<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">ตกลง</button>`;
+        for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
+        actions.querySelector('[data-ok]').onclick = () => closeOverlay(d);
+        return;
+      }
       const kind = enc.scene === 'combat' ? 'combat' : 'event', cat = Eng.SYMBOLS[kind];
       const pool = Object.values(cat).filter(s => s.emoji).map(s => s.emoji);
       line.textContent = enc.choices[+b.dataset.i].label;
@@ -435,8 +443,8 @@
   }
   function guildHtml() {
     const L = state.life, G = LifeSim.guildOf(state); if (!G) return '';
-    let h = `<h3>${esc(G.name)}</h3><p class="lg-muted">${G.member ? 'สมาชิก: กินข้าวเย็นที่โรงอาหารกิลด์ ' + (L.path === 'gchef' ? 'ฟรี' : LifeSim.GUILD_MEAL + ' เหรียญ') + ' · เลือก "ห้องพักกิลด์" ในที่พักได้ · ฝากของในหีบกิลด์ได้ (แท็บกระเป๋า)' : 'ยังไม่ได้เป็นสมาชิก สิทธิ์โรงอาหาร ห้องพัก และหีบฝากของจะได้หลังสอบผ่าน'}</p>`;
-    if (G.member && ['guild', 'compass', 'porter'].includes(L.path)) {
+    let h = `<h3>${esc(G.name)}</h3><p class="lg-muted">${G.member ? 'สมาชิก: กินข้าวเย็นที่โรงอาหารกิลด์ ' + (L.path === 'gchef' ? 'ฟรี' : LifeSim.GUILD_MEAL + ' เหรียญ') + ' · เลือก "ห้องพักกิลด์" ในที่พักได้ · ฝากของในหีบกิลด์ได้ (แท็บกระเป๋า)' + (['guild', 'compass', 'porter'].includes(L.path) ? ' · เข้าหอคอยพร้อมทีมกิลด์ได้ (เตรียมเข้าหอคอยด้านบน)' : '') : 'ยังไม่ได้เป็นสมาชิก สิทธิ์โรงอาหาร ห้องพัก และหีบฝากของจะได้หลังสอบผ่าน'}</p>`;
+    if (false) {
       const cur = L.quest || 'normal';
       h += '<p>กระดานภารกิจ (ตัวละครแวะรับที่โถงกิลด์ทุกเช้า)</p>' + Object.entries(LifeSim.QUESTS).map(([id, q]) =>
         `<button class="lg-btn ${cur === id ? 'lg-cur' : ''}" data-quest="${id}">${cur === id ? '✓ ' : ''}${esc(q.name)}<small>${esc(q.desc)}</small></button>`).join('');
@@ -530,7 +538,7 @@
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
     on('[data-a=xprep]', () => { d.remove(); block(null); prepCard(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
-    on('[data-a=xback]', () => { X().turnBack(state, 'ถอนตัวกลับเอง'); log('ตัดสินใจกลับเมือง ออกจากหอคอยพรุ่งนี้เช้า'); again(); });
+
     d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
     d.querySelectorAll('[data-title]').forEach(x => x.onclick = () => { Skills.wearTitle(state, x.dataset.title); log('ใช้ฉายา "' + Skills.TITLES[x.dataset.title].name + '"'); again(); });
     d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip, slot = B().ITEMS[id].equip;
@@ -615,7 +623,7 @@
       else if (k === 'errand' || k === 'errand2') LifeSim.applyErrand(state, k);
       else if (k === 'cook') LifeSim.applyOrder(state, 'cook');
       else if (k.startsWith('coach')) LifeSim.applyCoach(state);
-      else if (k === 'xstart') log('เข้าหอคอย เริ่มออกสำรวจ');
+      else if (k === 'xstart') log(X().enter(state));
       else if (k === 'xback') log(X().close(state));
       else if (/^x[123]$/.test(k) || k === 'xcamp') {
         if (k === 'xcamp') log(X().camp(state));

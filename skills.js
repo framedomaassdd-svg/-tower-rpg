@@ -42,7 +42,7 @@
     iron:      { name: 'นักรบโล่เหล็ก', bonus: { strength: 4 }, how: 'สอบเข้ากิลด์โล่เหล็กผ่าน' },
     compass:   { name: 'นักสำรวจเข็มทิศเงิน', bonus: { intelligence: 4 }, how: 'สอบเข้ากิลด์เข็มทิศเงินผ่าน' },
     appraiser: { name: 'นักตีราคา', bonus: { intelligence: 2, agility: 2 }, how: 'เป็นนักตีราคากิลด์พ่อค้า' },
-    porter:    { name: 'หลังเหล็ก', bonus: { strength: 5 }, how: 'แบกของเข้าหอคอย 30 เที่ยว' },
+    porter:    { name: 'หลังเหล็ก', bonus: { strength: 5 }, how: 'อยู่ในหอคอยกับขบวนคนแบกรวม 30 วัน' },
     slayer:    { name: 'ผู้ล่าอสูร', bonus: { strength: 3, agility: 3 }, how: 'ชนะมอนสเตอร์ 15 ครั้ง' },
     survivor:  { name: 'ผู้รอดตาย', bonus: { agility: 4 }, how: 'รอดชีวิตเพราะเพื่อนร่วมทีมช่วยไว้' }
   });
@@ -122,7 +122,7 @@
     const h = power(st) + (ally || 0), p = clamp(winChance(h, mon.power) + (slot || 0), 0.005, 0.995);
     if (r1 < p) return { win: true, p, hurt: r2 < 0.25 * (1 - p) * 2 };
     // lost: how bad? the further outmatched, the likelier it turns deadly
-    const deadly = r2 < clamp(0.15 * mon.power / Math.max(1, h), 0.03, 0.6);
+    const deadly = r2 < clamp(0.15 * Math.pow(mon.power / Math.max(1, h), 2), 0.002, 0.6);
     return { win: false, p, deadly };
   }
   // defeat with someone strong at your side: they drag you out — half the money, half the gear, stats halved while wounded

@@ -118,12 +118,12 @@
     smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true, room: 'forge', act: 'ตีเหล็กในโรงตีเหล็ก',
               desc: 'ไปช่วยงานโรงตีเหล็กทุกวัน มีมินิเกมตีเหล็ก ค่าแรงขึ้นกับฝีมือ และอาวุธที่ตีจะถูกส่งไปให้นักสู้ในหอคอย' },
     guild:  { name: 'กิลด์นักรบโล่เหล็ก',   place: 'guild',  energy: 20,
-              desc: 'ฝึกที่ลานกิลด์โล่เหล็กในย่านกิลด์ ฝึกครบ 5 วันจึงสอบผ่าน (ยังไม่มีค่าแรง) แล้วเข้าหอคอยสู้มอนสเตอร์กับทีมนักรบทุกวัน ค่าแรง 14 เหรียญ แพ้แล้วบาดเจ็บ บางวันได้ชิ้นส่วนมอนสเตอร์' },
+              desc: 'ฝึกที่ลานกิลด์โล่เหล็กในย่านกิลด์ ฝึกครบ 5 วันจึงสอบผ่าน แล้วออกสำรวจหอคอยกับทีมนักรบได้ (กิลด์จ่ายวันละ 14 เหรียญตอนออกจากหอคอย) วันที่อยู่ในเมืองซ้อมที่ลานกิลด์ได้เบี้ยเลี้ยง' },
     // v103 the other guilds of ย่านกิลด์
     compass: { name: 'กิลด์นักสำรวจเข็มทิศเงิน', place: 'compass', energy: 22,
-              desc: 'ฝึกอ่านแผนที่ครบ 5 วันจึงสอบผ่าน แล้วตามทีมสำรวจเข้าหอคอยไปทำแผนที่ ค่าแรงขึ้นกับปัญญาและสกิลทำแผนที่ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
+              desc: 'ฝึกอ่านแผนที่ครบ 5 วันจึงสอบผ่าน แล้วออกสำรวจหอคอยกับทีมสำรวจได้ (กิลด์จ่ายรายวันตามปัญญาตอนออกจากหอคอย) วันในเมืองคัดลอกแผนที่ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
     porter: { name: 'สมาคมคนแบกของ', place: 'porter', energy: 35,
-              desc: 'ไม่ต้องสอบ แบกเสบียงตามทีมเข้าหอคอยแล้วแบกของกลับ ค่าแรงรอบละ 8 เหรียญ (+3 ถ้ากำลัง ≥ 30) งานหนัก บางวันต้องสู้มอนสเตอร์ ฝึกสกิลแขนแกร่ง' },
+              desc: 'ไม่ต้องสอบ ออกสำรวจหอคอยกับขบวนคนแบกได้ทันที (วันละ 9 เหรียญตอนออกจากหอคอย) วันในเมืองจัดเสบียงในโกดัง ฝึกสกิลแขนแกร่ง' },
     gchef:  { name: 'พ่อครัวกิลด์', place: 'guild', energy: 25, minigame: true, act: 'ทำอาหารในครัวกิลด์',
               desc: 'ทำอาหารให้สมาชิกในครัวกิลด์ (เลือกกิลด์ได้) มีมินิเกมหั่นผัก ค่าแรง 5 + ดาว เหรียญ กินข้าวเย็นที่โรงอาหารกิลด์ฟรี และนอนห้องพักกิลด์ได้' },
     tmerchant: { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', energy: 15,
@@ -277,10 +277,9 @@
     if (L.path === 'guild') path = today.place === 'tenement'
       ? Object.assign({}, path, { place: 'slumyard', room: 'slumyard', act: 'ฝึกร่างกายที่ลานฝึกตรอก' })
       : Object.assign({}, path, { room: 'yard', act: st.guild ? 'ซ้อมกับครูฝึกที่ลานฝึกกิลด์' : 'ฝึกที่ลานฝึกกิลด์' });
-    if (L.path === 'guild' && st.guild && today.place !== 'tenement') path = Object.assign({}, path, { place: 'tower', room: null, inside: true, act: 'เข้าหอคอยกับทีมนักรบโล่เหล็ก' });
-    if (L.path === 'compass') path = st.compassMember ? Object.assign({}, path, { place: 'tower', inside: true, act: 'ตามทีมสำรวจเข้าไปทำแผนที่ในหอคอย' })
-      : Object.assign({}, path, { inside: true, act: 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน' });
-    if (L.path === 'porter') path = Object.assign({}, path, { place: 'tower', inside: true, act: 'แบกเสบียงตามทีมเข้าหอคอย' });
+    // v110 every trip into the tower is an expedition (expedition.js); on town days the tower guilds work at their hall
+    if (L.path === 'compass') path = Object.assign({}, path, { inside: true, act: st.compassMember ? 'คัดลอกแผนที่ในกิลด์เข็มทิศเงิน' : 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน' });
+    if (L.path === 'porter') path = Object.assign({}, path, { inside: true, room: gscene('porter', 'store'), act: 'จัดเสบียงในโกดังสมาคมคนแบกของ' });
     if (L.path === 'tmerchant') path = Object.assign({}, path, { inside: true, room: gscene('merch', st.merchMember ? 'store' : 'hall'), act: st.merchMember ? 'ตีราคาของจากหอคอยในกิลด์พ่อค้า' : 'เป็นลูกมือตีราคาในกิลด์พ่อค้า' });
     const G = guildOf(st);
     if (L.path === 'compass' && !st.compassMember) path = Object.assign({}, path, { room: gscene('compass', 'hall'), act: 'ฝึกอ่านแผนที่ที่โถงกิลด์เข็มทิศเงิน' });
@@ -297,21 +296,26 @@
     }
     // v109 on an expedition: whole days inside the tower (encounters at fixed times, a night at camp); on the last day
     // one morning encounter, then out through the gate and back to an ordinary evening in town
-    const XP = Exp && Exp.X(st), inTower = XP && !XP.over && st.day >= XP.start;
-    const leaving = inTower && XP.endDay === st.day && st.day !== XP.start;
+    const XP = Exp && Exp.X(st), inTower = XP && st.day >= XP.start && (!XP.over || (XP.exitDay === st.day && !st.life.dead));   // the exit day keeps its shape after closing
+    // v110 the only way out is a ศิลาทางออก: the day one is used, the hero comes out at the gate (exitT) and has an ordinary evening
+    const leaving = inTower && XP.exitDay === st.day;
+    let t0 = WAKE;
+    if (inTower && st.day === XP.start) t0 = end(route(WAKE, start, 'tower', 'เดินไปประตูหอคอย พร้อมออกสำรวจ').map(x => (segs.push(x), x))).t1;
+    const where = inTower ? 'สำรวจหอคอย ชั้น ' + XP.floor + ' ' + Exp.terrainOf(XP.floor).name + (XP.separated ? ' (หลงจากทีม)' : '') : '';
     if (inTower && !leaving) {
-      let t0 = WAKE;
-      if (st.day === XP.start) t0 = end(route(WAKE, start, 'tower', 'เดินไปประตูหอคอย พร้อมออกสำรวจ').map(x => (segs.push(x), x))).t1;
       const ms = Exp.SLOTS_OF_DAY.filter(([, t]) => t >= t0 + 0.15).map(([k, t]) => [k, t]);
       if (st.day === XP.start) ms.unshift(['xstart', t0]);
-      segs.push(stay(t0, Exp.CAMP_SLEEP, 'tower', 'สำรวจหอคอย ชั้น ' + XP.floor + ' ' + Exp.terrainOf(XP.floor).name, { hidden: true, tower: true, milestones: ms }));
+      segs.push(stay(t0, Exp.CAMP_SLEEP, 'tower', where, { hidden: true, tower: true, milestones: ms }));
       segs.push(stay(Exp.CAMP_SLEEP, 20, 'tower', 'พักแรมในหอคอย', { hidden: true, sleep: true, tower: true }));
       for (const s of segs) { s.t0 = Math.min(s.t0, 19.99); s.t1 = Math.min(s.t1, 20); }
       return segs;
     }
     let from, free;
     if (leaving) {
-      const out = stay(WAKE, WAKE + 2.5, 'tower', 'เก็บค่ายเตรียมออกจากหอคอย', { hidden: true, tower: true, milestones: [['x1', WAKE + 0.5], ['xback', WAKE + 2.45]] });
+      const tx = Math.max(t0 + 0.05, XP.exitT), ms = Exp.SLOTS_OF_DAY.filter(([, t]) => t >= t0 + 0.15 && t < tx).map(([k, t]) => [k, t]);
+      if (st.day === XP.start) ms.unshift(['xstart', t0]);
+      ms.push(['xback', tx]);
+      const out = stay(t0, tx + 0.05, 'tower', where, { hidden: true, tower: true, milestones: ms });
       segs.push(out); from = 'tower'; free = out.t1;
     } else {
     // v105 tower days start at the guild's quest board: take today's job, then up to the tower with the party
@@ -416,11 +420,10 @@
     if (Skills) Skills.recalc(st);
     // v109 expedition: overdue → close it; waking in the tower → camp rest, nothing else planned for the day
     const XP = Exp && Exp.X(st);
-    if (XP && !XP.over && XP.endDay && st.day > XP.endDay) say(st, Exp.close(st));
     if (Exp && Exp.active(st) && st.day > XP.start) {
       st.energy = Math.max(st.energy, 70); L.todayStars = null; L.errand = { day: st.day, kind: null }; L.talk = null;
       L.rideDay = { day: st.day, ride: null, coach: false }; L.dayStart = { day: st.day, place: 'tower', room: null }; L.homeTonight = 'inn'; L.roomTonight = L.roomPref;
-      return say(st, XP.endDay === st.day ? 'เช้าวันสุดท้ายในหอคอย เก็บค่ายเตรียมกลับ' : 'ตื่นที่ค่ายในหอคอย ชั้น ' + XP.floor);
+      return say(st, 'ตื่นที่ค่ายในหอคอย ชั้น ' + XP.floor + ' (วันที่ ' + (st.day - XP.start + 1) + ')' + (XP.separated ? ' · ยังหลงจากทีม' : ''));
     }
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
     if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt] || placeKey(L.sleptAt)) {
@@ -685,12 +688,10 @@
         st.jobDay = st.day; L.workedDay = st.day;
         return tail(msg);
       }
-      const w = payWork(st, Math.round((tired ? 7 : 14) * Q.pay), core, false);
-      st.supplies = Math.min(30, (st.supplies || 0) + 2); st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      grow([['brawn', 1]]);
-      let msg = 'ภารกิจ' + Q.name + 'กับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ' + towerFight(st, 'guild', tired, 1, notes);
-      if (roll(st, 2) < 0.3 * Q.loot && Bag && Bag.add(st, 'monster', 1, st.day)) msg += ' · ได้ชิ้นส่วนมอนสเตอร์ 1 ชิ้น';
-      return tail(msg);
+      const w = payWork(st, tired ? 2 : 4, core, false);
+      st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
+      grow([['sword', tired ? 1 : 2], ['brawn', 1]]);
+      return tail('ซ้อมกับครูฝึกที่ลานโล่เหล็ก ได้เบี้ยเลี้ยง ' + w + ' เหรียญ (เงินจริงได้ตอนเข้าหอคอยกับทีม)');
     }
     if (L.path === 'compass') {
       st.compassWork = (st.compassWork || 0) + 1; L.workedDay = st.day; st.jobDay = st.day;
@@ -701,23 +702,18 @@
         if ((st.compassStudy || 0) >= COMPASS_EXAM) { st.compassMember = true; msg += ' · สอบผ่าน! ได้เข็มทิศเงินประจำตัว เข้ากิลด์นักสำรวจแล้ว'; const t = Skills.earnTitle(st, 'compass'); if (t) notes.push(t); }
         return tail(msg);
       }
-      const w = payWork(st, Math.round((6 + Math.floor(st.intelligence / 10) + Skills.tierOf(st, 'mapping')) * (tired ? 0.5 : 1) * Q.pay), core, false);
+      const w = payWork(st, Math.round((3 + Skills.tierOf(st, 'mapping')) * (tired ? 0.5 : 1)), core, false);
       st.rep = (st.rep || 0) + 1;
-      grow([['mapping', 3], ['keen', 1]]); prog('study'); if (L.quest === 'deep' && !tired) prog('deep_map');
-      let msg = 'ภารกิจ' + Q.name + ' ทำแผนที่กับทีมสำรวจ ได้ ' + w + ' เหรียญ';
-      if (roll(st, 3) < (0.3 + 0.05 * Skills.tierOf(st, 'mapping')) * Q.loot && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
-      if (roll(st, 5) < 0.5) msg += towerFight(st, 'compass', tired, 6, notes);
-      return tail(msg);
+      grow([['mapping', 2], ['keen', 1]]); prog('study');
+      return tail('คัดลอกแผนที่ในกิลด์เข็มทิศเงิน ได้ ' + w + ' เหรียญ');
     }
     if (L.path === 'porter') {
       const strong = st.strength >= 30;
-      const w = payWork(st, Math.round((8 + (strong ? 3 : 0)) * (tired ? 0.5 : 1) * Q.pay), core, true);
+      const w = payWork(st, Math.round((4 + (strong ? 2 : 0)) * (tired ? 0.5 : 1)), core, true);
       st.porterWork = (st.porterWork || 0) + 1; st.rep = (st.rep || 0) + 1;
       grow([['brawn', tired ? 1 : 3]]); if (!tired) prog('haul');
-      if (st.porterWork >= 30) { const t = Skills.earnTitle(st, 'porter'); if (t) notes.push(t); }
-      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'ภารกิจ' + Q.name + ' แบกเสบียงตามทีม ได้ ' + w + ' เหรียญ';
-      if (roll(st, 6) < 0.4) msg += towerFight(st, 'porter', tired, 11, notes);
-      return tail(msg);
+      if ((st.porterTrips || 0) >= 30) { const t = Skills.earnTitle(st, 'porter'); if (t) notes.push(t); }
+      return tail((tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'จัดเสบียงในโกดังสมาคม ได้ ' + w + ' เหรียญ (เงินจริงได้ตอนแบกของเข้าหอคอยกับทีม)');
     }
     if (L.path === 'tmerchant') {
       st.tmerchWork = (st.tmerchWork || 0) + 1; st.rep = (st.rep || 0) + 1;
