@@ -166,7 +166,7 @@ check('meadow free outdoor sleep safely heals less; indoor rooms restore more, o
   assert.equal(meadow.health, 35); assert.equal(meadow.energy, 65);
   assert.equal(meadow.money, money); assert.equal(Expedition.safeAction(meadow, 'rest').ok, false);
   assert.match(Expedition.camp(meadow), /กลางแจ้ง/);
-  assert.equal(Bag.meals(meadow), mealCount);
+  assert.equal(Bag.meals(meadow), Math.max(0, mealCount - 1));   // outdoor sleep still eats from the bag
   const camp = byKind('camp'); camp.health = 25; camp.energy = 20;
   assert.equal(Expedition.safeAction(camp, 'rest').ok, true);
   assert.equal(camp.health, 57); assert.equal(camp.energy, 100);
