@@ -65,18 +65,19 @@
   const SAFE_SHOP = Object.freeze({ bread: 4, jerky: 6, potion: 10, leather: 22, sword: 72,
     book_fire: 137, book_ice: 168, book_sense: 198 });
   const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain']);
-  const safeBuyPrice = (id, floor) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13));
-  const safeSellPrice = (id, floor) => SAFE_BUYER.includes(id) ? Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1))) : 0;
-  function safeBuy(st, id, floor) {
+  // v112: multipliers are supplied by the actual safe-floor service, not patched onto Bag elsewhere.
+  const safeBuyPrice = (id, floor, multiplier = 1) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13) * multiplier);
+  const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) ? Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1) * multiplier)) : 0;
+  function safeBuy(st, id, floor, multiplier = 1) {
     if (!Object.prototype.hasOwnProperty.call(SAFE_SHOP, id)) return { ok: false, why: 'ร้านนี้ไม่มีสินค้าดังกล่าว' };
-    const price = safeBuyPrice(id, floor);
+    const price = safeBuyPrice(id, floor, multiplier);
     if ((st.money || 0) < price) return { ok: false, why: 'เหรียญไม่เพียงพอ' };
     if (total(st) >= CAP) return { ok: false, why: 'กระเป๋าเต็ม' };
     if (add(st, id, 1, st.day) !== 1) return { ok: false, why: 'ซื้อไม่สำเร็จ' };
     st.money -= price; return { ok: true, why: 'ซื้อ' + name(id) + ' −' + price + ' เหรียญ' };
   }
-  function safeSell(st, id, floor) {
-    const price = safeSellPrice(id, floor);
+  function safeSell(st, id, floor, multiplier = 1) {
+    const price = safeSellPrice(id, floor, multiplier);
     if (!price || !count(st, id)) return { ok: false, why: 'ไม่มีสินค้าที่ร้านรับซื้อ' };
     if (!take(st, id, 1)) return { ok: false, why: 'ขายไม่สำเร็จ' };
     st.money = (st.money || 0) + price; return { ok: true, why: 'ขาย' + name(id) + ' + ' + price + ' เหรียญ' };

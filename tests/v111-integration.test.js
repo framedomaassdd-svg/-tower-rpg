@@ -20,7 +20,7 @@ function hero() {
   assert.ok(origin && LifeSim.ensure(st));
   return st;
 }
-function safeHero() {
+function safeHero(floor = 25) {
   const st = hero(); st.money = 5000;
   assert.equal(Expedition.plan(st, {party: null}).ok, true);
   st.day = 2; const x = Expedition.X(st); x.floor = 4; x.stones[4] = {up: true};
@@ -28,6 +28,10 @@ function safeHero() {
   assert.equal(e.scene, 'stone');
   const move = Expedition.resolve(st, e, e.choices.findIndex(q => q.use === 'up'));
   assert.equal(move.reels, null); assert.equal(x.floor, 5);
+  if (floor !== 5) {
+    x.floor = floor; x.highest = floor; x.safeSeen = floor; x.safePending = true;
+    Expedition.safeInfo(st);
+  }
   return st;
 }
 check('actual CommonJS module APIs, frozen slot engine is NOT monkeypatched', () => {
@@ -43,11 +47,11 @@ check('new game enters tower at floor 1; old saves migrate with no new-field ass
   assert.equal(Expedition.X(st).floor, 1);
   const old = hero(); delete old.tower; delete old.activeSkill;
   old.skills.sword = {tier: 2, xp: 3}; LifeSim.ensure(old);
-  assert.equal(old.activeSkill, 'sword'); assert.equal(old.tower.v, 111);
+  assert.equal(old.activeSkill, 'sword'); assert.equal(old.tower.v, 112);
   assert.ok(old.tower.floors && Array.isArray(old.tower.news));
 });
 check('floor 5 arrival opens repeatable safe zone once; floor 10 is also a safe zone', () => {
-  const st = safeHero(), x = Expedition.X(st);
+  const st = safeHero(5), x = Expedition.X(st);
   assert.equal(x.safePending, true); assert.equal(Expedition.isSafeFloor(5), true);
   assert.equal(Expedition.isSafeFloor(11), false); assert.equal(Expedition.isSafeFloor(10), true);
   assert.deepEqual(x.stones[5], {exit: true, up: true});
@@ -58,13 +62,14 @@ check('floor 5 arrival opens repeatable safe zone once; floor 10 is also a safe 
   assert.ok(e.choices.find(q => q.use === 'safe'));
 });
 check('multiple purchases, sales and reads within same day/session and correct money/item accounting', () => {
-  const st = safeHero(), start = st.money;
+  const st = safeHero(), start = st.money, info = Expedition.safeInfo(st);
+  const paid = ['book_fire','book_ice','jerky','jerky'].reduce((sum,id) => sum + Bag.safeBuyPrice(id,info.floor,info.price),0);
   assert.equal(Expedition.safeAction(st, 'buy', 'book_fire').ok, true);
   assert.equal(Expedition.safeAction(st, 'buy', 'book_ice').ok, true);
   assert.equal(Expedition.safeAction(st, 'buy', 'jerky').ok, true);
   assert.equal(Expedition.safeAction(st, 'buy', 'jerky').ok, true);
   assert.equal(Bag.count(st, 'jerky'), 2);
-  assert.equal(st.money, start - 137 - 168 - 12);
+  assert.equal(st.money, start - paid);
   assert.equal(Expedition.safeAction(st, 'read', 'book_fire').ok, true);
   assert.equal(Expedition.safeAction(st, 'read', 'book_ice').ok, true);
   assert.equal(Bag.count(st, 'book_fire'), 0);
@@ -76,7 +81,7 @@ check('multiple purchases, sales and reads within same day/session and correct m
   assert.equal(Expedition.safeAction(st, 'sell', 'ore').ok, true);
   assert.equal(Expedition.safeAction(st, 'sell', 'ore').ok, true);
   assert.equal(Bag.count(st, 'ore'), 1);
-  assert.equal(st.money, cash + 2 * Bag.safeSellPrice('ore', 5));
+  assert.equal(st.money, cash + 2 * Bag.safeSellPrice('ore', info.floor, 1 / info.price));
 });
 check('chest deposit and withdrawal individually repeat; never silently sell/eat items', () => {
   const st = safeHero(); assert.equal(Bag.add(st,'crystal',3),3);
@@ -99,9 +104,9 @@ check('rest limits only rest, while shop/chest still work; hiring is unique', ()
   assert.equal(Expedition.safeAction(st,'hire').ok,false);
 });
 check('safe stones are usable immediately; exit only via stone, not free return', () => {
-  const st = safeHero(); const x = Expedition.X(st);
+  const st = safeHero(); const x = Expedition.X(st), origin = x.floor;
   const up = Expedition.safeAction(st, 'stone', 'up', 11);
-  assert.equal(up.ok,true); assert.equal(x.floor,6); assert.equal(Expedition.safeInfo(st),null);
+  assert.equal(up.ok,true); assert.equal(x.floor,origin+1); assert.equal(Expedition.safeInfo(st),null);
   x.floor=10; assert.equal(Expedition.safeInfo(st).floor,10);
   const ex = Expedition.safeAction(st,'stone','exit',12);
   assert.equal(ex.ok,true); assert.equal(x.exitDay,st.day);
@@ -191,11 +196,12 @@ check('actual life-ui.js loads in Node under minimal document interfaces; no obs
   assert.equal(typeof window.LifeUI.panel,'function');
   const src=fs.readFileSync(path.join(__dirname,'../life-ui.js'),'utf8');
   assert.ok(src.includes('data-safe-action')); assert.ok(!src.includes('MutationObserver'));
-  assert.ok(src.includes("['shop','ร้าน']"));
+  assert.ok(src.includes("['shop','ร้าน']")); assert.ok(src.includes("['forage','หาของกิน']"));
 });
-check('index.html loads the edited original modules with v111 cache keys in correct order', () => {
+check('index.html loads the edited original modules with v112 cache keys in correct order', () => {
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  for (const name of ['bag','skills','expedition','life-sim','life-ui']) assert.ok(html.includes(name+'.js?v=111'),name);
+  for (const name of ['bag','expedition','life-ui']) assert.ok(html.includes(name+'.js?v=112'),name);
+  for (const name of ['skills','life-sim']) assert.ok(html.includes(name+'.js?v=111'),name);
   assert.ok(html.indexOf('tower-slot-engine.js') < html.indexOf('expedition.js'));
   assert.ok(html.indexOf('expedition.js') < html.indexOf('life-sim.js'));
   assert.ok(html.indexOf('life-sim.js') < html.indexOf('life-ui.js'));

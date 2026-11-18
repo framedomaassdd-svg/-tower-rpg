@@ -240,7 +240,7 @@
         return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${esc(it.name)}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
     const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
-      ${X() && X().safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดร้านและหีบเซฟโซนชั้น ' + X().X(state).floor + '</button>' : ''}
+      ${X() && X().safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซน ชั้น ' + X().X(state).floor + ' · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
       ${stashHtml()}
@@ -372,10 +372,9 @@
     if (x && !x.over && state.day >= x.start) {
       const T = E.terrainOf(x.floor), K = x.stones[x.floor] || {}, need = E.needOf(x.floor);
       return `<h3>อยู่ในหอคอย</h3><p>ชั้น ${x.floor} · ${esc(T.name)} · วันที่ ${state.day - x.start + 1}${x.party ? (x.separated ? ' · <b style="color:#ff9a7a">หลงจาก' + esc(E.PARTY[x.party].name) + '</b>' : ' · กับ' + esc(E.PARTY[x.party].name)) : ' · คนเดียว'}${x.ally ? ' · มี' + esc(x.ally.name) + 'ร่วมทาง' : ''}</p>
-        <p>ค้นหาศิลา</p><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, x.search / need * 100))}%"></i></div>
-        <p class="lg-muted">${x.search}/${need}${K.exit ? ' · ✦ รู้ตำแหน่งศิลาทางออก' : ''}${K.up ? ' · ✦ รู้ตำแหน่งศิลาทางขึ้น' : ''} · ทางออกจากหอคอยมีทางเดียวคือศิลาทางออก</p>
+        ${E.safeInfo(state) ? '<p>✦ ' + esc(E.safeInfo(state).name) + ' · ศิลาทางออกและศิลาทางขึ้นพร้อมใช้งาน</p><p class="lg-muted">' + esc(E.safeInfo(state).desc) + '</p>' : `<p>ค้นหาศิลา</p><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, x.search / need * 100))}%"></i></div><p class="lg-muted">${x.search}/${need}${K.exit ? ' · ✦ รู้ตำแหน่งศิลาทางออก' : ''}${K.up ? ' · ✦ รู้ตำแหน่งศิลาทางขึ้น' : ''} · ทางออกจากหอคอยมีทางเดียวคือศิลาทางออก</p>`}
         <p class="lg-muted">ของกิน ${B().meals(state)} มื้อ · ยาฟื้นแรง ${B().count(state, 'potion')} ขวด · ชนะ ${x.wins} ครั้ง</p>
-        ${E.safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เข้าบริการเซฟโซน · ซื้อ/ขาย/พัก/ฝาก/ศิลา</button>' : ''}
+        ${E.safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการ · ' + esc(E.safeInfo(state).name) + '</button>' : ''}
         <div class="lg-log">${esc(x.log.slice(0, 5).map(e => 'วันที่ ' + e.day + ' · ' + e.title + ': ' + e.lines.join(' / ')).join('\n'))}</div>`;
     }
     if (x && !x.over) return `<h3>หอคอย</h3><p>จะเข้าหอคอยเช้าวันที่ ${x.start}${x.party ? ' กับ' + esc(E.PARTY[x.party].name) : ' คนเดียว'}</p>
@@ -413,33 +412,41 @@
     if (!info || open) return false;
     const exp = E.X(state);
     exp.safePending = false;                         // opening is not a daily action
-    let section = 'shop', note = '';
+    const allTabs = [['shop','ร้าน'],['sell','รับซื้อ'],['rest','ที่พัก'],['chest','หีบ'],['hire','จ้างคน'],['forage','หาของกิน'],['stone','ศิลา']];
+    const tabs = allTabs.filter(([id]) => info.services.includes(id));
+    let section = tabs[0][0], note = '';
     const d = el(`<div class="lg-card lg-safe-card"><div class="lg-safe-head">
-      <h2>🏕 เซฟโซน · ชั้น ${info.floor}</h2>
-      <p class="lg-muted">ไม่มีการโจมตีระหว่างใช้บริการ · เลือกซื้อ/ขาย/อ่าน/ฝากได้ไม่จำกัดครั้ง · ศิลาทางออกและศิลาทางขึ้นใช้งานได้ทันที</p>
+      <h2>🏕 เซฟโซน ชั้น ${info.floor} · ${esc(info.name)}</h2>
+      <p class="lg-muted">${esc(info.desc)}</p>
+      <p class="lg-muted">ทั้งชั้นปลอดภัย · ศิลาทั้งสองชนิดพร้อมใช้ · เปิดใช้บริการได้หลายครั้งก่อนปิด</p>
       <p class="lg-safe-stats"></p>
       <div class="lg-safe-tabs"></div><p class="lg-safe-note" role="status" aria-live="polite"></p></div>
       <div class="lg-safe-inner"></div><button class="lg-btn lg-primary" data-safe-close="1">ปิดหน้าบริการ</button></div>`);
     block(d);
-    const tabs = [['shop','ร้าน'],['sell','รับซื้อ'],['rest','ที่พัก'],['chest','หีบ'],['hire','จ้างคน'],['stone','ศิลา']];
     const b = B();
     const smallButton = (kind, id, title, desc, disabled) => `<button class="lg-btn" data-safe-action="${kind}" data-safe-id="${esc(id || '')}" ${disabled ? 'disabled' : ''}>${title}<small>${desc || ''}</small></button>`;
     function render() {
       const x = E.X(state), floor = x.floor;
+      const current = E.safeInfo(state);
+      if (!current) { closeOverlay(d); return; }
+      if (!current.services.includes(section)) section = 'stone';
       d.querySelector('.lg-safe-stats').textContent = 'เงิน ' + state.money + ' เหรียญ · สุขภาพ ' + state.health + '/100 · แรง ' + state.energy + '/100 · กระเป๋า ' + b.total(state) + '/' + b.CAP;
       d.querySelector('.lg-safe-tabs').innerHTML = tabs.map(([id,n]) => `<button data-safe-tab="${id}" class="${section === id ? 'on' : ''}">${n}</button>`).join('');
       d.querySelector('.lg-safe-note').textContent = note;
       let html = '';
       if (section === 'shop') {
-        html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ ราคาสูงกว่าร้านในเมือง</p><div class="lg-safe-grid">' +
-          Object.keys(b.SAFE_SHOP).map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor) || b.total(state) >= b.CAP)).join('') + '</div>';
+        html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ · ราคาตามประเภทชั้น</p><div class="lg-safe-grid">' +
+          current.shop.map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor, current.price) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor, current.price) || b.total(state) >= b.CAP)).join('') + '</div>' +
+          (Object.entries(window.Skills && window.Skills.BOOK_SKILL || {}).filter(([book, skill]) => b.count(state, book) && !(state.skills && state.skills[skill])).length ?
+            '<h3>อ่านตำราที่มีอยู่</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.BOOK_SKILL).filter(([book, skill]) => b.count(state, book) && !(state.skills && state.skills[skill])).map(([book]) => smallButton('read', book, '📖 อ่าน ' + esc(b.name(book)), 'เรียนสกิลทันที · ใช้ตำราไป 1 เล่ม')).join('') + '</div>' : '');
       } else if (section === 'sell') {
         const items = Object.keys(b.ITEMS).filter(id => b.SAFE_BUYER.includes(id) && b.count(state, id));
         html = '<h3>จุดรับซื้อวัสดุ</h3><p class="lg-muted">ขายทีละชิ้น รับเหรียญทันที (ไม่ขายของสวมใส่อัตโนมัติ)</p>' +
-          (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>');
+          (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor, 1 / current.price) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>');
       } else if (section === 'rest') {
-        html = '<h3>ที่พักในเซฟโซน</h3><p>พักปลอดภัย สุขภาพ +32 และแรงเต็ม ค่าพัก 16 เหรียญ · หนึ่งครั้งต่อวัน</p>' +
-          smallButton('rest', '', '🛏️ เข้าพัก', x.safeRestDay === state.day ? 'พักแล้ววันนี้' : '16 เหรียญ', x.safeRestDay === state.day || state.money < 16);
+        const cost = Math.ceil(16 * current.price);
+        html = '<h3>ที่พักในเซฟโซน</h3><p>พักปลอดภัย สุขภาพ +32 และแรงเต็ม ค่าพัก ' + cost + ' เหรียญ · วันละครั้ง</p>' +
+          smallButton('rest', '', '🛏️ เข้าพัก', x.safeRestDay === state.day ? 'พักแล้ววันนี้' : cost + ' เหรียญ', x.safeRestDay === state.day || state.money < cost);
       } else if (section === 'chest') {
         const stashed = b.stash(state).filter(y => b.ITEMS[y.id]);
         const carrying = b.list(state).filter(y => b.ITEMS[y.id] && b.ITEMS[y.id].kind !== 'meal');
@@ -447,8 +454,14 @@
           '<h3>ฝากจากกระเป๋า</h3>' + (carrying.length ? '<div class="lg-safe-grid">' + carrying.map(y => smallButton('deposit', y.id, 'ฝาก ' + iconHtml(y.id, 24) + esc(b.name(y.id)), 'ในกระเป๋า ×' + b.count(state, y.id))).join('') + '</div>' : '<p class="lg-muted">ไม่มีของที่ฝากได้</p>') +
           '<h3>ถอนจากหีบ</h3>' + (stashed.length ? '<div class="lg-safe-grid">' + [...new Set(stashed.map(y => y.id))].map(id => smallButton('withdraw', id, 'รับคืน ' + iconHtml(id, 24) + esc(b.name(id)), 'ในหีบ ×' + stashed.filter(y => y.id === id).reduce((a,y) => a+y.n,0), b.total(state) >= b.CAP)).join('') + '</div>' : '<p class="lg-muted">หีบว่าง</p>');
       } else if (section === 'hire') {
-        html = '<h3>ผู้รับจ้างร่วมทาง</h3><p>ค่าจ้างครั้งเดียว 180 เหรียญ นักรบคุ้มกัน +83 พลัง อยู่ด้วยระหว่างการเดินทางจนสิ้นสุดรอบสำรวจ</p>' +
-          (x.ally ? '<p>ร่วมทางแล้ว: ' + esc(x.ally.name) + ' · พลัง +' + x.ally.power + '</p>' : smallButton('hire', '', '🤝 จ้างผู้คุ้มกัน', '180 เหรียญ', state.money < 180));
+        const cost = Math.ceil(180 * current.price);
+        html = '<h3>ผู้รับจ้างร่วมทาง</h3><p>ค่าจ้างครั้งเดียว ' + cost + ' เหรียญ นักรบคุ้มกัน +83 พลัง อยู่ด้วยระหว่างการเดินทางจนสิ้นสุดรอบสำรวจ</p>' +
+          (x.ally ? '<p>ร่วมทางแล้ว: ' + esc(x.ally.name) + ' · พลัง +' + x.ally.power + '</p>' : smallButton('hire', '', '🤝 จ้างผู้คุ้มกัน', cost + ' เหรียญ', state.money < cost));
+      } else if (section === 'forage') {
+        html = '<h3>หาของกินในเซฟโซน</h3><p>ออกเก็บผลไม้ป่าภายในชั้นที่ปลอดภัย วันละหนึ่งครั้ง · ทุ่งหญ้าได้มาก เมืองได้น้อย</p>' +
+          smallButton('forage', '', '🍎 ออกหาผลไม้', current.forageDay === state.day ? 'เก็บไปแล้ววันนี้' : 'ไม่เสียเงิน', current.forageDay === state.day || b.total(state) >= b.CAP) +
+          (!current.services.includes('rest') ? '<h3>พักกลางแจ้ง</h3><p>ไม่มีอาคารที่พัก แต่นอนในทุ่งได้อย่างปลอดภัย ฟื้นสุขภาพ +10 และแรง +45 · วันละครั้ง</p>' +
+            smallButton('rest', '', '🌙 นอนกลางแจ้ง', x.safeRestDay === state.day ? 'พักไปแล้ววันนี้' : 'ไม่เสียเงิน', x.safeRestDay === state.day) : '');
       } else if (section === 'stone') {
         html = '<h3>ศิลาเดินทาง · พร้อมใช้งาน</h3><p>ศิลาทางออกจะพากลับไปประตูหอคอยในเมือง ศิลาทางขึ้นส่งขึ้นอีกหนึ่งชั้น ไม่สามารถเดินออกจากชั้นได้เอง</p>' +
           smallButton('stone', 'exit', '🔹 ศิลาทางออก · กลับเมือง', 'ปิดการสำรวจครั้งนี้') +
@@ -570,7 +583,7 @@
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
       <h3>สกิล</h3><p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
       ${Object.entries(S.BOOK_SKILL).filter(([book,id]) => B().count(state, book) && !state.skills[id]).map(([book,id]) => `<button class="lg-btn" data-read="${book}">📖 อ่าน ${esc(B().name(book))} <small>เรียน ${esc(S.SKILLS[id].name)} แล้วตำราจะถูกใช้ไป</small></button>`).join('')}
-      ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการเซฟโซน (ร้าน/อ่านตำรา/ศิลา)</button>' : ''}
+      ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการ · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
       <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}
       <h3>ประสบการณ์งาน</h3>${jobs.length ? '<div class="lg-stats">' + jobs.map(([k, n]) => `<span>${n} · ${state[k]} ${k === 'towerWins' ? 'ครั้ง' : 'วัน'}</span>`).join('') + '</div>' : '<p class="lg-muted">ยังไม่เคยทำงานครบวัน</p>'}`;
@@ -581,8 +594,19 @@
     const work = LifeSim.PATHS[L.path] && LifeSim.PATHS[L.path].place, home = L.homeTonight || L.roomPref;
     const skip = { guildhall: 1, bazaar: 1 };
     const E = X(), x = E && E.active(state) ? E.X(state) : null;
-    const towerMap = x ? (() => { const f = E.floorWorld(state, x.floor); return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(E.terrainOf(x.floor).name)}</h3><p class="lg-muted">สี่อาณาเขตของอสูร (เหนือ→ตะวันออก→ใต้→ตะวันตก→เหนือ) แต่ละทิศมีอสูรชนิดหนึ่งล่าอีกชนิดหนึ่ง จำนวนเปลี่ยนทุกวันแม้ผู้เล่นไม่อยู่</p><div class="lg-tower-directions">${f.species.map(y => `<div class="lg-zone"><b>${esc(y.direction)}</b><p>${esc(y.name)}</p><small>จำนวน ${y.count} · ระดับ ${esc(E.RANKS[Math.min(6,[60,120,210,340,480,650].filter(z=>y.champion>=z).length)])} · พลังหัวฝูง ${Math.round(y.champion)}</small></div>`).join('')}</div>${E.safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซนชั้นนี้</button>' : ''}`; })() : '';
-    return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + towerMap + Object.keys(names).map(z => {
+    const towerMap = x ? (() => {
+      const f = E.floorWorld(state, x.floor), safe = E.safeInfo(state);
+      if (safe) return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(safe.name)}</h3><p class="lg-muted">${esc(safe.desc)} · ทั้งชั้นไม่มีอสูร ศิลาทั้งสองชนิดพร้อมใช้</p><button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการ · ${esc(safe.name)}</button>`;
+      return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(E.terrainOf(x.floor).name)}</h3><p class="lg-muted">สี่อาณาเขตของอสูร (เหนือ→ตะวันออก→ใต้→ตะวันตก→เหนือ) จำนวนเปลี่ยนทุกวันแม้ผู้เล่นไม่อยู่</p><div class="lg-tower-directions">${f.species.map(y => `<div class="lg-zone"><b>${esc(y.direction)}</b><p>${esc(y.name)}</p><small>จำนวน ${y.count} · ระดับ ${esc(E.RANKS[Math.min(6,[60,120,210,340,480,650].filter(z=>y.champion>=z).length)])} · พลังหัวฝูง ${Math.round(y.champion)}</small></div>`).join('')}</div>`;
+    })() : '';
+    const seenFloors = new Set(Object.entries(state.tower && state.tower.floors || {})
+      .filter(([floor, f]) => E && E.isSafeFloor(+floor) && f.visited).map(([floor]) => +floor));
+    // Old save files did not store visited flags, but an expedition's highest floor is recorded.
+    const lastExp = E && E.X(state);
+    if (lastExp && lastExp.highest >= 5) for (let i = 5; i <= lastExp.highest; i += 5) seenFloors.add(i);
+    const visitedSafes = E && seenFloors.size ? '<h3>ชั้นเซฟโซนที่เคยไป</h3>' + [...seenFloors].sort((a, b) => a - b)
+      .map(floor => '<p>🏕 ชั้น ' + floor + ' · ' + esc(E.SAFE_KINDS[E.floorWorld(state, floor).safeKind].name) + '</p>').join('') : '';
+    return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + towerMap + visitedSafes + Object.keys(names).map(z => {
       const [a, b] = Z[z], W = 380, X = x => 14 + (x - a) / (b - a) * (W - 28);
       const pl = Object.entries(P).filter(([id, p]) => !skip[id] && (LifeSim.zoneOf(id) || TownPano.zoneAt(p.x)) === z && p.x >= a - 50 && p.x <= b + 50).sort((u, v) => u[1].x - v[1].x);
       const here = s.zone === z, LV = [[44, 30], [44, 14], [64, 80], [64, 96]];   // [line end, label y] above ×2, below ×2

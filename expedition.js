@@ -52,28 +52,34 @@
     if (!w.floors || typeof w.floors !== 'object' || Array.isArray(w.floors)) w.floors = {};
     if (!Array.isArray(w.news)) w.news = [];
     if (!Number.isInteger(w.lastDay)) w.lastDay = st.day || 1;
-    w.v = 111;
+    w.v = 112;
     return w;
   }
   function floorWorld(st, floor) {
     const w = ensureWorld(st), key = String(Math.max(1, Math.floor(floor)));
-    if (!w.floors[key] || !Array.isArray(w.floors[key].species) || w.floors[key].species.length !== 4) {
+    const previous = w.floors[key];
+    if (!previous || !Array.isArray(previous.species) || previous.species.length !== 4) {
       const mobs = terrainOf(+key).monsters;
       w.floors[key] = { species: DIRECTIONS.map((dir, i) => ({
         id: i, direction: dir, name: mobs[i][0], base: mobs[i][1] + (+key) * 2,
         count: 8 + Math.floor(hash(seed(st), key, i, 'pop') * 9),
         champion: Math.min(900, mobs[i][1] + (+key) * 2 + Math.floor(hash(seed(st), key, i, 'champ') * 20)),
         kills: 0, meals: 0
-      })) };
+      })), ...(previous && SAFE_KINDS[previous.safeKind] ? { safeKind: previous.safeKind } : {}) };
+    }
+    if (isSafeFloor(+key) && !SAFE_KINDS[w.floors[key].safeKind]) {
+      w.floors[key].safeKind = chooseSafeKind(st, +key);
     }
     return w.floors[key];
   }
   function monsterOf(st, floor, id) {
+    if (isSafeFloor(floor)) return null;
     const f = floorWorld(st, floor), living = f.species.filter(s => s.count > 0), pool = living.length ? living : f.species;
     const m = pool[Math.floor(hash(seed(st), id, 'm') * pool.length)], power = Math.round(Math.max(m.base, m.champion));
     return { name: m.name, power, direction: m.direction, species: m.id, rank: RANKS[rankOf(power)] };
   }
   function monsterKill(st, floor, species) {
+    if (isSafeFloor(floor)) return false;
     const s = floorWorld(st, floor).species[species];
     if (!s || s.count < 1) return false;
     s.count--; s.kills++; return true;
@@ -85,6 +91,7 @@
     // A floor evolves even while the hero is elsewhere; only explored/generated floors need persisted populations.
     for (let d = w.lastDay + 1; d <= now; d++) {
       for (const [floor, f] of Object.entries(w.floors)) {
+        if (isSafeFloor(+floor)) continue; // no monsters or ecology cycles in a safe-zone floor
         for (const s of f.species) {
           s.champion = Math.min(900, Math.round((s.champion + 0.30 + 0.55 * hash(seed(st), d, floor, s.id, 'grow')) * 100) / 100);
           if (d % 90 === 0) s.count = Math.min(100, s.count + 3 + Math.floor(hash(seed(st), d, floor, s.id, 'spawn') * 6));
@@ -103,6 +110,30 @@
     return msgs;
   }
   const isSafeFloor = floor => Number.isInteger(floor) && floor >= 5 && floor % 5 === 0;
+  // v112: weights are for floor 5, floors 10-15, and floors 20+ respectively.
+  // Keep ids stable: floorWorld stores the chosen id in each save's tower.floors[floor].safeKind.
+  const SAFE_KINDS = Object.freeze({
+    meadow: Object.freeze({ name: 'ทุ่งหญ้าโล่ง', desc: 'ทุ่งหญ้าเงียบสงบ ไม่มีผู้ค้าและอาคารพักพิง เก็บผลไม้และนอนกลางแจ้งได้',
+      services: Object.freeze(['stone', 'forage']), shop: Object.freeze([]), price: 1, weight: Object.freeze([40, 25, 15]), forage: Object.freeze([2, 4]) }),
+    camp: Object.freeze({ name: 'ค่ายพักนักสำรวจ', desc: 'จุดพักของนักสำรวจ มีเตียง หีบ และร้านเล็กที่ขายเฉพาะอาหารกับยา',
+      services: Object.freeze(['shop', 'rest', 'chest', 'stone', 'forage']), shop: Object.freeze(['bread', 'jerky', 'potion']),
+      price: 1.12, weight: Object.freeze([40, 35, 25]), forage: Object.freeze([1, 3]) }),
+    village: Object.freeze({ name: 'หมู่บ้านกลางหอคอย', desc: 'ผู้คนตั้งถิ่นฐาน มีร้านขายเสบียง อุปกรณ์ จุดรับซื้อ หีบ และที่พัก',
+      services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'stone', 'forage']),
+      shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword']),
+      price: 1, weight: Object.freeze([20, 30, 35]), forage: Object.freeze([1, 2]) }),
+    city: Object.freeze({ name: 'เมืองกลางหอคอย', desc: 'เมืองใหญ่ที่มีตลาด ที่พัก ผู้รับจ้าง ร้านตำรา และศิลาทั้งสองชนิด',
+      services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'hire', 'stone', 'forage']),
+      shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword', 'book_fire', 'book_ice', 'book_sense']),
+      price: 0.9, weight: Object.freeze([0, 10, 25]), forage: Object.freeze([1, 1]) })
+  });
+  function chooseSafeKind(st, floor) {
+    const bracket = floor >= 20 ? 2 : floor >= 10 ? 1 : 0;
+    const names = Object.keys(SAFE_KINDS), weights = names.map(k => SAFE_KINDS[k].weight[bracket]);
+    let r = hash(seed(st), 'safe', floor) * weights.reduce((s, n) => s + n, 0);
+    for (let i = 0; i < names.length; i++) { r -= weights[i]; if (r < 0) return names[i]; }
+    return names[names.length - 1];
+  }
   // who comes along: a guild party (by path) or a hired guard; their power fights beside yours, and they can save your life
   const PARTY = { guild: { name: 'ทีมนักรบโล่เหล็ก', power: 55 }, compass: { name: 'ทีมสำรวจเข็มทิศเงิน', power: 30 }, porter: { name: 'ขบวนคนแบกกับทีมนักรบ', power: 45 },
     guard: { name: 'นักรบรับจ้าง', power: 25 } };
@@ -160,39 +191,73 @@
   const allyPower = st => { const x = X(st); return (withTeam(st) ? PARTY[x.party].power + Math.round((x.floor - 1) * 1.5) : 0) + (x && x.ally ? x.ally.power : 0); };
   function safeInfo(st) {
     const x = X(st); if (!active(st) || x.exitDay === st.day || !isSafeFloor(x.floor)) return null;
+    const fw = floorWorld(st, x.floor); fw.visited = true;
+    const kind = fw.safeKind, spec = SAFE_KINDS[kind];
     x.stones = x.stones || {}; x.stones[x.floor] = Object.assign(x.stones[x.floor] || {}, { exit: true, up: true });
-    return { floor: x.floor, restDay: x.safeRestDay || 0 };
+    return { floor: x.floor, kind, name: spec.name, desc: spec.desc, services: [...spec.services],
+      shop: [...spec.shop], price: spec.price, restDay: x.safeRestDay || 0,
+      forageDay: x.safeForageDays && x.safeForageDays[x.floor] || 0 };
   }
   function safeTravel(st, way, now) {
     const x = X(st); if (!safeInfo(st)) return { ok: false, why: 'ไม่ได้อยู่ในเซฟโซน' };
     if (way === 'exit') { x.exitDay = st.day; x.exitT = clamp((Number.isFinite(now) ? now : 7) + 0.2, 7, 18.8); x.safePending = false;
       return { ok: true, travel: true, why: 'ใช้ศิลาทางออก กลับเมืองผ่านประตูหอคอย' }; }
-    if (way === 'up') { x.floor++; x.highest = Math.max(x.highest, x.floor); x.search = 0; x.safePending = false;
+    if (way === 'up') { x.floor++; x.highest = Math.max(x.highest, x.floor); x.search = 0; x.safePending = false; floorWorld(st, x.floor);
       return { ok: true, travel: true, why: 'ใช้ศิลาทางขึ้น สู่ชั้น ' + x.floor + ' ' + terrainOf(x.floor).name }; }
     return { ok: false, why: 'ศิลานี้ใช้งานไม่ได้' };
   }
   function safeAction(st, kind, id, now) {
     const info = safeInfo(st), x = X(st); if (!info) return { ok: false, why: 'ต้องอยู่ในเซฟโซนจึงจะใช้บริการได้' };
-    if (kind === 'buy') return Bag.safeBuy(st, id, info.floor);
-    if (kind === 'sell') return Bag.safeSell(st, id, info.floor);
-    if (kind === 'read') return Skills.readBook(st, id);
+    const has = service => info.services.includes(service);
+    const missing = service => ({ ok: false, why: 'ที่นี่ไม่มี' + ({ shop: 'ร้านค้า', sell: 'จุดรับซื้อ', rest: 'ที่พัก', chest: 'หีบฝากของ', hire: 'ผู้รับจ้าง', stone: 'ศิลา', forage: 'จุดหาของกิน' }[service] || 'บริการนี้') });
+    if (kind === 'buy') {
+      if (!has('shop')) return missing('shop');
+      if (!info.shop.includes(id)) return { ok: false, why: 'ที่นี่ไม่มีสินค้าชนิดนี้' };
+      return Bag.safeBuy(st, id, info.floor, info.price);
+    }
+    if (kind === 'sell') return has('sell') ? Bag.safeSell(st, id, info.floor, 1 / info.price) : missing('sell');
+    if (kind === 'read') return has('shop') ? Skills.readBook(st, id) : missing('shop');
     if (kind === 'deposit' || kind === 'withdraw') {
+      if (!has('chest')) return missing('chest');
       const moved = kind === 'deposit' ? Bag.depositItem(st, id) : Bag.withdrawItem(st, id);
       return { ok: moved > 0, why: moved ? (kind === 'deposit' ? 'ฝาก' : 'รับคืน') + Bag.name(id) + ' ×' + moved : 'ไม่มีของให้ย้าย หรือกระเป๋าเต็ม' };
     }
+    if (kind === 'forage') {
+      if (!has('forage')) return missing('forage');
+      x.safeForageDays = x.safeForageDays || {};
+      if (x.safeForageDays[info.floor] === st.day) return { ok: false, why: 'หาของกินในชั้นนี้ไปแล้ววันนี้' };
+      const range = SAFE_KINDS[info.kind].forage;
+      const amount = range[0] + Math.floor(hash(seed(st), 'forage', info.floor, st.day) * (range[1] - range[0] + 1));
+      const got = Bag.add(st, 'fruit', amount, st.day);
+      if (!got) return { ok: false, why: 'กระเป๋าเต็ม ไม่สามารถเก็บผลไม้ได้' };
+      x.safeForageDays[info.floor] = st.day;
+      return { ok: true, why: 'หาผลไม้ป่าได้ ×' + got + (got < amount ? ' (กระเป๋าเกือบเต็ม)' : '') };
+    }
     if (kind === 'rest') {
-      if (x.safeRestDay === st.day) return { ok: false, why: 'พักในที่พักไปแล้ววันนี้' };
-      if (st.money < 16) return { ok: false, why: 'ต้องใช้ 16 เหรียญ' };
-      st.money -= 16; st.health = Math.min(100, (st.health || 0) + 32); st.energy = 100; x.safeRestDay = st.day;
-      return { ok: true, why: 'พักในเซฟโซน −16 เหรียญ · สุขภาพ +32 · แรงเต็ม' };
+      if (x.safeRestDay === st.day) return { ok: false, why: 'พักไปแล้ววันนี้' };
+      if (!has('rest')) {
+        // Meadow has no inn; sleeping outside is safe but heals less than a real room.
+        const heal = 10;
+        st.health = Math.min(100, (st.health || 0) + heal);
+        st.energy = Math.min(100, (st.energy || 0) + 45);
+        x.safeRestDay = st.day; x.safeRestOutside = true;
+        return { ok: true, why: 'นอนกลางแจ้งอย่างปลอดภัย · สุขภาพ +' + heal + ' · แรง +45' };
+      }
+      const cost = Math.ceil(16 * info.price);
+      if (st.money < cost) return { ok: false, why: 'ต้องใช้ ' + cost + ' เหรียญ' };
+      st.money -= cost; st.health = Math.min(100, (st.health || 0) + 32); st.energy = 100;
+      x.safeRestDay = st.day; x.safeRestOutside = false;
+      return { ok: true, why: 'พักในเซฟโซน −' + cost + ' เหรียญ · สุขภาพ +32 · แรงเต็ม' };
     }
     if (kind === 'hire') {
+      if (!has('hire')) return missing('hire');
       if (x.ally) return { ok: false, why: 'มีผู้ร่วมทางรับจ้างอยู่แล้ว' };
-      if (st.money < 180) return { ok: false, why: 'ต้องใช้ 180 เหรียญ' };
-      st.money -= 180; x.ally = { name: 'ผู้คุ้มกันเซฟโซน', power: 83 };
-      return { ok: true, why: 'จ้างผู้คุ้มกัน +83 พลัง (180 เหรียญ)' };
+      const cost = Math.ceil(180 * info.price);
+      if (st.money < cost) return { ok: false, why: 'ต้องใช้ ' + cost + ' เหรียญ' };
+      st.money -= cost; x.ally = { name: 'ผู้คุ้มกันเซฟโซน', power: 83 };
+      return { ok: true, why: 'จ้างผู้คุ้มกัน +83 พลัง (' + cost + ' เหรียญ)' };
     }
-    if (kind === 'stone') return safeTravel(st, id, now);
+    if (kind === 'stone') return has('stone') ? safeTravel(st, id, now) : missing('stone');
     return { ok: false, why: 'ไม่มีบริการนี้' };
   }
   // the moment you step through the gate: dropped somewhere on floor 1, maybe away from your party
@@ -208,8 +273,9 @@
     const T = terrainOf(x.floor), id = st.day + '-' + slot, r = hash(seed(st), id);
     if (safeInfo(st)) {
       if (slot === 'xcamp' || x.safeSeen === x.floor) return null;   // whole floor is safe: announce once on arrival
-      return { id, slot, scene: 'safe', kind: 'safe', noSpin: true, title: 'เซฟโซน ชั้น ' + x.floor,
-        text: 'พื้นที่พักภัย มีร้านค้า หีบที่พัก และศิลาใช้งานได้ทันที',
+      const info = safeInfo(st);
+      return { id, slot, scene: 'safe', kind: 'safe', noSpin: true, title: 'เซฟโซน ชั้น ' + x.floor + ' · ' + info.name,
+        text: info.desc + ' · ศิลาทางออกและศิลาทางขึ้นพร้อมใช้',
         choices: [{ label: 'เปิดบริการเซฟโซน', hint: 'ซื้อ ขาย อ่านตำรา ฝากของได้หลายครั้งก่อนปิด', use: 'safe' },
           { label: 'ใช้ศิลาทางออก กลับเมือง', hint: 'ออกจากหอคอย', use: 'exit' },
           { label: 'ใช้ศิลาทางขึ้น ไปชั้น ' + (x.floor + 1), hint: 'สู่ชั้นถัดไป', use: 'up' }] };
@@ -269,7 +335,8 @@
     else if (c.use === 'up') {
       x.floor++; x.highest = Math.max(x.highest, x.floor); x.search = 0;
       floorWorld(st, x.floor);
-      if (isSafeFloor(x.floor)) { x.safePending = true; x.safeSeen = x.floor; x.stones[x.floor] = { exit: true, up: true }; lines.push('พบเซฟโซน มีบริการและศิลาทั้งสองชนิดพร้อมใช้'); }
+      if (isSafeFloor(x.floor)) { const info = safeInfo(st); x.safePending = true; x.safeSeen = x.floor;
+        lines.push('พบเซฟโซน ชั้น ' + x.floor + ' · ' + info.name + ' · ' + info.desc); }
       lines.push('แตะศิลาทางขึ้น ... โผล่ที่ชั้น ' + x.floor + ' ' + terrainOf(x.floor).name);
       if (x.party && !x.separated && hash(seed(st), enc.id, 'sep') < 0.12) { x.separated = true; lines.push('ทีมไม่ได้ตามขึ้นมาด้วย ต้องเอาตัวรอดคนเดียว'); }
       if (Skills) lines.push(...Skills.progress(st, 'deep_map'));
@@ -407,7 +474,10 @@
   // night at camp: one meal from the bag; nothing to eat = weaker; out of food = go home
   function camp(st) {
     const x = X(st), out = [];
-    if (safeInfo(st) && x.safeRestDay === st.day) { st.life.sleptAt = 'tower'; st.life.roomSlept = null; st.life.fedDay = st.day; return 'พักในที่พักเซฟโซนอย่างปลอดภัย'; }
+    // sleeping outside on a safe floor is safe but still needs food from the bag
+    if (safeInfo(st) && x.safeRestDay === st.day && !x.safeRestOutside) { st.life.sleptAt = 'tower'; st.life.roomSlept = null; st.life.fedDay = st.day;
+      return x.safeRestOutside ? 'นอนกลางแจ้งในเซฟโซนอย่างปลอดภัย' : 'พักในที่พักเซฟโซนอย่างปลอดภัย'; }
+    if (safeInfo(st) && x.safeRestDay === st.day && x.safeRestOutside) out.push('นอนกลางแจ้งในเซฟโซนอย่างปลอดภัย');
     const id = Bag ? Bag.eat(st) : null;
     if (id) out.push('กิน' + Bag.name(id) + 'ข้างกองไฟ');
     else if (withTeam(st)) { st.health = Math.max(1, st.health - 3); out.push('ไม่มีอะไรกิน ทีมแบ่งเสบียงให้นิดหน่อย (สุขภาพ −3)'); }
@@ -434,5 +504,5 @@
     return 'ออกจากหอคอยทางศิลาทางออก (' + days + ' วัน สูงสุดชั้น ' + x.highest + ' ชนะ ' + x.wins + ' ครั้ง)' + (L.length ? ' ได้ ' + L.join(', ') : '') + (x.why ? ' · ' + x.why : '');
   }
   return { TERRAINS, PARTY, GUARD_FEE, CHOICES, SLOTS_OF_DAY, CAMP_SLEEP, terrainOf, needOf, active, planned, plan, cancel, enter, withTeam, allyPower,
-    encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, isSafeFloor, safeInfo, safeAction, safeTravel };
+    encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, isSafeFloor, safeInfo, safeAction, safeTravel };
 });
