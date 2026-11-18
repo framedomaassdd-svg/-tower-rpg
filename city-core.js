@@ -56,7 +56,7 @@
     state.taxDue = Math.max(0, Math.floor(finite(old.taxDue, 0)));
     state.nextTaxDay = Number.isFinite(old.nextTaxDay) && old.nextTaxDay > 0
       ? Math.floor(old.nextTaxDay) : nextTaxDay(state.day);
-    state.intelligence = clamp(finite(old.intelligence, 3), 1, 12);
+    state.intelligence = clamp(finite(old.intelligence, 15), 1, 999);
     state.examDay = Math.max(0, Math.floor(finite(old.examDay, 0)));
     state.examResult = ['none', 'passed', 'failed'].includes(old.examResult)
       ? old.examResult : (state.guild ? 'passed' : 'none');
@@ -174,7 +174,7 @@
   function examResult(state) {
     if (state.guild) return 'member';
     if (state.examDay === state.day) return 'wait';
-    return finite(state.strength, 3) + finite(state.agility, 3) >= EXAM_SCORE ? 'passed' : 'failed';
+    return finite(state.strength, 15) + finite(state.agility, 15) >= EXAM_SCORE * 5 ? 'passed' : 'failed';
   }
   return { SCENE, playerFrame, viewport, LAYOUT_REVISION, MONTH_LENGTH, TAX_PER_MONTH, EXAM_SCORE, nextTaxDay,
     migrateSave, freshState, walkable, depthScale, sceneName, nearBuilding, nearGate, nearCityGate,

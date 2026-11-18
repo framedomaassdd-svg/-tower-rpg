@@ -31,7 +31,11 @@
     knife:     { name: 'มีดครัว',           icon: '🔪', kind: 'tool', keep: 0, sell: 5, desc: 'ทำอาหารได้เพิ่มอีก 1 ที่' },
     sickle:    { name: 'เคียว',             icon: '🌙', kind: 'tool', keep: 0, sell: 5, desc: 'เก็บของนอกประตูเมืองได้เพิ่ม 1 ชิ้น' },
     hook:      { name: 'ตะขอคุ้ยของ',       icon: '🪝', kind: 'tool', keep: 0, sell: 5, desc: 'คุ้ยลานของเก่าได้เพิ่ม 1 ชิ้น' },
-    dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14 },
+    dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +5' },
+    // v108 gear (Skills.GEAR has the numbers)
+    sword:     { name: 'ดาบเหล็ก',          icon: '⚔️', kind: 'goods', keep: 0, sell: 24, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +11' },
+    leather:   { name: 'เสื้อหนัง',          icon: '🦺', kind: 'goods', keep: 0, sell: 7, equip: 'armor', desc: 'เกราะ ป้องกัน +5' },
+    chain_vest:{ name: 'เสื้อเกราะโซ่',      icon: '🛡️', kind: 'goods', keep: 0, sell: 25, equip: 'armor', desc: 'เกราะ ป้องกัน +10' },
     // v94 parts for vehicles, and the vehicles themselves (kept in st.vehicles, not in the bag)
     oldwheel:  { name: 'ล้อเก่า',           icon: '🛞', kind: 'material', keep: 0, sell: 3 },
     chain:     { name: 'โซ่เก่า',           icon: '⛓️', kind: 'material', keep: 0, sell: 2 },
@@ -53,7 +57,7 @@
   const SHOPS = Object.freeze({
     bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
     bakery: { name: 'ร้านขนมปัง', place: 'bakery', items: { bread: 2 } },
-    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5 } },
+    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5, leather: 14, chain_vest: 48, sword: 45 } },
     junk:   { name: 'ร้านรับซื้อของเก่า', place: 'junk', items: { plank: 1, chain: 4, oldwheel: 5 } },
     stable: { name: 'คอกม้าลานเกวียน', place: 'stable', items: { horse: 60 } }
   });
@@ -62,8 +66,8 @@
     junk:       { name: 'ร้านรับซื้อของเก่า', place: 'junk', takes: ['junk', 'scrap'] },
     apothecary: { name: 'ร้านยา', place: 'apothecary', takes: ['herb'] },
     bazaar:     { name: 'ตลาดใหญ่', place: 'bazaar', takes: ['fruit', 'veg', 'fish', 'jerky'] },
-    smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['dagger', 'scrap', 'monster'] },
-    tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb', 'dagger'] }   // v103 ย่านกิลด์
+    smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['scrap', 'monster'] },
+    tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb'] }   // v103 ย่านกิลด์
   });
   const RECIPES = Object.freeze({
     meal_veg:   { needs: { rice: 1, veg: 1 }, makes: 2 },
@@ -78,7 +82,7 @@
   });
   const HOME_STOVE = Object.freeze({ tenement: 'เตาถ่านในห้องเช่า', shrine: 'ก้อนเส้าหน้าศาลเจ้า', shack: 'เตาสังกะสีข้างเพิง' });
   const FORGE = Object.freeze({
-    knife: { iron: 1 }, sickle: { iron: 1 }, hook: { iron: 1 }, dagger: { iron: 2 },
+    knife: { iron: 1 }, sickle: { iron: 1 }, hook: { iron: 1 }, dagger: { iron: 2 }, sword: { iron: 4 },
     scooter: { iron: 1, oldwheel: 2, plank: 1 }, bike: { iron: 2, oldwheel: 2, chain: 1 }
   });
   const FORGE_FEE = 2;                               // waived for the smith's apprentice

@@ -278,7 +278,7 @@
       ok = true; sel.order = { kind, recipe: sel.recipe, stove: sel.stove };
     } else if (kind === 'forge') {
       sel.item = sel.item || 'knife';
-      const fee = L.path === 'smith' ? 0 : b.FORGE_FEE, odds = Math.round(Math.min(0.95, 0.6 + 0.03 * (state.smithWork || 0) + 0.02 * (state.strength || 3)) * 100);
+      const fee = L.path === 'smith' ? 0 : b.FORGE_FEE, odds = Math.round(Math.min(0.95, 0.6 + 0.03 * (state.smithWork || 0) + 0.02 * (state.strength || 15) / 5) * 100);
       body = Object.entries(b.FORGE).map(([id, f]) => { const lack = Object.entries(f).filter(([i, n]) => i !== 'iron' && b.count(state, i) < n);
           const owned = b.ITEMS[id].kind === 'vehicle' && b.vehicles(state)[id];
           return `<button class="lg-btn ${id === sel.item ? 'lg-cur' : ''}" data-item="${id}" ${owned ? 'disabled' : ''}>${icon(id)} · ${esc(b.label(Object.entries(f)))}<small>${owned ? 'มีแล้ว' : esc(b.ITEMS[id].desc || 'ขายให้โรงตีเหล็กได้ ' + b.ITEMS[id].sell + ' เหรียญ')}${lack.length ? ' · ยังขาด ' + esc(b.label(lack)) : ''}</small></button>`; }).join('')
@@ -372,19 +372,43 @@
         <button class="lg-btn" data-stash="in">ฝากของ<small>ทุกอย่างยกเว้นของกิน</small></button>
         <button class="lg-btn" data-stash="out" ${n ? '' : 'disabled'}>รับของคืน<small>เท่าที่กระเป๋าใส่ได้</small></button></div>`;
   }
+  // v108 stats come only from passive skills, gear and the worn title; skills have tiers, a proficiency bar and promotion trials
   function skillHtml() {
+    const S = Skills, b = S.bonus(state), weak = (state.wounds && state.wounds.until || 0) >= state.day;
     const bar = (label, v, max, note) => `<span>${label}</span><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, v / max * 100))}%"></i></div><b>${v}</b><span></span><small class="lg-muted" style="grid-column:2/4;margin-top:-4px">${note}</small>`;
-    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['gchefWork', 'พ่อครัวกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
+    const stat = (k, note) => bar(S.STAT_NAME[k], state[k], 100, 'ตัวเอง ' + state.base[k] + (b[k] ? ' + สกิล/อุปกรณ์/ฉายา ' + b[k] : '') + (weak ? ' · ลดครึ่งเพราะบาดเจ็บ' : '') + ' · ' + note);
+    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['gchefWork', 'พ่อครัวกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน'], ['towerWins', 'ชนะมอนสเตอร์']]
       .filter(([k]) => state[k] > 0);
+    const TYPE = { passive: 'พาสซีฟ', active: 'แอ็กทีฟ', life: 'สกิลชีวิต' };
+    const skills = Object.entries(state.skills || {}).map(([id, sk]) => {
+      const D = S.SKILLS[id], T = S.TIERS[sk.tier - 1], cap = T.cap, trial = state.trials[id], spec = S.trialOf(state, id);
+      const eff = D.stat ? Object.entries(D.stat).map(([k, v]) => S.STAT_NAME[k] + ' +' + v[sk.tier - 1]).join(' ') : D.power ? 'พลังต่อสู้ +' + D.power[sk.tier - 1] : D.desc;
+      let tr = '';
+      if (trial && spec) tr = trial.accepted ? `<small style="display:block;color:var(--lg-gold)">ภารกิจเลื่อนขั้น: ${esc(spec.text)} · ${trial.done}/${spec.need}</small>`
+        : `<button class="lg-btn" data-trial="${id}">รับภารกิจเลื่อนขั้นจาก${esc(D.teacher)}<small>${esc(spec.text)}</small></button>`;
+      return `<div class="lg-zone"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
+        ${cap ? `<div class="lg-bar" style="margin:6px 0 2px"><i style="width:${Math.max(3, sk.xp / cap * 100)}%"></i></div><small class="lg-muted">ความชำนาญ ${sk.xp}/${cap}${sk.xp >= cap ? ' · เต็มขั้นแล้ว' : ''}</small>` : '<small class="lg-muted">ขั้นสูงสุด</small>'}${tr}</div>`;
+    }).join('') || '<p class="lg-muted">ยังไม่มีสกิล ทำงานหรือฝึกแล้วจะได้สกิลแรก</p>';
+    const gear = Object.entries(S.SLOTS).map(([slot, name]) => {
+      const on = state.equip[slot], opts = B().list(state).filter(x => B().ITEMS[x.id] && B().ITEMS[x.id].equip === slot).map(x => x.id).filter((v, i, a) => a.indexOf(v) === i);
+      return `<div class="lg-zone"><b>${name}</b> ${on ? iconHtml(on, 26) + ' ' + esc(B().name(on)) + ` <button class="lg-btn" style="display:inline-block;width:auto;padding:4px 10px;margin:0 0 0 6px" data-unequip="${slot}">ถอด</button>` : '<span class="lg-muted">ว่าง</span>'}
+        ${opts.map(id => `<button class="lg-btn" data-equip="${id}">${iconHtml(id, 26)} ใส่${esc(B().name(id))}<small>${esc(B().ITEMS[id].desc || '')}</small></button>`).join('')}</div>`;
+    }).join('');
+    const titles = Object.entries(S.TITLES).map(([id, T]) => { const own = state.titles.includes(id), on = state.title === id;
+      const bon = Object.entries(T.bonus).map(([k, v]) => S.STAT_NAME[k] + ' +' + v).join(' ');
+      return own ? `<button class="lg-btn ${on ? 'lg-cur' : ''}" data-title="${id}">${on ? '✓ ' : ''}${esc(T.name)}<small>${bon}</small></button>`
+        : `<button class="lg-btn" disabled>🔒 ${esc(T.name)}<small>${esc(T.how)} · ${bon}</small></button>`; }).join('');
     return `<h2>สกิล</h2>
-      <h3>ค่าสถานะ</h3><div class="lg-skill">
-        ${bar('กำลัง', state.strength, 12, 'ยกของ งานกรรมกร ป้องกันตัว')}
-        ${bar('คล่องตัว', state.agility, 12, 'หนีเอาตัวรอด สอบเข้ากิลด์')}
-        ${bar('ปัญญา', state.intelligence, 12, 'มินิเกมง่ายขึ้น')}
-        ${bar('ชื่อเสียง', state.rep || 0, 10, 'คนในเมืองเกรงใจมากขึ้น')}
+      <p>พลังต่อสู้ <b style="color:var(--lg-gold);font-size:20px">${S.power(state)}</b> <span class="lg-muted">(กำลัง + คล่องตัว + ปัญญาบางส่วน + อาวุธ เกราะ และวิชาดาบ)</span></p>
+      <h3>ค่าสถานะ</h3><p class="lg-muted">เพิ่มได้จากสกิลพาสซีฟ อุปกรณ์ และฉายาเท่านั้น</p><div class="lg-skill">
+        ${stat('strength', 'สู้ แบกของ')}${stat('agility', 'หลบ หนีเอาตัวรอด')}${stat('intelligence', 'มินิเกม แผนที่ ตีราคา')}
+        ${bar('ชื่อเสียง', state.rep || 0, 50, 'คนในเมืองเกรงใจมากขึ้น')}
         ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
-      <h3>ประสบการณ์งาน</h3>${jobs.length ? '<div class="lg-stats">' + jobs.map(([k, n]) => `<span>${n} · ${state[k]} วัน</span>`).join('') + '</div>' : '<p class="lg-muted">ยังไม่เคยทำงานครบวัน</p>'}`;
+      <h3>สกิล</h3>${skills}
+      <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
+      <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}
+      <h3>ประสบการณ์งาน</h3>${jobs.length ? '<div class="lg-stats">' + jobs.map(([k, n]) => `<span>${n} · ${state[k]} ${k === 'towerWins' ? 'ครั้ง' : 'วัน'}</span>`).join('') + '</div>' : '<p class="lg-muted">ยังไม่เคยทำงานครบวัน</p>'}`;
   }
   function mapHtml() {
     const s = window.LIFE_INFO || {}, L = state.life, P = LifeSim.PLACES, Z = TownPano.ZONES;
@@ -421,6 +445,12 @@
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
     d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); again(); });
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
+    d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
+    d.querySelectorAll('[data-title]').forEach(x => x.onclick = () => { Skills.wearTitle(state, x.dataset.title); log('ใช้ฉายา "' + Skills.TITLES[x.dataset.title].name + '"'); again(); });
+    d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip, slot = B().ITEMS[id].equip;
+      if (!B().take(state, id, 1)) return; const old = state.equip[slot]; if (old) B().add(state, old, 1); state.equip[slot] = id; Skills.recalc(state); log('ใส่' + B().name(id)); again(); });
+    d.querySelectorAll('[data-unequip]').forEach(x => x.onclick = () => { const slot = x.dataset.unequip, id = state.equip[slot];
+      if (!id) return; if (B().total(state) >= B().CAP) { alert('กระเป๋าเต็ม'); return; } B().add(state, id, 1); delete state.equip[slot]; Skills.recalc(state); log('ถอด' + B().name(id)); again(); });
     d.querySelectorAll('[data-quest]').forEach(b => b.onclick = () => { L.quest = b.dataset.quest; log('ภารกิจที่จะรับ: ' + LifeSim.QUESTS[L.quest].name); again(); });
     d.querySelectorAll('[data-chef]').forEach(b => b.onclick = () => { L.chefNext = b.dataset.chef; log('พรุ่งนี้ไปทำครัวที่กิลด์ใหม่'); again(); });
     d.querySelectorAll('[data-stash]').forEach(b => b.onclick = () => { const day = LifeSim.requestStash(state, b.dataset.stash, clock);

@@ -13,6 +13,8 @@
   const PANO = (typeof globalThis !== 'undefined' && globalThis.TownPano) || null;
   // v93 the bag (bag.js); Node simulations load it with require
   const Bag = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
+  // v108 skills / titles / equipment / combat (skills.js)
+  const Skills = (typeof globalThis !== 'undefined' && globalThis.Skills) || (typeof require === 'function' ? require('./skills.js') : null);
   const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24198, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
@@ -114,12 +116,12 @@
     smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true, room: 'forge', act: 'ตีเหล็กในโรงตีเหล็ก',
               desc: 'ไปช่วยงานโรงตีเหล็กทุกวัน มีมินิเกมตีเหล็ก ค่าแรงขึ้นกับฝีมือ และอาวุธที่ตีจะถูกส่งไปให้นักสู้ในหอคอย' },
     guild:  { name: 'กิลด์นักรบโล่เหล็ก',   place: 'guild',  energy: 20,
-              desc: 'ฝึกที่ลานกิลด์โล่เหล็กในย่านกิลด์ ยังไม่มีค่าแรงจนกว่าจะสอบผ่าน (กำลัง + คล่องตัว ≥ 8) แล้วเข้าหอคอยกับทีมนักรบ ค่าแรง 14 เหรียญ มีโอกาสบาดเจ็บ และบางวันได้ชิ้นส่วนมอนสเตอร์' },
+              desc: 'ฝึกที่ลานกิลด์โล่เหล็กในย่านกิลด์ ฝึกครบ 5 วันจึงสอบผ่าน (ยังไม่มีค่าแรง) แล้วเข้าหอคอยสู้มอนสเตอร์กับทีมนักรบทุกวัน ค่าแรง 14 เหรียญ แพ้แล้วบาดเจ็บ บางวันได้ชิ้นส่วนมอนสเตอร์' },
     // v103 the other guilds of ย่านกิลด์
     compass: { name: 'กิลด์นักสำรวจเข็มทิศเงิน', place: 'compass', energy: 22,
-              desc: 'ฝึกอ่านและวาดแผนที่ จนสอบผ่าน (ปัญญา ≥ 6) แล้วตามทีมสำรวจเข้าหอคอยไปทำแผนที่ ค่าแรง 6 + ปัญญา เหรียญ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
+              desc: 'ฝึกอ่านแผนที่ครบ 5 วันจึงสอบผ่าน แล้วตามทีมสำรวจเข้าหอคอยไปทำแผนที่ ค่าแรงขึ้นกับปัญญาและสกิลทำแผนที่ บางวันเก็บสมุนไพรหรือของแปลกกลับมา' },
     porter: { name: 'สมาคมคนแบกของ', place: 'porter', energy: 35,
-              desc: 'ไม่ต้องสอบ แบกเสบียงตามทีมเข้าหอคอยแล้วแบกของกลับ ค่าแรงรอบละ 8 เหรียญ (+3 ถ้ากำลัง ≥ 6) งานหนักและเสี่ยงโดนมอนสเตอร์บ้าง ทุก 4 วันกำลัง +1' },
+              desc: 'ไม่ต้องสอบ แบกเสบียงตามทีมเข้าหอคอยแล้วแบกของกลับ ค่าแรงรอบละ 8 เหรียญ (+3 ถ้ากำลัง ≥ 30) งานหนัก บางวันต้องสู้มอนสเตอร์ ฝึกสกิลแขนแกร่ง' },
     gchef:  { name: 'พ่อครัวกิลด์', place: 'guild', energy: 25, minigame: true, act: 'ทำอาหารในครัวกิลด์',
               desc: 'ทำอาหารให้สมาชิกในครัวกิลด์ (เลือกกิลด์ได้) มีมินิเกมหั่นผัก ค่าแรง 5 + ดาว เหรียญ กินข้าวเย็นที่โรงอาหารกิลด์ฟรี และนอนห้องพักกิลด์ได้' },
     tmerchant: { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', energy: 15,
@@ -142,7 +144,10 @@
     const r = typeof rng === 'function' ? rng : Math.random;
     const origin = ORIGINS[Math.floor(r() * ORIGINS.length)];
     st.profession = origin.name;
-    Object.assign(st, origin.stats);
+    // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
+    st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5 };
+    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.trials = {}; st.wounds = { until: 0 };
+    Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; if (Bag) Bag.add(st, 'ration', 1);
     st.life = { v: 1, origin: origin.id, age: 18 + Math.floor(r() * 28), path: origin.suggest, pendingPath: null,
       started: false, done: {}, sleptAt: 'inn', homeTonight: 'inn', roomPref: 'mid', roomSlept: 'mid', roomTonight: 'mid', focusDay: 0,
@@ -161,6 +166,7 @@
     if (!PLACES[L.homeTonight]) L.homeTonight = 'inn';
     for (const k of ['roomPref', 'roomSlept', 'roomTonight']) if (!ROOMS[L[k]]) L[k] = 'mid';
     if (Bag) Bag.migrate(st);
+    if (Skills) Skills.recalc(st);
     if (L.eatBag === undefined) L.eatBag = true;
     return true;
   }
@@ -380,11 +386,12 @@
   function tolerance(st) {
     const o = originOf(st);
     const rested = st.life && st.life.focusDay === st.day ? ROOMS.luxe.focus : 1;
-    return (1 + 0.05 * (clamp(st.intelligence || 3, 1, 12) - 3)) * (o.id === 'craft' ? 1.4 : 1) * rested;
+    return (1 + 0.05 * (clamp((st.intelligence || 15) / 5, 1, 20) - 3) + 0.06 * (Skills.tierOf(st, 'smithing') - 1)) * (o.id === 'craft' ? 1.4 : 1) * rested;
   }
   function applyWake(st) {
     const L = st.life, o = originOf(st);
     if (L.chefNext) { L.chefAt = L.chefNext; L.chefNext = null; }
+    if (Skills) Skills.recalc(st);
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
     if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt] || placeKey(L.sleptAt)) {
       const room = ROOMS[L.roomSlept] || ROOMS.mid;
@@ -529,7 +536,7 @@
       if (lack.length) return say(st, 'ของไม่ครบ ขาด ' + Bag.label(lack) + (lack.some(([id]) => id !== 'iron') ? ' (หาได้ที่ลานของเก่าหรือร้านรับซื้อของเก่า)' : ''));
       if (st.money < fee) return say(st, 'ไม่มีเงินค่าเช่าเตาหลอม ' + fee + ' เหรียญ');
       st.money -= fee; st.energy = Math.max(0, st.energy - 12); for (const [id, n] of Object.entries(need)) Bag.take(st, id, n);
-      const odds = clamp(0.6 + 0.03 * (st.smithWork || 0) + 0.02 * (st.strength || 3), 0.6, 0.95);
+      const odds = clamp(0.6 + 0.03 * (st.smithWork || 0) + 0.02 * (st.strength || 15) / 5, 0.6, 0.95);
       if (Math.random() > odds) return say(st, 'ตี' + Bag.name(O.item) + 'พลาด ของเสียหายไปหมด (โอกาสสำเร็จ ' + Math.round(odds * 100) + '%)');
       if (!Bag.add(st, O.item, 1)) return say(st, 'ตี' + Bag.name(O.item) + 'เสร็จ แต่กระเป๋าเต็ม ต้องทิ้งไว้ที่โรงตีเหล็ก');
       return say(st, 'ตี' + Bag.name(O.item) + 'เองสำเร็จ' + (fee ? ' (ค่าเตา ' + fee + ')' : '') + ' · ' + (Bag.ITEMS[O.item].desc || 'ขายได้ ' + Bag.ITEMS[O.item].sell + ' เหรียญ'));
@@ -586,6 +593,35 @@
 
   // v103 a repeatable 0–1 roll per day (so a reload never re-rolls the day's luck)
   function roll(st, k) { const x = Math.sin((st.day || 1) * 12.9898 + k * 78.233 + (st.life && st.life.age || 0) * 3.7) * 43758.5453; return x - Math.floor(x); }
+  // v108 the daily trip into the tower: one fight against something from the floors today's quest goes to.
+  // The guild party fights alongside (ALLY), so a defeat is never death: they drag you out (Skills.rescuePenalty).
+  const GUILD_EXAM = 5, COMPASS_EXAM = 5;
+  const MONSTERS = Object.freeze({
+    safe:   [['กระต่ายเขาเดียว', 10], ['ค้างคาวถ้ำ', 16]],
+    normal: [['หมาป่าเงา', 28], ['ก๊อบลินถือขวาน', 38]],
+    deep:   [['ทากกรด', 55], ['หมีหิน', 75]]
+  });
+  const ALLY = { guild: 55, compass: 30, porter: 45 };
+  function towerFight(st, path, tired, salt, notes) {
+    const L = st.life, list = MONSTERS[L.quest] || MONSTERS.normal, m = list[roll(st, salt) < 0.5 ? 0 : 1], mon = { name: m[0], power: m[1] };
+    const res = Skills.fight(st, mon, ALLY[path] * (tired ? 0.85 : 1), roll(st, salt + 1), roll(st, salt + 2));
+    const learn = (id, xp) => { const x = Skills.train(st, id, xp); if (x) notes.push(x); };
+    if (res.win) {
+      st.towerWins = (st.towerWins || 0) + 1; learn('sword', 2); learn('nimble', 1);
+      notes.push(...Skills.progress(st, 'win', mon.power)); if (!res.hurt) notes.push(...Skills.progress(st, 'clean_win'));
+      if (st.towerWins >= 15) { const t = Skills.earnTitle(st, 'slayer'); if (t) notes.push(t); }
+      if (res.hurt) { st.health = Math.max(1, st.health - 8); return ' · ทีมล้ม' + mon.name + ' (พลัง ' + mon.power + ') แต่โดนข่วน (สุขภาพ −8)'; }
+      return ' · ทีมล้ม' + mon.name + ' (พลัง ' + mon.power + ')';
+    }
+    learn('sword', 1);
+    if (res.deadly) {
+      const p = Skills.rescuePenalty(st, 6), names = p.gear.map(id => Bag ? Bag.name(id) : id);
+      st.health = Math.max(1, st.health - 30); const t = Skills.earnTitle(st, 'survivor'); if (t) notes.push(t);
+      return ' · ' + mon.name + 'เกือบเอาชีวิต! เพื่อนร่วมทีมลากออกมาได้ เสียเงิน ' + p.money + ' เหรียญ' + (names.length ? ' และ' + names.join(' ') : '') + ' ค่าสถานะลดครึ่งถึงวันที่ ' + p.until + ' (สุขภาพ −30)';
+    }
+    st.health = Math.max(1, st.health - 15);
+    return ' · แพ้' + mon.name + ' (พลัง ' + mon.power + ') ต้องถอยกลับ (สุขภาพ −15)';
+  }
   function payWork(st, wage, core, ordinary) {
     const w = core && core.workWage ? core.workWage(wage, st.taxDue || 0, ordinary) : wage;
     st.money += w; st.work = (st.work || 0) + 1; st.jobDay = st.day; st.life.workedDay = st.day;
@@ -596,93 +632,102 @@
     if (L.path === 'gchef') return finishKitchen(st, 5, core, true);   // without the minigame (Node sims): an average day
     const tired = st.energy < path.energy;
     st.energy = Math.max(0, st.energy - path.energy);
+    const notes = [];
+    const grow = list => { for (const [id, xp] of list) { const m = Skills.train(st, id, xp); if (m) notes.push(m); } };
+    const prog = (kind, v) => notes.push(...Skills.progress(st, kind, v));
+    const tail = msg => say(st, msg + (notes.length ? ' · ' + notes.join(' · ') : ''));
     if (L.path === 'market') {
-      const w = payWork(st, tired ? 4 : 8, core, true);
+      const w = payWork(st, (tired ? 4 : 8) + Math.max(0, Skills.tierOf(st, 'haggling') - 1), core, true);
       if (Bag) Bag.add(st, 'ration'); else st.food++; st.marketWork = (st.marketWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      return say(st, (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ขนของในตลาด ได้ ' + w + ' เหรียญ และอาหาร 1 ชุด');
+      grow([['brawn', 1], ['haggling', 1]]); prog('appraise');
+      return tail((tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ขนของในตลาด ได้ ' + w + ' เหรียญ และอาหาร 1 ชุด');
     }
     if (L.path === 'guild') {
-      if (!st.guild) {
-        const key = st.strength <= st.agility ? 'strength' : 'agility';
-        if (!tired && st[key] < 12) st[key]++;
-        const label = key === 'strength' ? 'กำลัง' : 'คล่องตัว';
-        let msg = tired ? 'เหนื่อยเกินไป ฝึกได้ไม่เต็มที่' : 'ฝึกที่ลานกิลด์ ' + label + ' +1';
-        if (st.strength + st.agility >= 8) {
+      if (!st.guild) {                                  // v108: the exam is days of training, not a stat threshold
+        if (!tired) st.guildTrain = (st.guildTrain || 0) + 1;
+        grow([['sword', tired ? 1 : 3], ['nimble', tired ? 0 : 2]]);
+        let msg = tired ? 'เหนื่อยเกินไป ฝึกได้ไม่เต็มที่' : 'ฝึกที่ลานกิลด์ (' + (st.guildTrain || 0) + '/' + GUILD_EXAM + ' วัน)';
+        if ((st.guildTrain || 0) >= GUILD_EXAM) {
           st.guild = true; st.examResult = 'passed'; st.examDay = st.day; st.equipment = 'อุปกรณ์ฝึกพื้นฐาน';
           if (!st.joinedBefore) { st.money += 10; st.joinedBefore = true; }
-          msg += ' · สอบผ่าน! เข้ากิลด์แล้ว ได้เงินช่วยเหลือ 10 เหรียญ';
+          msg += ' · สอบผ่าน! เข้ากิลด์แล้ว ได้เงินช่วยเหลือ 10 เหรียญ'; const t = Skills.earnTitle(st, 'iron'); if (t) notes.push(t);
         }
         st.jobDay = st.day; L.workedDay = st.day;
-        return say(st, msg);
+        return tail(msg);
       }
       const w = payWork(st, Math.round((tired ? 7 : 14) * Q.pay), core, false);
       st.supplies = Math.min(30, (st.supplies || 0) + 2); st.guildWork = (st.guildWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      let msg = 'ภารกิจ' + Q.name + 'กับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ';
-      // v103 the tower bites back: tired or weak fighters get hurt more often; sometimes there's something to bring home
-      if (roll(st, 1) < ((tired ? 0.3 : 0.12) + (st.health < 50 ? 0.1 : 0)) * Q.risk) { st.health = Math.max(1, st.health - 12); msg += ' · โดนกรงเล็บมอนสเตอร์ (สุขภาพ −12)'; }
+      grow([['brawn', 1]]);
+      let msg = 'ภารกิจ' + Q.name + 'กับทีมนักรบโล่เหล็ก ได้ ' + w + ' เหรียญ' + towerFight(st, 'guild', tired, 1, notes);
       if (roll(st, 2) < 0.3 * Q.loot && Bag && Bag.add(st, 'monster', 1, st.day)) msg += ' · ได้ชิ้นส่วนมอนสเตอร์ 1 ชิ้น';
-      return say(st, msg);
+      return tail(msg);
     }
     if (L.path === 'compass') {
       st.compassWork = (st.compassWork || 0) + 1; L.workedDay = st.day; st.jobDay = st.day;
       if (!st.compassMember) {
-        if (!tired && st.intelligence < 12) st.intelligence++;
-        let msg = tired ? 'ง่วงจนอ่านแผนที่ไม่เข้าหัว' : 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน ปัญญา +1';
-        if (st.intelligence >= 6) { st.compassMember = true; msg += ' · สอบผ่าน! ได้เข็มทิศเงินประจำตัว เข้ากิลด์นักสำรวจแล้ว'; }
-        return say(st, msg);
+        if (!tired) st.compassStudy = (st.compassStudy || 0) + 1;
+        grow([['keen', tired ? 1 : 3], ['mapping', tired ? 0 : 2]]); prog('study');
+        let msg = tired ? 'ง่วงจนอ่านแผนที่ไม่เข้าหัว' : 'ฝึกอ่านแผนที่ในกิลด์เข็มทิศเงิน (' + (st.compassStudy || 0) + '/' + COMPASS_EXAM + ' วัน)';
+        if ((st.compassStudy || 0) >= COMPASS_EXAM) { st.compassMember = true; msg += ' · สอบผ่าน! ได้เข็มทิศเงินประจำตัว เข้ากิลด์นักสำรวจแล้ว'; const t = Skills.earnTitle(st, 'compass'); if (t) notes.push(t); }
+        return tail(msg);
       }
-      const w = payWork(st, Math.round((6 + clamp(st.intelligence, 1, 12)) * (tired ? 0.5 : 1) * Q.pay), core, false);
+      const w = payWork(st, Math.round((6 + Math.floor(st.intelligence / 10) + Skills.tierOf(st, 'mapping')) * (tired ? 0.5 : 1) * Q.pay), core, false);
       st.rep = (st.rep || 0) + 1;
+      grow([['mapping', 3], ['keen', 1]]); prog('study'); if (L.quest === 'deep' && !tired) prog('deep_map');
       let msg = 'ภารกิจ' + Q.name + ' ทำแผนที่กับทีมสำรวจ ได้ ' + w + ' เหรียญ';
-      if (roll(st, 3) < 0.35 * Q.loot && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
-      if (roll(st, 5) < 0.06 * Q.risk) { st.health = Math.max(1, st.health - 8); msg += ' · พลัดตกหลุมในหอคอย (สุขภาพ −8)'; }
-      return say(st, msg);
+      if (roll(st, 3) < (0.3 + 0.05 * Skills.tierOf(st, 'mapping')) * Q.loot && Bag) { const id = roll(st, 4) < 0.6 ? 'herb' : 'monster'; if (Bag.add(st, id, 1, st.day)) msg += ' · เก็บ' + Bag.name(id) + 'กลับมา 1 ชิ้น'; }
+      if (roll(st, 5) < 0.5) msg += towerFight(st, 'compass', tired, 6, notes);
+      return tail(msg);
     }
     if (L.path === 'porter') {
-      const strong = st.strength >= 6;
+      const strong = st.strength >= 30;
       const w = payWork(st, Math.round((8 + (strong ? 3 : 0)) * (tired ? 0.5 : 1) * Q.pay), core, true);
       st.porterWork = (st.porterWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      if (!tired && st.porterWork % 4 === 0 && st.strength < 12) st.strength++;
-      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'ภารกิจ' + Q.name + ' แบกเสบียงตามทีม ได้ ' + w + ' เหรียญ' + (!tired && st.porterWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : '');
-      if (roll(st, 6) < (tired ? 0.22 : 0.1) * Q.risk) { st.health = Math.max(1, st.health - 8); msg += ' · โดนมอนสเตอร์ข่วนตอนแบกของ (สุขภาพ −8)'; }
-      return say(st, msg);
+      grow([['brawn', tired ? 1 : 3]]); if (!tired) prog('haul');
+      if (st.porterWork >= 30) { const t = Skills.earnTitle(st, 'porter'); if (t) notes.push(t); }
+      let msg = (tired ? 'เหนื่อยจนแบกได้ครึ่งทาง ' : '') + 'ภารกิจ' + Q.name + ' แบกเสบียงตามทีม ได้ ' + w + ' เหรียญ';
+      if (roll(st, 6) < 0.4) msg += towerFight(st, 'porter', tired, 11, notes);
+      return tail(msg);
     }
     if (L.path === 'tmerchant') {
       st.tmerchWork = (st.tmerchWork || 0) + 1; st.rep = (st.rep || 0) + 1;
+      grow([['haggling', 3], ['keen', 1]]); prog('appraise'); prog('study');
       if (!st.merchMember) {
         const w = payWork(st, tired ? 2 : 4, core, true);
         let msg = 'เป็นลูกมือตีราคาในกิลด์พ่อค้า ได้ ' + w + ' เหรียญ ชื่อเสียง +1';
-        if (st.rep >= 5) { st.merchMember = true; msg += ' · หัวหน้ากิลด์รับเป็นนักตีราคาเต็มตัวแล้ว'; }
-        return say(st, msg);
+        if (st.rep >= 5) { st.merchMember = true; msg += ' · หัวหน้ากิลด์รับเป็นนักตีราคาเต็มตัวแล้ว'; const t = Skills.earnTitle(st, 'appraiser'); if (t) notes.push(t); }
+        return tail(msg);
       }
-      const w = payWork(st, Math.round(Math.min(12, 6 + Math.floor((st.rep || 0) / 2)) * (tired ? 0.5 : 1)), core, true);
-      return say(st, 'ตีราคาของจากหอคอย ได้ ' + w + ' เหรียญ');
+      const w = payWork(st, Math.round((Math.min(12, 6 + Math.floor((st.rep || 0) / 2)) + Skills.tierOf(st, 'haggling') - 1) * (tired ? 0.5 : 1)), core, true);
+      return tail('ตีราคาของจากหอคอย ได้ ' + w + ' เหรียญ');
     }
     if (L.path === 'cargo') {
       const caravan = st.day % 3 === 0;
       const w = payWork(st, (tired ? 5 : 9) + (caravan && !tired ? 4 : 0), core, true);
       st.cargoWork = (st.cargoWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      if (!tired && st.cargoWork % 4 === 0 && st.strength < 12) st.strength++;
-      return say(st, (tired ? 'เหนื่อยจนแบกได้ครึ่งวัน ' : '') + (caravan ? 'คาราวานเข้าเมือง ของเยอะ! ' : '') + 'แบกกระสอบที่ลานเกวียน ได้ ' + w + ' เหรียญ'
-        + (!tired && st.cargoWork % 4 === 0 && st.strength <= 12 ? ' · กำลัง +1' : ''));
+      grow([['brawn', tired ? 1 : 3]]); if (!tired) prog('haul');
+      return tail((tired ? 'เหนื่อยจนแบกได้ครึ่งวัน ' : '') + (caravan ? 'คาราวานเข้าเมือง ของเยอะ! ' : '') + 'แบกกระสอบที่ลานเกวียน ได้ ' + w + ' เหรียญ');
     }
     if (L.path === 'hotel') {
       const w = payWork(st, tired ? 4 : 8, core, true);
       st.hotelWork = (st.hotelWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      return say(st, (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ซักผ้าและจัดห้องพัก ได้ ' + w + ' เหรียญ');
+      grow([['nimble', 1]]);
+      return tail((tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ซักผ้าและจัดห้องพัก ได้ ' + w + ' เหรียญ');
     }
     if (L.path === 'kitchen') {
       const base = 6 + (originOf(st).id === 'chef' ? 3 : 0);
       const w = payWork(st, tired ? Math.ceil(base / 2) : base, core, true);
       if (Bag) Bag.add(st, 'ration'); else st.food++; st.tavernWork = (st.tavernWork || 0) + 1; st.rep = (st.rep || 0) + 1;
-      return say(st, (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ช่วยงานในครัว ได้ ' + w + ' เหรียญ และอาหาร 1 ชุด');
+      grow([['cooking', 2]]);
+      return tail((tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'ช่วยงานในครัว ได้ ' + w + ' เหรียญ และอาหาร 1 ชุด');
     }
     if (L.path === 'scrap') {
       const w = payWork(st, tired ? 3 : 6, core, true);
       st.scrapWork = (st.scrapWork || 0) + 1;
+      grow([['gathering', tired ? 1 : 3]]);
       let msg = (tired ? 'เหนื่อยจนทำได้ครึ่งวัน ' : '') + 'คัดของเก่าในตรอก ได้ ' + w + ' เหรียญ';
-      if (!tired && st.scrapWork % 4 === 0) { st.money += 5; msg += ' · เจอของดีในกองขยะ ขายให้ร้านรับซื้อได้อีก 5 เหรียญ'; }
-      return say(st, msg);
+      if (!tired && st.scrapWork % Math.max(2, 5 - Skills.tierOf(st, 'gathering')) === 0) { st.money += 5; prog('find'); msg += ' · เจอของดีในกองขยะ ขายให้ร้านรับซื้อได้อีก 5 เหรียญ'; }
+      return tail(msg);
     }
     return null; // smith is resolved by the minigame
   }
@@ -690,29 +735,31 @@
     const L = st.life, stars = clamp(Math.round(totalStars) || 0, 0, 9);
     const tired = st.energy < PATHS.smith.energy;
     st.energy = Math.max(0, st.energy - PATHS.smith.energy);
-    const w = payWork(st, Math.max(2, Math.round((6 + 2 * stars) * (tired ? 0.5 : 1))), core, true);
+    const w = payWork(st, Math.max(2, Math.round((6 + 2 * stars + Skills.tierOf(st, 'smithing') - 1) * (tired ? 0.5 : 1))), core, true);
     st.smithWork = (st.smithWork || 0) + 1;
+    const notes = [Skills.train(st, 'smithing', 2 + (stars >= 6 ? 1 : 0)), Skills.train(st, 'brawn', 1), ...Skills.progress(st, 'stars:smith', stars)].filter(Boolean);
     if (stars >= 6) st.rep = (st.rep || 0) + 1;
     L.todayStars = stars;
     L.history.unshift({ day: st.day, stars }); L.history = L.history.slice(0, 30);
-    return say(st, 'ตีเหล็กได้ ' + stars + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : ''));
+    return say(st, 'ตีเหล็กได้ ' + stars + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : '') + (notes.length ? ' · ' + notes.join(' · ') : ''));
   }
   // kitchen: the chef's hands play the role the craftsman's play at the forge
   function kitchenTolerance(st) {
     const o = originOf(st), rested = st.life && st.life.focusDay === st.day ? ROOMS.luxe.focus : 1;
-    return (1 + 0.05 * (clamp(st.intelligence || 3, 1, 12) - 3)) * (o.id === 'chef' ? 1.35 : 1) * rested;
+    return (1 + 0.05 * (clamp((st.intelligence || 15) / 5, 1, 20) - 3) + 0.06 * (Skills.tierOf(st, 'cooking') - 1)) * (o.id === 'chef' ? 1.35 : 1) * rested;
   }
   function finishKitchen(st, stars, core, skipped) {
     const L = st.life, s = clamp(Math.round(stars) || 0, 0, 9), P = PATHS[L.path] || PATHS.kitchen, tired = st.energy < P.energy;
     st.energy = Math.max(0, st.energy - P.energy);
     const guild = L.path === 'gchef';
-    const base = (guild ? 5 : 3) + s + (originOf(st).id === 'chef' ? 3 : 0);
+    const base = (guild ? 5 : 3) + s + (originOf(st).id === 'chef' ? 3 : 0) + Skills.tierOf(st, 'cooking') - (Skills.tierOf(st, 'cooking') ? 1 : 0);
+    const notes = [Skills.train(st, 'cooking', 2 + (s >= 6 ? 1 : 0)), ...Skills.progress(st, 'stars:kitchen', s)].filter(Boolean);
     if (guild) { L.workedDay = st.day; st.gchefWork = (st.gchefWork || 0) + 1; }
     const w = payWork(st, Math.max(2, Math.round(base * (tired ? 0.5 : 1))), core, true);
     if (!guild) { if (Bag) Bag.add(st, 'ration'); else st.food++; st.tavernWork = (st.tavernWork || 0) + 1; }
     if (s >= 6) st.rep = (st.rep || 0) + 1;
     L.todayStars = null;
-    return say(st, (skipped ? 'ให้ลูกมือช่วย ' : '') + 'หั่นผักได้ ' + s + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ และอาหาร 1 ชุด' + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : ''));
+    return say(st, (skipped ? 'ให้ลูกมือช่วย ' : '') + 'หั่นผักได้ ' + s + '/9 ดาว ได้ค่าแรง ' + w + ' เหรียญ' + (guild ? '' : ' และอาหาร 1 ชุด') + (tired ? ' (เหนื่อย ค่าแรงลดครึ่ง)' : '') + (notes.length ? ' · ' + notes.join(' · ') : ''));
   }
   function roomPrice(st, id) {
     const p = ROOMS[id].price;
@@ -777,10 +824,10 @@
   // ---- events: choices move the odds, never guarantee the result ----------
   const pct = p => Math.round(clamp(p, 0, 1) * 100) + '%';
   // v104 the guild masters of ย่านกิลด์ (odds use the stats each guild cares about)
-  const frontOdds = st => clamp(0.25 + 0.05 * (st.strength + st.agility) - (st.health < 50 ? 0.15 : 0), 0.15, 0.9);
-  const shortcutOdds = st => clamp(0.1 + 0.07 * st.intelligence, 0.15, 0.92);
-  const heavyOdds = st => clamp(0.2 + 0.08 * st.strength - (st.energy < 30 ? 0.15 : 0), 0.15, 0.92);
-  const appraiseOdds = st => clamp(0.2 + 0.04 * st.intelligence + 0.04 * Math.min(10, st.rep || 0), 0.15, 0.9);
+  const frontOdds = st => clamp(0.25 + 0.01 * (st.strength + st.agility) - (st.health < 50 ? 0.15 : 0), 0.15, 0.9);
+  const shortcutOdds = st => clamp(0.1 + 0.014 * st.intelligence + 0.05 * Skills.tierOf(st, 'mapping'), 0.15, 0.92);
+  const heavyOdds = st => clamp(0.2 + 0.016 * st.strength - (st.energy < 30 ? 0.15 : 0), 0.15, 0.92);
+  const appraiseOdds = st => clamp(0.2 + 0.008 * st.intelligence + 0.04 * Skills.tierOf(st, 'haggling') + 0.04 * Math.min(10, st.rep || 0), 0.15, 0.9);
   const GUILD_EVENT = { guild: 'iron_short', compass: 'compass_shortcut', porter: 'porter_chest', tmerchant: 'merch_horn' };
   const EVENTS = {
     iron_short: {
@@ -806,11 +853,11 @@
         'ถ้าเธอเดาถูกว่ามีทางลัด ทีมจะประหยัดเวลาไปได้ครึ่งวันเลยนะ'],
       choices: [
         { label: 'ชี้ทางลัดตามที่คิด', odds: st => 'โอกาสถูก ' + pct(shortcutOdds(st)) + ' (ขึ้นกับปัญญา)',
-          resolve(st, r) { if (r() < shortcutOdds(st)) { st.money += 10; st.rep = (st.rep || 0) + 2; st.intelligence = Math.min(12, st.intelligence + 1);
-              return 'ทีมเจอทางลัดจริง! หัวหน้าจดชื่อคุณไว้มุมแผนที่ (ได้ 10 เหรียญ ปัญญา +1 ชื่อเสียง +2)'; }
+          resolve(st, r) { if (r() < shortcutOdds(st)) { st.money += 10; st.rep = (st.rep || 0) + 2; Skills.train(st, 'mapping', 4);
+              return 'ทีมเจอทางลัดจริง! หัวหน้าจดชื่อคุณไว้มุมแผนที่ (ได้ 10 เหรียญ ความชำนาญทำแผนที่ +4 ชื่อเสียง +2)'; }
             st.rep = Math.max(0, (st.rep || 0) - 1); return 'ทางนั้นเป็นทางตัน ทีมเสียเวลาไปครึ่งวัน (ชื่อเสียง −1)'; } },
         { label: 'ขอลอกแผนที่กลับไปศึกษา', odds: () => 'ได้ความรู้แน่นอน แต่เหนื่อย',
-          resolve(st) { st.intelligence = Math.min(12, st.intelligence + 1); st.energy = Math.max(0, st.energy - 15); return 'คุณนั่งลอกแผนที่ใต้ตะเกียงจนดึก (ปัญญา +1 แรง −15)'; } },
+          resolve(st) { Skills.train(st, 'keen', 4); st.energy = Math.max(0, st.energy - 15); return 'คุณนั่งลอกแผนที่ใต้ตะเกียงจนดึก (ความชำนาญตาไว +4 แรง −15)'; } },
         { label: 'บอกว่ายังไม่แน่ใจ', odds: () => 'ปลอดภัย',
           resolve(st) { return 'หัวหน้าหัวเราะ "ระวังดีแล้ว นักสำรวจที่รีบมักไม่ได้กลับมา"'; } }
       ]
@@ -822,8 +869,8 @@
         'ใครแบกขึ้นมาถึงประตูได้ ข้าจ่ายสองเท่า'],
       choices: [
         { label: 'แบกคนเดียว รับสองเท่า', odds: st => 'โอกาสแบกไหว ' + pct(heavyOdds(st)) + ' (ขึ้นกับกำลัง)',
-          resolve(st, r) { if (r() < heavyOdds(st)) { st.money += 12; st.rep = (st.rep || 0) + 1; if (st.strength < 12 && r() < 0.5) st.strength++;
-              return 'คุณแบกหีบขึ้นบันไดหอคอยได้ทีละขั้นจนถึงประตู คนแบกของทั้งสมาคมปรบมือ (ได้ 12 เหรียญ ชื่อเสียง +1)'; }
+          resolve(st, r) { if (r() < heavyOdds(st)) { st.money += 12; st.rep = (st.rep || 0) + 1; Skills.train(st, 'brawn', 4);
+              return 'คุณแบกหีบขึ้นบันไดหอคอยได้ทีละขั้นจนถึงประตู คนแบกของทั้งสมาคมปรบมือ (ได้ 12 เหรียญ ความชำนาญแขนแกร่ง +4 ชื่อเสียง +1)'; }
             st.health = Math.max(1, st.health - 12); return 'หีบลื่นหลุดมือทับเท้า (สุขภาพ −12)'; } },
         { label: 'ชวนเพื่อนคนแบกช่วยกัน', odds: () => 'แบ่งเงินกัน แต่ได้แน่',
           resolve(st) { st.money += 5; st.rep = (st.rep || 0) + 1; st.life.porterFriend = true; return 'สองคนช่วยกันหามหีบขึ้นมาได้ เพื่อนใหม่ชวนไปกินข้าวด้วยกัน (ได้ 5 เหรียญ ชื่อเสียง +1)'; } },
@@ -853,10 +900,10 @@
         'ฉันมาได้สามเดือนแล้ว ตอนแรกนึกว่าจะได้เป็นผู้กล้า... สุดท้ายมาล้างจานอยู่ที่นี่',
         'เมื่อวานมอนสเตอร์หลุดออกมาจากชั้น 5 อีกแล้ว ถ้ากิลด์กันไม่อยู่ เมืองนี้จบแน่'],
       choices: [
-        { label: 'ถามเรื่องหอคอยให้ละเอียด', odds: () => 'ได้ความรู้แน่นอน',
-          resolve(st) { st.intelligence = Math.min(12, st.intelligence + 1); return 'ธนาเล่าเรื่องแต่ละชั้นของหอคอยจนดึก (ปัญญา +1)'; } },
+        { label: 'ถามเรื่องหอคอยให้ละเอียด', odds: () => 'ได้สกิลตาไว',
+          resolve(st) { Skills.train(st, 'keen', 3); return 'ธนาเล่าเรื่องแต่ละชั้นของหอคอยจนดึก (ได้สกิลตาไว)'; } },
         { label: 'ชวนไปฝึกด้วยกันพรุ่งนี้เช้า', odds: () => 'โอกาสสำเร็จ 60%',
-          resolve(st, r) { if (r() < 0.6) { st.strength = Math.min(12, st.strength + 1); return 'ตื่นไปวิ่งรอบลานหน้าหอคอยด้วยกันตั้งแต่ตีห้า (กำลัง +1)'; }
+          resolve(st, r) { if (r() < 0.6) { Skills.train(st, 'nimble', 3); return 'ตื่นไปวิ่งรอบลานหน้าหอคอยด้วยกันตั้งแต่ตีห้า (ได้สกิลเท้าไว)'; }
             st.health = Math.max(1, st.health - 5); return 'ซ้อมหนักเกินตัว ข้อเท้าแพลง (สุขภาพ −5)'; } },
         { label: 'ขอตัวกลับไปพักก่อน', odds: () => 'ปลอดภัย',
           resolve(st) { st.health = Math.min(100, st.health + 10); return 'คุณกลับไปนอนเร็ว ตื่นมาสดชื่นกว่าปกติ (สุขภาพ +10)'; } }
@@ -907,8 +954,8 @@
               return 'เขาจ้องอยู่นานแล้วหัวเราะ "ใจถึงดีนี่" แล้วไม่เคยเรียกเก็บอีกเลย (ชื่อเสียง +1)'; }
             st.health = Math.max(1, st.health - 15); st.money = Math.max(0, st.money - 2);
             return 'โดนต่อยจนล้มแล้วโดนล้วงไป 2 เหรียญ (สุขภาพ −15)'; } },
-        { label: 'วิ่งหนีเข้าตรอกซอย', odds: st => 'โอกาสหนีพ้น ' + pct(clamp(0.3 + 0.07 * st.agility, 0.1, 0.9)),
-          resolve(st, r) { if (r() < clamp(0.3 + 0.07 * st.agility, 0.1, 0.9)) return 'คุณลัดเลาะตรอกแคบจนเขาตามไม่ทัน';
+        { label: 'วิ่งหนีเข้าตรอกซอย', odds: st => 'โอกาสหนีพ้น ' + pct(clamp(0.3 + 0.014 * st.agility, 0.1, 0.9)),
+          resolve(st, r) { if (r() < clamp(0.3 + 0.014 * st.agility, 0.1, 0.9)) return 'คุณลัดเลาะตรอกแคบจนเขาตามไม่ทัน';
             st.health = Math.max(1, st.health - 10); return 'สะดุดกองไม้ล้มลง เขาตามมาทันแล้วเตะซ้ำ (สุขภาพ −10)'; } }
       ]
     },
@@ -963,19 +1010,19 @@
         { label: 'ซื้อ 3 เหรียญ', available: st => st.money >= 3, odds: () => 'เงิน −3 · แรง +25 · สุขภาพ +5',
           resolve(st) { st.money -= 3; st.energy = Math.min(100, st.energy + 25); st.health = Math.min(100, st.health + 5);
             return 'กลิ่นหอมแปลก ๆ อุ่นถึงท้อง ความเหนื่อยหายไปครึ่งหนึ่ง (แรง +25 · สุขภาพ +5)'; } },
-        { label: 'ถามเรื่องเมืองอื่น', odds: () => 'ปัญญา +1',
-          resolve(st) { if (st.intelligence < 12) st.intelligence++; return 'เขาเล่าเรื่องเมืองทราย ตลาดลอยน้ำ และหอคอยที่พังไปแล้วในแดนตะวันออก (ปัญญา +1)'; } },
+        { label: 'ถามเรื่องเมืองอื่น', odds: () => 'ความชำนาญตาไว +3',
+          resolve(st) { Skills.train(st, 'keen', 3); return 'เขาเล่าเรื่องเมืองทราย ตลาดลอยน้ำ และหอคอยที่พังไปแล้วในแดนตะวันออก (ความชำนาญตาไว +3)'; } },
         { label: 'ไม่เป็นไร ขอบคุณ', odds: () => 'ไม่มีผล',
           resolve() { return 'เขาหัวเราะเสียงดัง "ไว้คราวหน้านะสหาย!"'; } }
       ]
     }
   };
-  function tollOdds(st) { return clamp(0.15 + 0.04 * (st.strength + st.agility) + 0.03 * Math.min(10, st.rep || 0) + (st.life.slumFriend ? 0.15 : 0), 0.1, 0.9); }
+  function tollOdds(st) { return clamp(0.15 + 0.008 * (st.strength + st.agility) + 0.03 * Math.min(10, st.rep || 0) + (st.life.slumFriend ? 0.15 : 0), 0.1, 0.9); }
   function slumToday(st) {
     const L = st.life;
     return L.path === 'scrap' || L.homeTonight === 'tenement' || (L.dinnerAt && L.dinnerAt.day === st.day && L.dinnerAt.place === 'soup');
   }
-  function defendOdds(st) { return clamp(0.2 + 0.05 * (st.strength + st.agility) + 0.02 * (st.intelligence - 3) - (st.health < 50 ? 0.15 : 0), 0.1, 0.9); }
+  function defendOdds(st) { return clamp(0.2 + 0.01 * (st.strength + st.agility) + 0.004 * (st.intelligence - 15) + 0.02 * Skills.tierOf(st, 'sword') - (st.health < 50 ? 0.15 : 0), 0.1, 0.9); }
   function weaponOdds(st) { return clamp(0.35 + 0.06 * (st.life.todayStars || 0), 0.1, 0.9); }
   function pickEvent(st, rng) {
     const L = st.life, r = typeof rng === 'function' ? rng : Math.random;
@@ -1009,7 +1056,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });
