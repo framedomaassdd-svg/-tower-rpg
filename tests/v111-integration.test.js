@@ -24,6 +24,7 @@ function safeHero(floor = 25) {
   const st = hero(); st.money = 5000;
   assert.equal(Expedition.plan(st, {party: null}).ok, true);
   st.day = 2; const x = Expedition.X(st); x.floor = 4; x.stones[4] = {up: true};
+  if (Expedition.bossOf) Expedition.bossOf(st, 4).alive = false;   // v113: floor-4 guardian must be beaten first
   const e = Expedition.encounter(st, 'x1');
   assert.equal(e.scene, 'stone');
   const move = Expedition.resolve(st, e, e.choices.findIndex(q => q.use === 'up'));

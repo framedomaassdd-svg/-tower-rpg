@@ -77,6 +77,11 @@
   .lg-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff1c;font-size:12px;line-height:1.25;text-align:center}
   .lg-slot b{position:absolute;right:6px;top:4px;min-width:20px;padding:0 5px;border-radius:99px;background:#e0a84a;color:#2a1a0c;font-size:12px}
   .lg-slot .x{color:#ff9a7a} .lg-slot .d{color:var(--lg-muted);font-size:11px}
+  .lg-rarity{font-weight:700;text-shadow:0 0 5px #0008}
+  .lg-enhance-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:7px}
+  .lg-enhance-pick .lg-btn{margin:0}
+  .lg-enhance-pick .lg-cur{border-color:#e0a84a;background:#4a3826}
+  .lg-drop-special{border:1px solid #c99a55;border-radius:12px;padding:10px;margin:9px 0}
   .lg-safe-card{max-width:800px}
   .lg-safe-head{position:sticky;top:-22px;z-index:2;background:var(--lg-bg);padding:4px 0 12px;border-bottom:1px solid #ffffff24}
   .lg-safe-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}
@@ -232,16 +237,70 @@
     if (O.kind === 'sell') return 'เอาของไปขายที่' + b.BUYERS[O.buyer].name + ' · ' + when;
     return '';
   }
+  const gearText = id => {
+    const g = Skills.gear(state, id);
+    if (!g) return esc(B().name(id));
+    const e = Skills.effectiveGear(state, id), col = Skills.RARITY_COLORS[Skills.rarityIndex(g.rarity)];
+    const stats = [e.atk && 'ATK ' + e.atk, e.def && 'DEF ' + e.def,
+      ...Object.entries(e.bonus).map(([k,v]) => (Skills.STAT_NAME[k] || k) + ' +' + v)].filter(Boolean).join(' · ');
+    return `${esc(B().name(g.templateId))} <span class="lg-rarity" style="color:${col}">${esc(g.rarity)} +${g.step}</span><small>${esc(stats)}</small>`;
+  };
+  // the town smithy is reachable any day you are in town (the hero walks there after work); not while inside the tower
+  const isSmith = () => !(X() && X().active(state));
+  function enhanceOptions() { return B().list(state).filter(s => s.instanceId).map(s => s.instanceId).concat(Object.values(state.equip || {})); }
+  function enhancementUI(selected, sacrificed, location) {
+    const ids = enhanceOptions(), item = Skills.gear(state, selected);
+    if (!item) return '<p>ไม่มีอุปกรณ์ให้ตีบวก</p>';
+    const mats = [...sacrificed].map(id => Skills.gear(state, id)).filter(Boolean);
+    const chance = Skills.enhanceChance(item, mats), cost = Skills.enhanceCost(item);
+    const price = location === 'city' ? cost.cityCoins : 0;
+    return `<h3>เลือกอุปกรณ์</h3><div class="lg-enhance-pick">${ids.map(id => `<button class="lg-btn ${id === selected ? 'lg-cur' : ''}" data-enhance-pick="${esc(id)}">${gearText(id)}</button>`).join('')}</div>
+      <h3>สังเวยอาวุธ (สูงสุด 2 ชิ้น)</h3><p class="lg-muted">ต้องเป็นระดับเดียวกัน · ห้ามใช้อุปกรณ์ที่สวมอยู่ หรือชิ้นที่กำลังตี</p>
+      <div class="lg-enhance-pick">${B().list(state).filter(s => s.instanceId && s.instanceId !== selected && Skills.GEAR[Skills.gear(state, s.instanceId).templateId].slot === 'weapon' && Skills.gear(state, s.instanceId).rarity === item.rarity).map(s => `<button class="lg-btn ${sacrificed.has(s.instanceId) ? 'lg-cur' : ''}" data-enhance-sac="${esc(s.instanceId)}">${sacrificed.has(s.instanceId) ? '✓ ' : ''}${gearText(s.instanceId)}</button>`).join('') || '<p class="lg-muted">ไม่มีอาวุธที่ใช้สังเวยได้</p>'}</div>
+      <div class="lg-zone"><b>${gearText(selected)}</b><p>โอกาสสำเร็จ <b style="color:#f2c14e">${(chance*100).toFixed(1)}%</b> · ใช้ผลึกวิญญาณ ${cost.crystals} ชิ้น (มี ${B().count(state,'soul_crystal')})${price ? ' · ค่าแรง ' + price + ' เหรียญ' : ' · ไม่มีค่าแรง'}</p><p class="lg-muted">สำเร็จ +1 · พลาดขั้น 0–2 ไม่ลด / ขั้น 3 ขึ้นไปลด 1 / ขั้น 6 ขึ้นไปอาจพัง</p></div>
+      <button class="lg-btn lg-primary" data-enhance-go="1" ${B().count(state,'soul_crystal') < cost.crystals || state.money < price ? 'disabled' : ''}>🔨 ตีบวกอุปกรณ์</button>`;
+  }
+  // The same persistent card logic is used in the city forge and the tower safe-zone service.
+  function enhanceCard() {
+    if (open) return false;
+    if (!isSmith()) return false;
+    let selected = enhanceOptions()[0], sacrificed = new Set(), note = '';
+    const d = el(`<div class="lg-card"><h2>🔨 ตีบวกอุปกรณ์ · โรงตีเหล็ก</h2><p class="lg-safe-note" role="status"></p><div class="lg-safe-inner"></div><button class="lg-btn" data-enhance-close="1">ปิด</button></div>`);
+    block(d);
+    const render = () => {
+      if (!enhanceOptions().includes(selected)) { selected = enhanceOptions()[0]; sacrificed.clear(); }
+      d.querySelector('.lg-safe-note').textContent = note;
+      d.querySelector('.lg-safe-inner').innerHTML = enhancementUI(selected, sacrificed, 'city');
+      d.querySelectorAll('[data-enhance-pick]').forEach(el => el.onclick = () => { selected=el.dataset.enhancePick;sacrificed.clear();render(); });
+      d.querySelectorAll('[data-enhance-sac]').forEach(el => el.onclick = () => {
+        const id=el.dataset.enhanceSac;
+        if (sacrificed.has(id)) sacrificed.delete(id); else if (sacrificed.size < 2) sacrificed.add(id);
+        render();
+      });
+      const go=d.querySelector('[data-enhance-go]'); if (go) go.onclick=() => { const r=Skills.enhance(state,selected,[...sacrificed],'city');note=r.why;if(r.ok){sacrificed.clear();log(r.why);save();}render(); };
+    };
+    d.querySelector('[data-enhance-close]').onclick=()=>closeOverlay(d);render();return true;
+  }
+  function gearSummaryHtml() {
+    const equipped = Object.entries(Skills.SLOTS).map(([slot,name]) => {
+      const id = state.equip && state.equip[slot];
+      return `<div class="lg-zone"><b>${esc(name)}</b><p>${id ? gearText(id) : '<span class="lg-muted">ไม่มีอุปกรณ์สวมใส่</span>'}</p>${id ? `<button class="lg-btn" data-unequip="${slot}">ถอด</button>` : ''}</div>`;
+    }).join('');
+    const loose = B().list(state).filter(s=>s.instanceId).map(s=>`<button class="lg-btn" data-equip="${esc(s.instanceId)}">${gearText(s.instanceId)}<small>แตะเพื่อสวมใส่</small></button>`).join('');
+    return '<h3>อุปกรณ์ที่สวมใส่</h3>'+equipped+'<h3>อุปกรณ์ในกระเป๋า</h3>'+(loose||'<p class="lg-muted">ไม่มีอุปกรณ์ในกระเป๋า</p>');
+  }
   function bagHtml() {
     const b = B(), L = state.life, bag = b.list(state).slice().sort((x, y) => (x.exp || 1e9) - (y.exp || 1e9));
     const rows = [`<div class="lg-slot">${iconHtml(state.money >= 10 ? 'coins' : 'coin', 52)}<b>${state.money}</b>เหรียญ</div>`]
       .concat(Object.keys(b.vehicles(state)).map(id => `<div class="lg-slot">${iconHtml(id, 52)}${esc(b.name(id))}<span class="d">จอดไว้</span></div>`))
       .concat(bag.map(st => { const it = b.ITEMS[st.id], left = b.daysLeft(st, state.day);
-        return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${esc(it.name)}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
+        return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${st.instanceId ? gearText(st.instanceId) : esc(it.name) + (st.rarity ? ' [' + esc(st.rarity) + ']' : '')}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
     const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
     return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
       ${X() && X().safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซน ชั้น ' + X().X(state).floor + ' · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
+      ${isSmith() ? '<button class="lg-btn" data-enhance-city="1">🔨 ตีบวกอุปกรณ์ที่โรงตีเหล็ก</button>' : ''}
+      ${isSmith() && bag.some(s => s.instanceId) ? '<h3>ขายอุปกรณ์</h3>' + bag.filter(s => s.instanceId).map(s => `<button class="lg-btn" data-gear-sell="${esc(s.instanceId)}">💰 ${gearText(s.instanceId)}<small>ขายได้ ${B().gearSalePrice(state,s.instanceId,B().ITEMS[s.id].sell)} เหรียญ</small></button>`).join('') : ''}
       <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
       ${stashHtml()}
       ${travelHtml()}
@@ -356,6 +415,7 @@
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
       ${expHtml()}
+      ${gearSummaryHtml()}
       ${guildHtml()}
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
@@ -414,7 +474,8 @@
     exp.safePending = false;                         // opening is not a daily action
     const allTabs = [['shop','ร้าน'],['sell','รับซื้อ'],['rest','ที่พัก'],['chest','หีบ'],['hire','จ้างคน'],['forage','หาของกิน'],['stone','ศิลา']];
     const tabs = allTabs.filter(([id]) => info.services.includes(id));
-    let section = tabs[0][0], note = '';
+    if (info.enhance) tabs.splice(Math.max(0,tabs.findIndex(x=>x[0]==='forage')),0,['enhance','ตีบวก']);
+    let section = tabs[0][0], note = '', selected = enhanceOptions()[0], sacrificed = new Set();
     const d = el(`<div class="lg-card lg-safe-card"><div class="lg-safe-head">
       <h2>🏕 เซฟโซน ชั้น ${info.floor} · ${esc(info.name)}</h2>
       <p class="lg-muted">${esc(info.desc)}</p>
@@ -424,12 +485,12 @@
       <div class="lg-safe-inner"></div><button class="lg-btn lg-primary" data-safe-close="1">ปิดหน้าบริการ</button></div>`);
     block(d);
     const b = B();
-    const smallButton = (kind, id, title, desc, disabled) => `<button class="lg-btn" data-safe-action="${kind}" data-safe-id="${esc(id || '')}" ${disabled ? 'disabled' : ''}>${title}<small>${desc || ''}</small></button>`;
+    const smallButton = (kind, id, title, desc, disabled, rarity) => `<button class="lg-btn" data-safe-action="${kind}" data-safe-id="${esc(id || '')}" data-safe-rarity="${esc(rarity || '')}" ${disabled ? 'disabled' : ''}>${title}<small>${desc || ''}</small></button>`;
     function render() {
       const x = E.X(state), floor = x.floor;
       const current = E.safeInfo(state);
       if (!current) { closeOverlay(d); return; }
-      if (!current.services.includes(section)) section = 'stone';
+      if (!(section === 'enhance' ? current.enhance : current.services.includes(section))) section = 'stone';
       d.querySelector('.lg-safe-stats').textContent = 'เงิน ' + state.money + ' เหรียญ · สุขภาพ ' + state.health + '/100 · แรง ' + state.energy + '/100 · กระเป๋า ' + b.total(state) + '/' + b.CAP;
       d.querySelector('.lg-safe-tabs').innerHTML = tabs.map(([id,n]) => `<button data-safe-tab="${id}" class="${section === id ? 'on' : ''}">${n}</button>`).join('');
       d.querySelector('.lg-safe-note').textContent = note;
@@ -437,12 +498,13 @@
       if (section === 'shop') {
         html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ · ราคาตามประเภทชั้น</p><div class="lg-safe-grid">' +
           current.shop.map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor, current.price) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor, current.price) || b.total(state) >= b.CAP)).join('') + '</div>' +
-          (Object.entries(window.Skills && window.Skills.BOOK_SKILL || {}).filter(([book, skill]) => b.count(state, book) && !(state.skills && state.skills[skill])).length ?
-            '<h3>อ่านตำราที่มีอยู่</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.BOOK_SKILL).filter(([book, skill]) => b.count(state, book) && !(state.skills && state.skills[skill])).map(([book]) => smallButton('read', book, '📖 อ่าน ' + esc(b.name(book)), 'เรียนสกิลทันที · ใช้ตำราไป 1 เล่ม')).join('') + '</div>' : '');
+          (Object.entries(window.Skills && window.Skills.BOOK_SKILL || {}).filter(([book, skill]) => b.count(state, book)).length ?
+            '<h3>อ่านตำราที่มีอยู่</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.BOOK_SKILL).filter(([book]) => b.count(state, book)).flatMap(([book]) => b.list(state).filter(s=>s.id===book).map(s=>smallButton('read', book, '📖 อ่าน ' + esc(b.name(book)) + ' [' + esc(s.rarity||'normal') + ']', 'ได้รับ XP ตามระดับ ×'+Skills.rarityMultiplier(s.rarity||'normal'),false,s.rarity||'normal'))).join('') + '</div>' : '');
       } else if (section === 'sell') {
         const items = Object.keys(b.ITEMS).filter(id => b.SAFE_BUYER.includes(id) && b.count(state, id));
         html = '<h3>จุดรับซื้อวัสดุ</h3><p class="lg-muted">ขายทีละชิ้น รับเหรียญทันที (ไม่ขายของสวมใส่อัตโนมัติ)</p>' +
-          (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor, 1 / current.price) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>');
+          (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor, 1 / current.price) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>') +
+          '<h3>ขายอุปกรณ์รายชิ้น</h3><div class="lg-safe-grid">' + b.list(state).filter(s => s.instanceId).map(s => smallButton('sell', s.instanceId, gearText(s.instanceId), 'ได้ ' + b.gearSalePrice(state,s.instanceId,b.safeSellPrice(s.id,floor,1/current.price)) + ' เหรียญ')).join('') + '</div>';
       } else if (section === 'rest') {
         const cost = Math.ceil(16 * current.price);
         html = '<h3>ที่พักในเซฟโซน</h3><p>พักปลอดภัย สุขภาพ +32 และแรงเต็ม ค่าพัก ' + cost + ' เหรียญ · วันละครั้ง</p>' +
@@ -451,8 +513,11 @@
         const stashed = b.stash(state).filter(y => b.ITEMS[y.id]);
         const carrying = b.list(state).filter(y => b.ITEMS[y.id] && b.ITEMS[y.id].kind !== 'meal');
         html = '<h3>หีบเก็บของในหอคอย</h3><p class="lg-muted">ฝาก/ถอนทีละชิ้น กดซ้ำได้ หีบเดียวกับหีบฝากของในเมือง ของกินไม่รับฝาก</p>' +
-          '<h3>ฝากจากกระเป๋า</h3>' + (carrying.length ? '<div class="lg-safe-grid">' + carrying.map(y => smallButton('deposit', y.id, 'ฝาก ' + iconHtml(y.id, 24) + esc(b.name(y.id)), 'ในกระเป๋า ×' + b.count(state, y.id))).join('') + '</div>' : '<p class="lg-muted">ไม่มีของที่ฝากได้</p>') +
-          '<h3>ถอนจากหีบ</h3>' + (stashed.length ? '<div class="lg-safe-grid">' + [...new Set(stashed.map(y => y.id))].map(id => smallButton('withdraw', id, 'รับคืน ' + iconHtml(id, 24) + esc(b.name(id)), 'ในหีบ ×' + stashed.filter(y => y.id === id).reduce((a,y) => a+y.n,0), b.total(state) >= b.CAP)).join('') + '</div>' : '<p class="lg-muted">หีบว่าง</p>');
+          '<h3>ฝากจากกระเป๋า</h3>' + (carrying.length ? '<div class="lg-safe-grid">' + carrying.map(y => smallButton('deposit', y.instanceId || y.id, 'ฝาก ' + iconHtml(y.id, 24) + (y.instanceId ? gearText(y.instanceId) : esc(b.name(y.id))), 'ในกระเป๋า ×' + b.count(state, y.instanceId || y.id))).join('') + '</div>' : '<p class="lg-muted">ไม่มีของที่ฝากได้</p>') +
+          '<h3>ถอนจากหีบ</h3>' + (stashed.length ? '<div class="lg-safe-grid">' + [...new Set(stashed.map(y => y.instanceId || y.id))].map(id => {const g=Skills.gear(state,id), template=g?g.templateId:id;return smallButton('withdraw',id,'รับคืน '+iconHtml(template,24)+(g?gearText(id):esc(b.name(id))),'ในหีบ ×'+stashed.filter(y=>(y.instanceId||y.id)===id).reduce((a,y)=>a+y.n,0),b.total(state)>=b.CAP);}).join('') + '</div>' : '<p class="lg-muted">หีบว่าง</p>');
+      } else if (section === 'enhance') {
+        if (!enhanceOptions().includes(selected)) { selected = enhanceOptions()[0]; sacrificed.clear(); }
+        html = '<h3>ตีบวกอุปกรณ์ในเซฟโซน</h3>' + (selected ? enhancementUI(selected,sacrificed,'safe') : '<p>ไม่มีอุปกรณ์ให้ตีบวก</p>');
       } else if (section === 'hire') {
         const cost = Math.ceil(180 * current.price);
         html = '<h3>ผู้รับจ้างร่วมทาง</h3><p>ค่าจ้างครั้งเดียว ' + cost + ' เหรียญ นักรบคุ้มกัน +83 พลัง อยู่ด้วยระหว่างการเดินทางจนสิ้นสุดรอบสำรวจ</p>' +
@@ -469,8 +534,15 @@
       }
       d.querySelector('.lg-safe-inner').innerHTML = html;
       d.querySelectorAll('[data-safe-tab]').forEach(btn => btn.onclick = () => { section = btn.dataset.safeTab; note = ''; render(); });
+      d.querySelectorAll('[data-enhance-pick]').forEach(el => el.onclick = () => { selected = el.dataset.enhancePick; sacrificed.clear(); render(); });
+      d.querySelectorAll('[data-enhance-sac]').forEach(el => el.onclick = () => { const id = el.dataset.enhanceSac;
+        if (sacrificed.has(id)) sacrificed.delete(id); else if (sacrificed.size < 2) sacrificed.add(id); render(); });
+      const go = d.querySelector('[data-enhance-go]'); if (go) go.onclick = () => {
+        const result = E.safeAction(state, 'enhance', selected, { sacrifices: [...sacrificed] });
+        note = result.why; if (result.ok) { sacrificed.clear(); log(result.why); save(); } render();
+      };
       d.querySelectorAll('[data-safe-action]').forEach(btn => btn.onclick = () => {
-        const result = E.safeAction(state, btn.dataset.safeAction, btn.dataset.safeId, clock);
+        const result = E.safeAction(state, btn.dataset.safeAction, btn.dataset.safeId, btn.dataset.safeAction === 'read' ? {rarity:btn.dataset.safeRarity||'normal'} : clock);
         note = result.why; if (result.ok) { log('เซฟโซน: ' + result.why); save(); }
         if (result.travel) { closeOverlay(d); return; }
         render();                     // keep same card open, allowing any number of transactions
@@ -510,7 +582,8 @@
         setTimeout(() => {
           clearInterval(t);
           const fight = res.fight ? `<p class="lg-muted">พลังฝ่ายเรา ${res.fight.power} · ${esc(enc.monster.name)} ${res.fight.monster} · โอกาสชนะหลังสล็อต ${res.fight.p}%</p>` : '';
-          actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
+          const special = res.reward ? `<div class="lg-drop-special" style="border-color:${Skills.rarityIndex(res.reward.rarity)>=2 ? Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)] : '#ffffff22'};${Skills.rarityIndex(res.reward.rarity)>=2 ? 'box-shadow:0 0 15px #dbaf6755;' : ''}">${res.reward.gained ? '✦ ได้รางวัลพิเศษ' : '⚠️ กระเป๋าเต็ม ของตกหาย'} · <span class="lg-rarity" style="color:${Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)]}">${esc(B().name(res.reward.templateId))} [${esc(res.reward.rarity)}]</span></div>` : '';
+          actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${special}${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
             ${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">${res.dead ? '...' : 'ตกลง'}</button>`);
           for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
           actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else closeOverlay(d); };
@@ -540,7 +613,7 @@
   function stashHtml() {
     const G = LifeSim.guildOf(state), b = B(); if (!G || !G.member) return '';
     const L = state.life, n = b.stashCount(state);
-    const items = b.stash(state).map(st => `<div class="lg-slot">${iconHtml(st.id, 44)}<b>${st.n}</b>${esc(b.name(st.id))}</div>`).join('');
+    const items = b.stash(state).map(st => `<div class="lg-slot">${iconHtml(st.id, 44)}<b>${st.n}</b>${st.instanceId ? gearText(st.instanceId) : esc(b.name(st.id)) + (st.rarity ? ' [' + esc(st.rarity) + ']' : '')}</div>`).join('');
     return `<h3>หีบฝากของ ${esc(G.name)} (${n} ชิ้น)</h3>${items ? '<div class="lg-bag">' + items + '</div>' : ''}
       ${L.stashReq ? '<p class="lg-muted">จะแวะ' + (L.stashReq === 'in' ? 'ฝากของ' : 'รับของ') + 'ที่ห้องเก็บของกิลด์หลังเลิกงาน</p>' : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
@@ -566,9 +639,9 @@
         ${cap ? `<div class="lg-bar" style="margin:6px 0 2px"><i style="width:${Math.max(3, sk.xp / cap * 100)}%"></i></div><small class="lg-muted">ความชำนาญ ${sk.xp}/${cap}${sk.xp >= cap ? ' · เต็มขั้นแล้ว' : ''}</small>` : '<small class="lg-muted">ขั้นสูงสุด</small>'}${tr}</div>`;
     }).join('') || '<p class="lg-muted">ยังไม่มีสกิล ทำงานหรือฝึกแล้วจะได้สกิลแรก</p>';
     const gear = Object.entries(S.SLOTS).map(([slot, name]) => {
-      const on = state.equip[slot], opts = B().list(state).filter(x => B().ITEMS[x.id] && B().ITEMS[x.id].equip === slot).map(x => x.id).filter((v, i, a) => a.indexOf(v) === i);
-      return `<div class="lg-zone"><b>${name}</b> ${on ? iconHtml(on, 26) + ' ' + esc(B().name(on)) + ` <button class="lg-btn" style="display:inline-block;width:auto;padding:4px 10px;margin:0 0 0 6px" data-unequip="${slot}">ถอด</button>` : '<span class="lg-muted">ว่าง</span>'}
-        ${opts.map(id => `<button class="lg-btn" data-equip="${id}">${iconHtml(id, 26)} ใส่${esc(B().name(id))}<small>${esc(B().ITEMS[id].desc || '')}</small></button>`).join('')}</div>`;
+      const on = state.equip[slot], opts = B().list(state).filter(x => x.instanceId && Skills.GEAR[Skills.gear(state,x.instanceId).templateId].slot === slot).map(x => x.instanceId);
+      return `<div class="lg-zone"><b>${name}</b> ${on ? iconHtml(Skills.gear(state,on).templateId, 26) + ' ' + gearText(on) + ` <button class="lg-btn" style="display:inline-block;width:auto;padding:4px 10px;margin:0 0 0 6px" data-unequip="${slot}">ถอด</button>` : '<span class="lg-muted">ว่าง</span>'}
+        ${opts.map(id => `<button class="lg-btn" data-equip="${id}">${iconHtml(Skills.gear(state,id).templateId, 26)} ใส่${gearText(id)}</button>`).join('')}</div>`;
     }).join('');
     const titles = Object.entries(S.TITLES).map(([id, T]) => { const own = state.titles.includes(id), on = state.title === id;
       const bon = Object.entries(T.bonus).map(([k, v]) => S.STAT_NAME[k] + ' +' + v).join(' ');
@@ -582,7 +655,7 @@
         ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
       <h3>สกิล</h3><p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
-      ${Object.entries(S.BOOK_SKILL).filter(([book,id]) => B().count(state, book) && !state.skills[id]).map(([book,id]) => `<button class="lg-btn" data-read="${book}">📖 อ่าน ${esc(B().name(book))} <small>เรียน ${esc(S.SKILLS[id].name)} แล้วตำราจะถูกใช้ไป</small></button>`).join('')}
+      ${Object.entries(S.BOOK_SKILL).flatMap(([book,id])=>B().list(state).filter(s=>s.id===book).map(s=>`<button class="lg-btn" data-read="${book}" data-rarity="${esc(s.rarity||'normal')}">📖 อ่าน ${esc(B().name(book))} <small>${esc(s.rarity||'normal')} · ฝึก ${esc(S.SKILLS[id].name)} ×${S.rarityMultiplier(s.rarity||'normal')}</small></button>`)).join('')}
       ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการ · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
       <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}
@@ -638,16 +711,18 @@
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
     on('[data-a=xprep]', () => { d.remove(); block(null); prepCard(); });
     on('[data-safe]', () => { d.remove(); block(null); safeCard(); });
-    d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read); log(r.why); again(); });
+    d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read, b.dataset.rarity || null); log(r.why); again(); });
     d.querySelectorAll('[data-active]').forEach(b => b.onclick = () => { if (Skills.selectActive(state, b.dataset.active)) log('เลือกสกิลแอ็กทีฟ ' + Skills.SKILLS[b.dataset.active].name); again(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
 
     d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
     d.querySelectorAll('[data-title]').forEach(x => x.onclick = () => { Skills.wearTitle(state, x.dataset.title); log('ใช้ฉายา "' + Skills.TITLES[x.dataset.title].name + '"'); again(); });
-    d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip, slot = B().ITEMS[id].equip;
-      if (!B().take(state, id, 1)) return; const old = state.equip[slot]; if (old) B().add(state, old, 1); state.equip[slot] = id; Skills.recalc(state); log('ใส่' + B().name(id)); again(); });
+    d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip;
+      if (B().equipGear(state,id)) log('ใส่ ' + Skills.gearLabel(state,id)); again(); });
     d.querySelectorAll('[data-unequip]').forEach(x => x.onclick = () => { const slot = x.dataset.unequip, id = state.equip[slot];
-      if (!id) return; if (B().total(state) >= B().CAP) { alert('กระเป๋าเต็ม'); return; } B().add(state, id, 1); delete state.equip[slot]; Skills.recalc(state); log('ถอด' + B().name(id)); again(); });
+      if (!id) return; if (!B().unequipGear(state,slot)) { alert('กระเป๋าเต็ม'); return; } log('ถอด ' + Skills.gearLabel(state,id)); again(); });
+    on('[data-enhance-city]', () => { d.remove(); block(null); enhanceCard(); });
+    d.querySelectorAll('[data-gear-sell]').forEach(b => b.onclick = () => { const r = B().sellGear(state,b.dataset.gearSell); log(r.why); again(); });
     d.querySelectorAll('[data-quest]').forEach(b => b.onclick = () => { L.quest = b.dataset.quest; log('ภารกิจที่จะรับ: ' + LifeSim.QUESTS[L.quest].name); again(); });
     d.querySelectorAll('[data-chef]').forEach(b => b.onclick = () => { L.chefNext = b.dataset.chef; log('พรุ่งนี้ไปทำครัวที่กิลด์ใหม่'); again(); });
     d.querySelectorAll('[data-stash]').forEach(b => b.onclick = () => { const day = LifeSim.requestStash(state, b.dataset.stash, clock);

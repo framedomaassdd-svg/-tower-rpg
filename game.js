@@ -19,6 +19,7 @@ try {
   if (raw) { const parsed = JSON.parse(raw); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid save'); old = parsed; }
 } catch (e) { saveReadBlocked = true; }
 let state = CityCore.migrateSave(old, defaults); TownResidents.ensure(state);
+if (state.life && LifeSim.ensure(state)) state.gearVersion = 113; // v113 equipment migration before the first save
 state.scene = 'town';
 let player = state.position, playerY = state.positionY, face = 1, moving = false, anim = 0, last = 0;
 let clock = Number.isFinite(state.townClock) ? Math.max(0, Math.min(19.999, state.townClock)) : 5, saveClock = 0;

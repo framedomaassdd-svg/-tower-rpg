@@ -45,6 +45,31 @@
   // Four independent territories per floor. A -> B -> C -> D -> A is a closed predation ring.
   const DIRECTIONS = Object.freeze(['เหนือ', 'ตะวันออก', 'ใต้', 'ตะวันตก']);
   const RANKS = Object.freeze(['Normal','Soldier','Captain','General','King','Emperor','Legendary']);
+  const DROP_WEAPON = Object.freeze([0.1, 0.05, 0.01, 0.002, 0.0004, 0.00008, 0.000016]);
+  const DROP_BOOK = Object.freeze([0.05, 0.01, 0.002, 0.0004, 0.00008, 0.000016, 0.0000032]);
+  const WEAPON_TEMPLATES = Object.freeze(['knife', 'dagger', 'sword']);
+  const BOOK_TEMPLATES = Object.freeze(Object.keys(Skills.BOOK_SKILL));
+  const isBossFloor = floor => Number.isInteger(floor) && floor >= 4 && (floor + 1) % 5 === 0;
+  // A single special reward roll, shared by weapons and skill books; no slot modifiers.
+  function rollDrop(st, monster, eventId) {
+    const rank = Math.max(0, RANKS.findIndex(r => r.toLowerCase() === String(monster.rank || 'Normal').toLowerCase()));
+    const outcomes = [];
+    for (let tier = 6; tier >= rank; tier--) {
+      const rate = tier - rank;
+      outcomes.push({ kind: 'weapon', rarity: Skills.RARITIES[tier], probability: DROP_WEAPON[rate] });
+      outcomes.push({ kind: 'book', rarity: Skills.RARITIES[tier], probability: DROP_BOOK[rate] });
+    }
+    const r = hash(seed(st), 'drop', eventId, 'special');
+    let sum = 0, special = null;
+    for (const candidate of outcomes) { sum += candidate.probability; if (r < sum) { special = { ...candidate }; delete special.probability; break; } }
+    if (special) {
+      const templates = special.kind === 'weapon' ? WEAPON_TEMPLATES : BOOK_TEMPLATES;
+      special.templateId = templates[Math.floor(hash(seed(st), 'drop', eventId, 'type') * templates.length)];
+    }
+    const crystalRate = Math.min(1, 0.08 + rank * 0.04);
+    return { special, soulCrystals: monster.boss ? 2 + Math.floor(hash(seed(st), 'drop', eventId, 'boss-crystal') * 2) :
+      (hash(seed(st), 'drop', eventId, 'soul') < crystalRate ? 1 : 0) };
+  }
   const rankOf = power => Math.max(0, Math.min(6, [60, 120, 210, 340, 480, 650].filter(v => power >= v).length));
   function ensureWorld(st) {
     if (!st.tower || typeof st.tower !== 'object' || Array.isArray(st.tower)) st.tower = {};
@@ -67,6 +92,12 @@
         kills: 0, meals: 0
       })), ...(previous && SAFE_KINDS[previous.safeKind] ? { safeKind: previous.safeKind } : {}) };
     }
+    if (isBossFloor(+key) && !w.floors[key].boss) {
+      const f = w.floors[key], i = Math.floor(hash(seed(st), key, 'boss') * f.species.length), m = f.species[i];
+      const power = Math.round(Math.max(m.base, m.champion) * 1.8);
+      f.boss = { name: m.name + ' · ผู้พิทักษ์ชั้น', power, species: m.id,
+        rank: RANKS[Math.max(2, rankOf(power))], alive: true, boss: true };
+    }
     if (isSafeFloor(+key) && !SAFE_KINDS[w.floors[key].safeKind]) {
       w.floors[key].safeKind = chooseSafeKind(st, +key);
     }
@@ -74,14 +105,19 @@
   }
   function monsterOf(st, floor, id) {
     if (isSafeFloor(floor)) return null;
-    const f = floorWorld(st, floor), living = f.species.filter(s => s.count > 0), pool = living.length ? living : f.species;
+    const f = floorWorld(st, floor), living = f.species.filter(s => s.count > (f.boss && f.boss.alive && f.boss.species === s.id ? 1 : 0)), pool = living.length ? living : f.species;
     const m = pool[Math.floor(hash(seed(st), id, 'm') * pool.length)], power = Math.round(Math.max(m.base, m.champion));
     return { name: m.name, power, direction: m.direction, species: m.id, rank: RANKS[rankOf(power)] };
   }
-  function monsterKill(st, floor, species) {
+  function bossOf(st, floor) { return isBossFloor(floor) ? floorWorld(st, floor).boss : null; }
+  function monsterKill(st, floor, species, isBoss = false) {
     if (isSafeFloor(floor)) return false;
-    const s = floorWorld(st, floor).species[species];
-    if (!s || s.count < 1) return false;
+    const fw = floorWorld(st, floor), s = fw.species[species];
+    if (!s || s.count < 1 || (!isBoss && fw.boss && fw.boss.alive && fw.boss.species === species && s.count <= 1)) return false;
+    if (isBoss) {
+      if (!fw.boss || !fw.boss.alive || fw.boss.species !== species) return false;
+      fw.boss.alive = false; fw.boss.defeatedDay = st.day;
+    }
     s.count--; s.kills++; return true;
   }
   function tickWorld(st, day) {
@@ -98,7 +134,7 @@
         }
         if (d % 45 === 0) for (const s of f.species) {
           const prey = f.species[(s.id + 1) % 4];
-          if (s.count > 0 && prey.count > 0 && hash(seed(st), d, floor, s.id, 'eat') < 0.7) {
+          if (s.count > 0 && prey.count > (f.boss && f.boss.alive && f.boss.species === prey.id ? 1 : 0) && hash(seed(st), d, floor, s.id, 'eat') < 0.7) {
             prey.count--; s.meals++; s.champion = Math.min(900, s.champion + 4);
             w.news.unshift('วันที่ ' + d + ' ชั้น ' + floor + ' ' + s.name + ' กิน ' + prey.name + ' (' + s.direction + ')');
           }
@@ -119,11 +155,11 @@
       services: Object.freeze(['shop', 'rest', 'chest', 'stone', 'forage']), shop: Object.freeze(['bread', 'jerky', 'potion']),
       price: 1.12, weight: Object.freeze([40, 35, 25]), forage: Object.freeze([1, 3]) }),
     village: Object.freeze({ name: 'หมู่บ้านกลางหอคอย', desc: 'ผู้คนตั้งถิ่นฐาน มีร้านขายเสบียง อุปกรณ์ จุดรับซื้อ หีบ และที่พัก',
-      services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'stone', 'forage']),
+      enhance: true, services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'stone', 'forage']),
       shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword']),
       price: 1, weight: Object.freeze([20, 30, 35]), forage: Object.freeze([1, 2]) }),
     city: Object.freeze({ name: 'เมืองกลางหอคอย', desc: 'เมืองใหญ่ที่มีตลาด ที่พัก ผู้รับจ้าง ร้านตำรา และศิลาทั้งสองชนิด',
-      services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'hire', 'stone', 'forage']),
+      enhance: true, services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'hire', 'stone', 'forage']),
       shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword', 'book_fire', 'book_ice', 'book_sense']),
       price: 0.9, weight: Object.freeze([0, 10, 25]), forage: Object.freeze([1, 1]) })
   });
@@ -195,7 +231,7 @@
     const kind = fw.safeKind, spec = SAFE_KINDS[kind];
     x.stones = x.stones || {}; x.stones[x.floor] = Object.assign(x.stones[x.floor] || {}, { exit: true, up: true });
     return { floor: x.floor, kind, name: spec.name, desc: spec.desc, services: [...spec.services],
-      shop: [...spec.shop], price: spec.price, restDay: x.safeRestDay || 0,
+      shop: [...spec.shop], enhance: !!spec.enhance, price: spec.price, restDay: x.safeRestDay || 0,
       forageDay: x.safeForageDays && x.safeForageDays[x.floor] || 0 };
   }
   function safeTravel(st, way, now) {
@@ -210,17 +246,22 @@
     const info = safeInfo(st), x = X(st); if (!info) return { ok: false, why: 'ต้องอยู่ในเซฟโซนจึงจะใช้บริการได้' };
     const has = service => info.services.includes(service);
     const missing = service => ({ ok: false, why: 'ที่นี่ไม่มี' + ({ shop: 'ร้านค้า', sell: 'จุดรับซื้อ', rest: 'ที่พัก', chest: 'หีบฝากของ', hire: 'ผู้รับจ้าง', stone: 'ศิลา', forage: 'จุดหาของกิน' }[service] || 'บริการนี้') });
+    if (kind === 'enhance') {
+      if (!info.enhance) return missing('enhance');
+      const opts = now && typeof now === 'object' ? now : {};
+      return Skills.enhance(st, id, opts.sacrifices || [], 'safe');
+    }
     if (kind === 'buy') {
       if (!has('shop')) return missing('shop');
       if (!info.shop.includes(id)) return { ok: false, why: 'ที่นี่ไม่มีสินค้าชนิดนี้' };
       return Bag.safeBuy(st, id, info.floor, info.price);
     }
     if (kind === 'sell') return has('sell') ? Bag.safeSell(st, id, info.floor, 1 / info.price) : missing('sell');
-    if (kind === 'read') return has('shop') ? Skills.readBook(st, id) : missing('shop');
+    if (kind === 'read') return has('shop') ? Skills.readBook(st, id, now && now.rarity || null) : missing('shop');
     if (kind === 'deposit' || kind === 'withdraw') {
       if (!has('chest')) return missing('chest');
       const moved = kind === 'deposit' ? Bag.depositItem(st, id) : Bag.withdrawItem(st, id);
-      return { ok: moved > 0, why: moved ? (kind === 'deposit' ? 'ฝาก' : 'รับคืน') + Bag.name(id) + ' ×' + moved : 'ไม่มีของให้ย้าย หรือกระเป๋าเต็ม' };
+      return { ok: moved > 0, why: moved ? (kind === 'deposit' ? 'ฝาก' : 'รับคืน') + Bag.name(Skills.gear(st,id) ? Skills.gear(st,id).templateId : id) + ' ×' + moved : 'ไม่มีของให้ย้าย หรือกระเป๋าเต็ม' };
     }
     if (kind === 'forage') {
       if (!has('forage')) return missing('forage');
@@ -269,7 +310,7 @@
   const stonesHere = st => { const x = X(st), k = x.stones[x.floor] || {}; return k; };
   // ---- today's encounter at a slot (deterministic)
   function encounter(st, slot) {
-    const x = X(st); if (!x || x.over || (x.exitDay === st.day)) return null;
+    const x = X(st); if (!x || x.over || (x.exitDay === st.day) || (x.done && x.done[slot + '@' + st.day])) return null;
     const T = terrainOf(x.floor), id = st.day + '-' + slot, r = hash(seed(st), id);
     if (safeInfo(st)) {
       if (slot === 'xcamp' || x.safeSeen === x.floor) return null;   // whole floor is safe: announce once on arrival
@@ -280,16 +321,24 @@
           { label: 'ใช้ศิลาทางออก กลับเมือง', hint: 'ออกจากหอคอย', use: 'exit' },
           { label: 'ใช้ศิลาทางขึ้น ไปชั้น ' + (x.floor + 1), hint: 'สู่ชั้นถัดไป', use: 'up' }] };
     }
+    // The boss is an existing persisted member of one of the four floor species.
+    const guardian = bossOf(st, x.floor);
+    if (guardian && guardian.alive && slot === 'x2') return {
+      id, slot, scene: 'combat', kind: 'boss', boss: true, beast: false,
+      title: 'ผู้พิทักษ์ชั้น ' + x.floor, text: guardian.name + ' (พลัง ' + guardian.power + ') ขวางศิลาทางขึ้น',
+      monster: { ...guardian }, choices: CHOICES.combat
+    };
     // a stone you know of on this floor: offered each morning and right after finding one
     const K = stonesHere(st);
+    if (guardian && guardian.alive) K.up = false;
     if ((K.exit || K.up) && (slot === 'x1' || x.justFound) && slot !== 'xcamp') {
       x.justFound = false;
       const choices = [];
       if (K.exit) choices.push({ label: 'ใช้ศิลาทางออก กลับเมือง', hint: 'ออกจากหอคอย ถึงประตูหอคอยวันนี้', use: 'exit' });
-      if (K.up) choices.push({ label: 'ใช้ศิลาทางขึ้น ไปชั้น ' + (x.floor + 1), hint: terrainOf(x.floor + 1).name + ' · มอนสเตอร์แรงขึ้น · อาจหลุดจากทีม', use: 'up' });
+      if (K.up && !(guardian && guardian.alive)) choices.push({ label: 'ใช้ศิลาทางขึ้น ไปชั้น ' + (x.floor + 1), hint: terrainOf(x.floor + 1).name + ' · มอนสเตอร์แรงขึ้น · อาจหลุดจากทีม', use: 'up' });
       choices.push({ label: 'สำรวจชั้นนี้ต่อ', hint: 'จำตำแหน่งศิลาไว้ กลับมาใช้ได้ทุกเช้า', use: 'stay' });
       return { id, slot, scene: 'stone', kind: 'stone', noSpin: true, title: 'ศิลาในชั้น ' + x.floor,
-        text: [K.exit && 'ศิลาทางออกเรืองแสงสีฟ้า', K.up && 'ศิลาทางขึ้นเรืองแสงสีทอง'].filter(Boolean).join(' · ') + ' อยู่ไม่ไกลจากค่าย', choices };
+        text: [K.exit && 'ศิลาทางออกเรืองแสงสีฟ้า', K.up && 'ศิลาทางขึ้นเรืองแสงสีทอง', guardian && guardian.alive && 'ศิลาทางขึ้นถูกผู้พิทักษ์ชั้นขวางอยู่'].filter(Boolean).join(' · ') + ' อยู่ไม่ไกลจากค่าย', choices };
     }
     // someone stuck on this floor for a long time (floor 2 and up, rare)
     if (slot !== 'xcamp' && x.floor >= 2 && !x.metStranded && hash(seed(st), id, 'stranded') < 0.07) {
@@ -328,11 +377,14 @@
   // choices that need no reels: using a stone, sharing food with someone stranded, walking on
   function decide(st, enc, index) {
     const x = X(st), c = enc.choices[index] || enc.choices[0], lines = [];
-    x.done[enc.slot + '@' + st.day] = true; x.pending = null;
+    const prior = x.done['id:' + enc.id] || x.done[enc.slot + '@' + st.day];
+    if (prior) return prior.id === enc.id && prior.result ? prior.result : { reels: null, lines: ['เหตุการณ์นี้เสร็จแล้ว'], title: enc.title };
+    x.pending = null;
     if (enc.kind === 'safe') x.safeSeen = x.floor;
-    const res = { reels: null, title: c.label, description: '', lines, fatal: false, dead: false };
+    const res = { reels: null, title: c.label, description: '', lines, fatal: false, dead: false, eventId: enc.id, eventSlot: enc.slot };
     if (c.use === 'exit') { x.exitDay = st.day; x.exitT = (SLOT_T[enc.slot] || 7) + 0.3; lines.push('แตะศิลาทางออก แสงสีฟ้าพาคุณ' + (withTeam(st) ? 'และทีม' : '') + 'กลับไปที่ประตูหอคอย'); }
     else if (c.use === 'up') {
+      if (isBossFloor(x.floor) && bossOf(st, x.floor).alive) { lines.push('ศิลาทางขึ้นถูกผู้พิทักษ์ชั้นขวางอยู่'); return finish(st, res); }
       x.floor++; x.highest = Math.max(x.highest, x.floor); x.search = 0;
       floorWorld(st, x.floor);
       if (isSafeFloor(x.floor)) { const info = safeInfo(st); x.safePending = true; x.safeSeen = x.floor;
@@ -367,9 +419,11 @@
 
   // ---- resolve: spin, then turn the reels into real changes. Returns what the UI shows.
   function resolve(st, enc, index) {
+    const x = X(st), prior = x && (x.done['id:' + enc.id] || x.done[enc.slot + '@' + st.day]);
+    if (prior) return prior.id === enc.id && prior.result ? prior.result : { reels: null, lines: ['เหตุการณ์นี้เสร็จแล้ว'], title: enc.title };
     const x0 = enc.choices[index] || enc.choices[0];
     if (enc.noSpin || x0.noSpin) return decide(st, enc, index);
-    const x = X(st), c = x0, T = terrainOf(x.floor);
+    const c = x0, T = terrainOf(x.floor);
     const engineScene = enc.scene === 'combat' ? 'combat' : enc.scene;
     const activeSkill = Skills.activeOf(st);
     const ctx = engineScene === 'combat' ? { hasActiveSkill: !!activeSkill, allyNearby: withTeam(st) || !!x.ally, elementalFire: activeSkill === 'fire', elementalIce: activeSkill === 'ice', lethalPossible: true }
@@ -380,14 +434,14 @@
       let got = Bag.add(st, id, k, st.day);
       if (!got && Bag.ITEMS[id].kind === 'meal') {            // food matters more than loot: drop the cheapest non-food thing
         const junk = Bag.list(st).filter(s => Bag.ITEMS[s.id] && Bag.ITEMS[s.id].kind !== 'meal' && s.id !== 'potion').sort((a, b) => (Bag.ITEMS[a.id].sell || 0) - (Bag.ITEMS[b.id].sell || 0))[0];
-        if (junk) { Bag.take(st, junk.id, 1); lines.push('ทิ้ง' + Bag.name(junk.id) + 'เพื่อเก็บของกิน'); got = Bag.add(st, id, k, st.day); }
+        if (junk) { if (junk.instanceId) Bag.removeGear(st, junk.instanceId); else Bag.take(st, junk.id, 1); lines.push('ทิ้ง' + Bag.name(junk.id) + 'เพื่อเก็บของกิน'); got = Bag.add(st, id, k, st.day); }
       }
       if (got) { x.loot[id] = (x.loot[id] || 0) + got; lines.push(Bag.name(id) + ' +' + got); } else lines.push('กระเป๋าเต็ม ทิ้ง' + Bag.name(id)); };
     const hurt = (d, why) => { st.health = Math.max(1, st.health - d); lines.push(why + ' (สุขภาพ −' + d + ')'); };
     const learn = (id, xp) => { const m = Skills.train(st, id, xp); if (m) lines.push(m); };
     const sensed = Skills.tierOf(st, 'dangerSense');
-    const res = { reels: out.reels, kind: out.kind, title: out.title, description: out.source === 'automatic' ? '' : out.description, lines, fatal: false, dead: false, rescued: false };
-    x.done[enc.slot + '@' + st.day] = true; x.pending = null;
+    const res = { reels: out.reels, kind: out.kind, title: out.title, description: out.source === 'automatic' ? '' : out.description, lines, fatal: false, dead: false, rescued: false, eventId: enc.id, eventSlot: enc.slot };
+    x.pending = null;
     if (out.fatal) return fatal(st, res, 'หายนะในหอคอย');
     if (n('skull') === 2) hurt(30, 'เฉียดตาย');
 
@@ -406,9 +460,24 @@
       x.hunted = false;
       if (f.win) {
         x.wins++; st.towerWins = (st.towerWins || 0) + 1;
-        monsterKill(st, x.floor, enc.monster.species);
+        const killed = monsterKill(st, x.floor, enc.monster.species, !!enc.boss);
+        if (killed) {
+          const reward = rollDrop(st, { ...enc.monster, boss: !!enc.boss }, enc.id);
+          res.drop = reward;
+          if (reward.special) {
+            const d = reward.special, from = { from: 'drop', floor: x.floor, monster: enc.monster.name, day: st.day };
+            const got = d.kind === 'weapon' ? Bag.addGear(st, d.templateId, d.rarity, from) : Bag.addBook(st, d.templateId, d.rarity, from);
+            if (got) { x.loot[d.templateId] = (x.loot[d.templateId] || 0) + 1; lines.push('ดรอป ' + Bag.name(d.templateId) + ' [' + d.rarity + ']'); res.reward = { ...d, gained: true }; }
+            else { lines.push('กระเป๋าเต็ม! ' + Bag.name(d.templateId) + ' [' + d.rarity + '] ตกหายไป'); res.reward = { ...d, gained: false }; }
+          }
+          if (reward.soulCrystals) gain('soul_crystal', reward.soulCrystals);
+          if (enc.boss) {
+            const K = x.stones[x.floor] = x.stones[x.floor] || {};
+            K.up = true; x.justFound = true;
+            lines.push('ผู้พิทักษ์ชั้นตายถาวร · ศิลาทางขึ้นปรากฏแล้ว!');
+          }
+        }
         if (activeSkill) learn(activeSkill, 2);
-        if (hash(seed(st), enc.id, 'book') < 0.003) gain(['book_fire', 'book_ice', 'book_sense'][Math.floor(hash(seed(st), enc.id, 'booktype') * 3)], 1);
         lines.push('ชนะ' + enc.monster.name + ' (โอกาสชนะ ' + res.fight.p + '%)');
         gain('monster', 1 + (x.floor >= 4 ? 1 : 0) + (n('target') >= 2 ? 1 : 0));
         if (enc.beast && (c.hunt || hash(seed(st), enc.id, 'meat') < 0.4)) gain('meat', c.hunt ? 2 : 1);
@@ -435,9 +504,17 @@
     const found = 2 * n('compass') + n('tracks') + n('scroll') + n('key') + (c.search || 0) + Skills.tierOf(st, 'mapping');
     if (found > 0) { x.search += found; lines.push('ค้นหาศิลา +' + found + ' (' + Math.min(x.search, needOf(x.floor)) + '/' + needOf(x.floor) + ')'); }
     if (x.search >= needOf(x.floor)) {
-      const K = x.stones[x.floor] = x.stones[x.floor] || {}, kind = !K.exit && !K.up ? (hash(seed(st), enc.id, 'stone') < 0.5 ? 'exit' : 'up') : K.exit ? 'up' : 'exit';
-      K[kind] = true; x.search = 0; x.justFound = true;
-      lines.push(kind === 'exit' ? '✦ พบศิลาทางออก!' : '✦ พบศิลาทางขึ้น!');
+      const K = x.stones[x.floor] = x.stones[x.floor] || {};
+      const guardian = bossOf(st, x.floor);
+      if (guardian && guardian.alive) {
+        if (!K.exit) { K.exit = true; x.justFound = true; lines.push('✦ พบศิลาทางออก!'); }
+        else lines.push('ศิลาทางขึ้นถูกผู้พิทักษ์ชั้นขวางอยู่');
+      } else {
+        const kind = !K.exit && !K.up ? (hash(seed(st), enc.id, 'stone') < 0.5 ? 'exit' : 'up') : K.exit ? 'up' : 'exit';
+        K[kind] = true; x.justFound = true;
+        lines.push(kind === 'exit' ? '✦ พบศิลาทางออก!' : '✦ พบศิลาทางขึ้น!');
+      }
+      x.search = 0;
     }
     if (n('vortex')) { lines.push('พื้นที่บิดเบี้ยว ถูกพาไปอีกมุมของชั้น'); x.search = Math.max(0, x.search - 3); if (x.party && !x.separated && hash(seed(st), enc.id, 'v') < 0.5) { x.separated = true; lines.push('หลงจากทีม!'); } }
     if (n('hole') >= 2 && x.party && !x.separated) { x.separated = true; lines.push('ร่วงลงโพรงลึก หลงจากทีม!'); }
@@ -454,17 +531,19 @@
     const x = X(st);
     if (withTeam(st) || x.ally) {
       const p = Skills.rescuePenalty(st, 6); st.health = Math.max(1, Math.min(st.health, 15));
-      res.rescued = true; res.lines.push((withTeam(st) ? PARTY[x.party].name : x.ally.name) + 'ลากคุณหนีออกมาได้ทัน', 'เสียเงิน ' + p.money + ' เหรียญ' + (p.gear.length ? ' และ' + p.gear.map(id => Bag ? Bag.name(id) : id).join(' ') : ''), 'ค่าสถานะลดครึ่งถึงวันที่ ' + p.until);
+      res.rescued = true; res.lines.push((withTeam(st) ? PARTY[x.party].name : x.ally.name) + 'ลากคุณหนีออกมาได้ทัน', 'เสียเงิน ' + p.money + ' เหรียญ' + (p.gear.length ? ' และ' + p.gearLabels.join(' ') : ''), 'ค่าสถานะลดครึ่งถึงวันที่ ' + p.until);
       const t = Skills.earnTitle(st, 'survivor'); if (t) res.lines.push(t);
       if (x.ally && !withTeam(st)) x.ally = null;          // the stranded companion doesn't survive saving you
       return finish(st, res);
     }
     res.dead = true; res.lines.push('ไม่มีใครอยู่ช่วย... ' + cause + 'คือสิ่งสุดท้ายที่เห็น');
     st.life.dead = { day: st.day, floor: x.floor, cause }; x.over = true;
+    if (res.eventId) { const record = { id: res.eventId, result: res }; x.done[res.eventSlot + '@' + st.day] = record; x.done['id:' + res.eventId] = record; }
     return res;
   }
   function finish(st, res) {
     const x = X(st);
+    if (res.eventId) { const record = { id: res.eventId, result: res }; x.done[res.eventSlot + '@' + st.day] = record; x.done['id:' + res.eventId] = record; }
     // a potion when badly hurt; going home when it gets too dangerous
     if (st.health < 40 && Bag && Bag.count(st, 'potion')) { Bag.take(st, 'potion', 1); st.health = Math.min(100, st.health + 30); res.lines.push('ดื่มยาฟื้นแรง (สุขภาพ +30)'); }
     if (st.health < 25) res.lines.push('บาดเจ็บหนัก ต้องหาศิลาทางออกให้เจอ');
@@ -504,5 +583,5 @@
     return 'ออกจากหอคอยทางศิลาทางออก (' + days + ' วัน สูงสุดชั้น ' + x.highest + ' ชนะ ' + x.wins + ' ครั้ง)' + (L.length ? ' ได้ ' + L.join(', ') : '') + (x.why ? ' · ' + x.why : '');
   }
   return { TERRAINS, PARTY, GUARD_FEE, CHOICES, SLOTS_OF_DAY, CAMP_SLEEP, terrainOf, needOf, active, planned, plan, cancel, enter, withTeam, allyPower,
-    encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, isSafeFloor, safeInfo, safeAction, safeTravel };
+    encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, DROP_WEAPON, DROP_BOOK, rollDrop, isBossFloor, bossOf, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, isSafeFloor, safeInfo, safeAction, safeTravel };
 });

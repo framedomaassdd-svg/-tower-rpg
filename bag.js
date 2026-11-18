@@ -28,7 +28,7 @@
     scrap:     { name: 'เศษเหล็ก',          icon: '🔩', kind: 'material', keep: 0, sell: 1 },
     iron:      { name: 'เหล็กแท่ง',         icon: '⬛', kind: 'material', keep: 0, sell: 3 },
     monster:   { name: 'ชิ้นส่วนมอนสเตอร์', icon: '🦴', kind: 'material', keep: 0, sell: 6 },   // the tower, later
-    knife:     { name: 'มีดครัว',           icon: '🔪', kind: 'tool', keep: 0, sell: 5, desc: 'ทำอาหารได้เพิ่มอีก 1 ที่' },
+    knife:     { name: 'มีดครัว',           icon: '🔪', kind: 'tool', keep: 0, sell: 5, equip: 'weapon', desc: 'ทำอาหารได้เพิ่มอีก 1 ที่ · อาวุธพลังโจมตี +2' },
     sickle:    { name: 'เคียว',             icon: '🌙', kind: 'tool', keep: 0, sell: 5, desc: 'เก็บของนอกประตูเมืองได้เพิ่ม 1 ชิ้น' },
     hook:      { name: 'ตะขอคุ้ยของ',       icon: '🪝', kind: 'tool', keep: 0, sell: 5, desc: 'คุ้ยลานของเก่าได้เพิ่ม 1 ชิ้น' },
     dagger:    { name: 'มีดสั้น',           icon: '🗡️', kind: 'goods', keep: 0, sell: 14, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +5' },
@@ -36,6 +36,7 @@
     meat:      { name: 'เนื้อมอนสเตอร์ย่าง', icon: '🍖', kind: 'meal', keep: 2, sell: 1 },
     ore:       { name: 'แร่เหล็กดิบ',        icon: '🪨', kind: 'material', keep: 0, sell: 3 },
     crystal:   { name: 'คริสตัลหอคอย',      icon: '💎', kind: 'material', keep: 0, sell: 15 },
+    soul_crystal: { name: 'ผลึกวิญญาณ', icon: '🔷', kind: 'material', keep: 0, sell: 0 },
     potion:    { name: 'ยาฟื้นแรง',          icon: '🧪', kind: 'tool', keep: 0, sell: 2, desc: 'ในหอคอย ดื่มเองเมื่อสุขภาพต่ำกว่า 40 (+30)' },
     book_fire: { name: 'ตำราเพลิงวิญญาณ', icon: '📕', kind: 'book', keep: 0, sell: 40, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ เพลิงวิญญาณ' },
     book_ice:  { name: 'ตำราไอเยือกแข็ง', icon: '📘', kind: 'book', keep: 0, sell: 48, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ ไอเยือกแข็ง' },
@@ -67,7 +68,21 @@
   const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain']);
   // v112: multipliers are supplied by the actual safe-floor service, not patched onto Bag elsewhere.
   const safeBuyPrice = (id, floor, multiplier = 1) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13) * multiplier);
-  const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) ? Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1) * multiplier)) : 0;
+  const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) || (ITEMS[id] && ITEMS[id].equip) ?
+    Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1) * multiplier)) : 0;
+  const skills = () => (typeof globalThis !== 'undefined' && globalThis.Skills) || (typeof require === 'function' ? require('./skills.js') : null);
+  function gearSalePrice(st, instanceId, basePrice) {
+    const S = skills(), item = S && S.gear(st, instanceId);
+    return item ? Math.max(1, Math.round(basePrice * S.rarityMultiplier(item.rarity) * (1 + 0.1 * item.step))) : 0;
+  }
+  function sellGear(st, instanceId, multiplier = 1) {
+    const S = skills(), item = S && S.gear(st, instanceId);
+    if (!item || !list(st).some(s => s.instanceId === instanceId)) return { ok: false, why: 'ไม่มีอุปกรณ์ชิ้นนี้ในกระเป๋า' };
+    const price = gearSalePrice(st, instanceId, (ITEMS[item.templateId].sell || 0) * multiplier);
+    if (!price) return { ok: false, why: 'ร้านไม่รับซื้อ' };
+    removeGear(st, instanceId); st.money = (st.money || 0) + price;
+    return { ok: true, price, why: 'ขาย' + S.gearLabel({ gear: { [instanceId]: item } }, instanceId) + ' +' + price + ' เหรียญ' };
+  }
   function safeBuy(st, id, floor, multiplier = 1) {
     if (!Object.prototype.hasOwnProperty.call(SAFE_SHOP, id)) return { ok: false, why: 'ร้านนี้ไม่มีสินค้าดังกล่าว' };
     const price = safeBuyPrice(id, floor, multiplier);
@@ -77,6 +92,9 @@
     st.money -= price; return { ok: true, why: 'ซื้อ' + name(id) + ' −' + price + ' เหรียญ' };
   }
   function safeSell(st, id, floor, multiplier = 1) {
+    const S = skills(), gearItem = S && S.gear(st, id);
+    if (gearItem) return sellGear(st, id, safeSellPrice(gearItem.templateId, floor, multiplier) / Math.max(1, ITEMS[gearItem.templateId].sell));
+    if (ITEMS[id] && ITEMS[id].equip) { const entry = list(st).find(s => s.id === id && s.instanceId); if (entry) return safeSell(st, entry.instanceId, floor, multiplier); }
     const price = safeSellPrice(id, floor, multiplier);
     if (!price || !count(st, id)) return { ok: false, why: 'ไม่มีสินค้าที่ร้านรับซื้อ' };
     if (!take(st, id, 1)) return { ok: false, why: 'ขายไม่สำเร็จ' };
@@ -122,7 +140,7 @@
   });
 
   const list = st => (Array.isArray(st.bag) ? st.bag : (st.bag = []));
-  const count = (st, id) => list(st).reduce((n, s) => n + (s.id === id ? s.n : 0), 0);
+  const count = (st, id) => list(st).reduce((n, s) => n + (s.id === id || s.instanceId === id ? s.n : 0), 0);
   const total = st => list(st).reduce((n, s) => n + s.n, 0);
   const meals = st => list(st).reduce((n, s) => n + (ITEMS[s.id] && ITEMS[s.id].kind === 'meal' ? s.n : 0), 0);
   const sync = st => { st.food = meals(st); return st; };          // older code and the panel read st.food
@@ -132,19 +150,66 @@
     if (it && it.kind === 'vehicle') {               // one of each, parked rather than carried
       const V = vehicles(st); if (V[id]) return 0;
       V[id] = { since: day || st.day || 1, hungry: 0 }; return 1;
-    } n = Math.max(0, Math.min(n === undefined ? 1 : n, CAP - total(st)));
+    } n = Math.max(0, Math.min(n === undefined ? 1 : Math.floor(n), CAP - total(st)));
     if (!it || !n) return 0;
+    if (it.equip) {
+      const S = skills(); if (!S) return 0;
+      S.data(st);
+      for (let i = 0; i < n; i++) {
+        const g = S.createGear(st, id, 'normal', 0, { from: 'shop', day: day || st.day || 1 });
+        list(st).push({ id, n: 1, exp: 0, instanceId: g.instanceId });
+      }
+      sync(st); return n;
+    }
     const exp = it.keep ? (day || st.day || 1) + it.keep : 0, L = list(st);
-    const s = L.find(x => x.id === id && x.exp === exp);
+    const s = L.find(x => x.id === id && x.exp === exp && !x.rarity && !x.instanceId);
     if (s) s.n += n; else L.push({ id, n, exp });
     sync(st); return n;
   }
-  function take(st, id, n) {                          // oldest first
+  function take(st, id, n) {                          // oldest first; moving gear does not destroy the instance
     n = n === undefined ? 1 : n;
     if (count(st, id) < n) return false;
-    const L = list(st).filter(s => s.id === id).sort((a, b) => (a.exp || 1e9) - (b.exp || 1e9));
+    const L = list(st).filter(s => s.id === id || s.instanceId === id).sort((a, b) => (a.exp || 1e9) - (b.exp || 1e9));
     for (const s of L) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!n) break; }
     st.bag = list(st).filter(s => s.n > 0); sync(st); return true;
+  }
+  function addGear(st, templateId, rarity, origin, step = 0) {
+    const S = skills(); if (!S || !S.GEAR[templateId] || total(st) >= CAP) return null;
+    S.data(st);
+    const item = S.createGear(st, templateId, rarity, step, origin);
+    list(st).push({ id: templateId, n: 1, exp: 0, instanceId: item.instanceId }); sync(st);
+    return item;
+  }
+  function addBook(st, id, rarity, origin) {
+    if (!ITEMS[id] || ITEMS[id].kind !== 'book' || total(st) >= CAP) return false;
+    list(st).push({ id, n: 1, exp: 0, rarity, origin }); sync(st); return true;
+  }
+  function takeBook(st, id, rarity = null) {
+    const row = list(st).find(s => s.id === id && (rarity === null || (s.rarity || 'normal') === rarity));
+    if (!row) return false;
+    row.n--; st.bag = list(st).filter(s => s.n > 0); sync(st); return true;
+  }
+  function removeGear(st, instanceId) {
+    const S = skills(), item = S && S.gear(st, instanceId); if (!item) return false;
+    st.bag = list(st).filter(s => s.instanceId !== instanceId);
+    st.stash = stash(st).filter(s => s.instanceId !== instanceId);
+    for (const slot of Object.keys(st.equip || {})) if (st.equip[slot] === instanceId) delete st.equip[slot];
+    delete st.gear[instanceId]; sync(st); return true;
+  }
+  function equipGear(st, instanceId) {
+    const S = skills(); if (!S) return false; S.data(st);
+    const item = S.gear(st, instanceId), entry = list(st).find(s => s.instanceId === instanceId);
+    if (!item || !entry) return false;
+    const slot = S.GEAR[item.templateId].slot, previous = st.equip[slot];
+    if (previous) list(st).push({ id: S.gear(st, previous).templateId, n: 1, exp: 0, instanceId: previous });
+    take(st, instanceId, 1); st.equip[slot] = instanceId; S.recalc(st); return true;
+  }
+  function unequipGear(st, slot) {
+    const S = skills(); if (!S) return false; S.data(st);
+    const id = st.equip[slot], item = S.gear(st, id);
+    if (!item || total(st) >= CAP) return false;
+    list(st).push({ id: item.templateId, n: 1, exp: 0, instanceId: id });
+    delete st.equip[slot]; sync(st); S.recalc(st); return true;
   }
   // eat one meal: the one that spoils soonest (cooked food first on a tie). Returns the item id or null.
   function eat(st) {
@@ -174,6 +239,7 @@
   const label = pairs => pairs.map(([id, n]) => name(id) + (n > 1 ? ' ×' + n : '')).join(', ');
   function migrate(st) {                              // pre-v93 saves kept food as a bare number
     if (!Array.isArray(st.bag)) { st.bag = []; const n = Math.max(0, Math.min(6, Math.floor(st.food || 0))); if (n) add(st, 'ration', n); }
+    const S = skills(); if (S) S.data(st);
     sync(st);
   }
   // v105 the guild storeroom chest: everything but food goes in; out comes as much as the bag can hold
@@ -185,35 +251,37 @@
   }
   function withdraw(st) {
     let n = 0; const left = [];
-    for (const s of stash(st)) { const k = Math.min(s.n, CAP - total(st)); if (k > 0) { const b = list(st).find(x => x.id === s.id && x.exp === s.exp); if (b) b.n += k; else list(st).push({ id: s.id, n: k, exp: s.exp }); n += k; }
-      if (s.n > k) left.push({ id: s.id, n: s.n - k, exp: s.exp }); }
+    for (const s of stash(st)) { const k = Math.min(s.n, CAP - total(st)); if (k > 0) { const b = list(st).find(x => x.id === s.id && x.exp === s.exp && !s.instanceId && !s.rarity && !x.instanceId && !x.rarity); if (b) b.n += k; else list(st).push({ ...s, n: k }); n += k; }
+      if (s.n > k) left.push({ ...s, n: s.n - k }); }
     st.stash = left; sync(st); return n;
   }
   // Transfers retain each stack's expiration; unlike the old guild chest they can be repeated for individual items.
   function depositItem(st, id, n = 1) {
-    if (!ITEMS[id] || ITEMS[id].kind === 'meal' || !Number.isInteger(n) || n < 1 || count(st, id) < n) return 0;
-    const chunks = list(st).filter(s => s.id === id).sort((a,b) => (a.exp || 1e9) - (b.exp || 1e9));
+    const template = (skills() && skills().gear(st, id) || {}).templateId || id;
+    if (!ITEMS[template] || ITEMS[template].kind === 'meal' || !Number.isInteger(n) || n < 1 || count(st, id) < n) return 0;
+    const chunks = list(st).filter(s => s.id === id || s.instanceId === id).sort((a,b) => (a.exp || 1e9) - (b.exp || 1e9));
     let left = n;
     for (const s of chunks) {
-      const k = Math.min(left, s.n), target = stash(st).find(x => x.id === id && x.exp === s.exp);
-      if (target) target.n += k; else stash(st).push({ id, n: k, exp: s.exp });
+      const k = Math.min(left, s.n), target = stash(st).find(x => x.id === s.id && x.exp === s.exp && !s.instanceId && !s.rarity && !x.instanceId && !x.rarity);
+      if (target) target.n += k; else stash(st).push({ ...s, n: k });
       s.n -= k; left -= k; if (!left) break;
     }
     st.bag = list(st).filter(s => s.n > 0); sync(st); return n;
   }
   function withdrawItem(st, id, n = 1) {
-    if (!ITEMS[id] || !Number.isInteger(n) || n < 1) return 0;
+    const template = (skills() && skills().gear(st, id) || {}).templateId || id;
+    if (!ITEMS[template] || !Number.isInteger(n) || n < 1) return 0;
     let left = Math.min(n, CAP - total(st));
     let moved = 0;
-    for (const s of stash(st).filter(s => s.id === id)) {
-      const k = Math.min(left, s.n), target = list(st).find(x => x.id === id && x.exp === s.exp);
+    for (const s of stash(st).filter(s => s.id === id || s.instanceId === id)) {
+      const k = Math.min(left, s.n), target = list(st).find(x => x.id === s.id && x.exp === s.exp && !s.instanceId && !s.rarity && !x.instanceId && !x.rarity);
       if (!k) break;
-      if (target) target.n += k; else list(st).push({ id, n: k, exp: s.exp });
+      if (target) target.n += k; else list(st).push({ ...s, n: k });
       s.n -= k; moved += k; left -= k; if (!left) break;
     }
     st.stash = stash(st).filter(s => s.n > 0); sync(st); return moved;
   }
   const stashCount = st => stash(st).reduce((n, s) => n + s.n, 0);
-  return { stash, deposit, withdraw, depositItem, withdrawItem, stashCount, safeBuy, safeSell, SAFE_SHOP, SAFE_BUYER, safeBuyPrice, safeSellPrice, vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
+  return { stash, deposit, withdraw, depositItem, withdrawItem, stashCount, safeBuy, safeSell, sellGear, gearSalePrice, addGear, addBook, takeBook, removeGear, equipGear, unequipGear, SAFE_SHOP, SAFE_BUYER, safeBuyPrice, safeSellPrice, vehicles, CAP, ITEMS, ICON_SHEETS, ICONS, COIN, SHOPS, BUYERS, RECIPES, STOVES, HOME_STOVE, FORGE, FORGE_FEE, GATHER,
     list, count, total, meals, add, take, eat, spoil, has, missing, daysLeft, name, label, migrate, sync };
 });

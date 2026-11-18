@@ -148,7 +148,7 @@
     st.profession = origin.name;
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
     st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5 };
-    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null;
+    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null;
     Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; if (Bag) Bag.add(st, 'ration', 1);
     st.life = { v: 1, origin: origin.id, age: 18 + Math.floor(r() * 28), path: origin.suggest, pendingPath: null,
@@ -572,7 +572,10 @@
       st.money -= fee; st.energy = Math.max(0, st.energy - 12); for (const [id, n] of Object.entries(need)) Bag.take(st, id, n);
       const odds = clamp(0.6 + 0.03 * (st.smithWork || 0) + 0.02 * (st.strength || 15) / 5, 0.6, 0.95);
       if (Math.random() > odds) return say(st, 'ตี' + Bag.name(O.item) + 'พลาด ของเสียหายไปหมด (โอกาสสำเร็จ ' + Math.round(odds * 100) + '%)');
-      if (!Bag.add(st, O.item, 1)) return say(st, 'ตี' + Bag.name(O.item) + 'เสร็จ แต่กระเป๋าเต็ม ต้องทิ้งไว้ที่โรงตีเหล็ก');
+      const made = Bag.ITEMS[O.item].equip
+        ? !!Bag.addGear(st, O.item, 'normal', { from: 'forge', day: st.day })
+        : !!Bag.add(st, O.item, 1);
+      if (!made) return say(st, 'ตี' + Bag.name(O.item) + 'เสร็จ แต่กระเป๋าเต็ม ต้องทิ้งไว้ที่โรงตีเหล็ก');
       return say(st, 'ตี' + Bag.name(O.item) + 'เองสำเร็จ' + (fee ? ' (ค่าเตา ' + fee + ')' : '') + ' · ' + (Bag.ITEMS[O.item].desc || 'ขายได้ ' + Bag.ITEMS[O.item].sell + ' เหรียญ'));
     }
     if (O.kind === 'gather') {
@@ -650,7 +653,7 @@
     }
     learn('sword', 1);
     if (res.deadly) {
-      const p = Skills.rescuePenalty(st, 6), names = p.gear.map(id => Bag ? Bag.name(id) : id);
+      const p = Skills.rescuePenalty(st, 6), names = p.gearLabels;
       st.health = Math.max(1, st.health - 30); const t = Skills.earnTitle(st, 'survivor'); if (t) notes.push(t);
       return ' · ' + mon.name + 'เกือบเอาชีวิต! เพื่อนร่วมทีมลากออกมาได้ เสียเงิน ' + p.money + ' เหรียญ' + (names.length ? ' และ' + names.join(' ') : '') + ' ค่าสถานะลดครึ่งถึงวันที่ ' + p.until + ' (สุขภาพ −30)';
     }
