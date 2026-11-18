@@ -11,9 +11,18 @@
   #hud canvas{width:46px;height:46px;border-radius:10px;background:#3a3040;flex:none}
   #hud .l1{font-weight:600;font-size:14px} #hud .l3{color:#ffe1a0}
   #hud .bars{color:#d8d0e0}
-  #lifebtn{position:fixed;right:14px;bottom:max(16px,env(safe-area-inset-bottom));z-index:12;width:auto;height:auto;padding:12px 18px;
-    border-radius:16px;font-size:16px;background:#2a2230e6;border:1px solid #ffffff66;color:#fff}
-  #lgtoast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:12;max-width:min(560px,calc(100vw - 150px));
+  #lgmenu{position:fixed;right:12px;bottom:max(14px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;gap:8px}
+  #lgmenu button{width:64px;height:auto;padding:5px 0 4px;border-radius:14px;background:#2a2230e6;border:1px solid #ffffff55;color:#fff;font:600 11px/1.1 system-ui;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:manipulation}
+  #lgmenu button:active{background:#5a4430}
+  @media(max-width:520px){#lgmenu button{width:54px;font-size:10px}#lgmenu{gap:6px}}
+  .lg-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:-6px 0 10px}
+  .lg-tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;border:1px solid #ffffff30;background:var(--lg-btn);color:var(--lg-muted);font:600 12px/1.2 system-ui}
+  .lg-tabs .on{border-color:var(--lg-gold);color:var(--lg-gold);background:#4a3826}
+  .lg-skill{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:14px}
+  .lg-bar{height:10px;border-radius:99px;background:#ffffff18;overflow:hidden} .lg-bar i{display:block;height:100%;background:linear-gradient(90deg,#c98a3a,#f2c14e)}
+  .lg-zone{margin:10px 0 4px;padding:8px 10px 6px;border-radius:12px;background:#ffffff0b;border:1px solid #ffffff18} .lg-zone.here{border-color:var(--lg-gold)}
+  .lg-zone svg{display:block;width:100%;height:auto;overflow:visible}
+  #lgtoast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:12;max-width:min(560px,calc(100vw - 170px));
     background:rgba(23,20,26,.9);color:#fff;border-radius:12px;padding:9px 14px;font:14px/1.45 system-ui;opacity:0;transition:opacity .35s;pointer-events:none;text-align:center}
   #lgtoast.show{opacity:1}
   .lg-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
@@ -159,6 +168,15 @@
     if (src && sheetOk[src]) { const c = at[1] % 4, r = Math.floor(at[1] / 4);
       return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(${src}?v=100);background-size:400% 400%;background-position:${c * 100 / 3}% ${r * 100 / 3}%"></i>`; }
     return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.78)}px;line-height:${px}px">${it.icon}</i>`;
+  }
+  // v102 menu icons: ui_icons.webp is 2×2 — 0 bag · 1 skills · 2 map · 3 character
+  const UI_ICON = { bag: [0, '🎒'], skill: [1, '✨'], map: [2, '🗺️'], char: [3, '👤'] };
+  let uiOk = false;
+  (function () { const im = new Image(); im.onload = () => { uiOk = true; document.querySelectorAll('[data-uiic]').forEach(e => { e.outerHTML = uiIcon(e.dataset.uiic, +e.dataset.px); }); }; im.src = 'ui_icons.webp?v=102'; })();
+  function uiIcon(id, px) {
+    const [k, emo] = UI_ICON[id];
+    if (uiOk) return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(ui_icons.webp?v=102);background-size:200% 200%;background-position:${k % 2 * 100}% ${Math.floor(k / 2) * 100}%"></i>`;
+    return `<i class="lg-ic lg-emo" data-uiic="${id}" data-px="${px}" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.72)}px;line-height:${px}px">${emo}</i>`;
   }
   // what the hero holds, to spot gains and losses between frames
   function holding() {
@@ -313,37 +331,76 @@
   }
 
   // ---------- life panel ----------
-  function panel() {
-    if (open) return;
+  const TABS = [['bag', 'กระเป๋า'], ['skill', 'สกิล'], ['map', 'แผนที่'], ['char', 'ตัวละคร']];
+  let tab = 'char';
+  function charHtml() {
     const L = state.life, o = LifeSim.originOf(state);
-    const d = el(`<div class="lg-card"><h2>ชีวิตของคุณ</h2>
+    return `<h2>ตัวละคร</h2>
       <p>ตัวตนในโลกเดิม: <b>${esc(o.name)}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${state.guild ? ' · สมาชิกกิลด์' : ''}</p>
-      ${bagHtml()}
+      <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
         return `<button class="lg-btn ${L.roomPref === id ? 'lg-cur' : ''}" data-room="${id}">${esc(r.name)} · ${price ? price + ' เหรียญ/คืน' : 'ฟรี'}${price < r.price ? '<span class="lg-tag">ราคาพนักงาน</span>' : ''}${L.roomPref === id ? '<span class="lg-tag">เลือกอยู่</span>' : ''}<small>${esc(r.desc)}</small></button>`; }).join('')}
-      <h3>ค่าสถานะ</h3><div class="lg-stats"><span>กำลัง ${state.strength}</span><span>คล่องตัว ${state.agility}</span><span>ปัญญา ${state.intelligence}</span>
-        <span>ชื่อเสียง ${state.rep}</span><span>สุขภาพ ${state.health}</span><span>ของกินในกระเป๋า ${Bag.meals(state)}</span></div>
       <h3>หอคอยและเมือง</h3><div class="lg-stats"><span>ชั้นที่สำรวจ ${state.floor}</span><span>อันตราย ${state.danger}/5</span><span>เสบียง ${state.supplies}</span><span>ภาษีค้าง ${state.taxDue}</span></div>
       <h3>บันทึก</h3><div class="lg-log">${esc(state.events.slice(0, 8).join('\n') || 'ยังไม่มีบันทึก')}</div>
-      <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
-      <button class="lg-btn" data-a="new">เริ่มชีวิตใหม่<small>สุ่มตัวตนใหม่ ความคืบหน้าเดิมจะหายไป</small></button>
-      <button class="lg-btn lg-primary" data-a="close">ปิด</button><p class="lg-muted" style="text-align:center;margin-top:10px">Tower RPG v70</p></div>`);
+      <button class="lg-btn" data-a="new">เริ่มชีวิตใหม่<small>สุ่มตัวตนใหม่ ความคืบหน้าเดิมจะหายไป</small></button>`;
+  }
+  function skillHtml() {
+    const bar = (label, v, max, note) => `<span>${label}</span><div class="lg-bar"><i style="width:${Math.max(3, Math.min(100, v / max * 100))}%"></i></div><b>${v}</b><span></span><small class="lg-muted" style="grid-column:2/4;margin-top:-4px">${note}</small>`;
+    const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'ฝึกที่ลานกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน']]
+      .filter(([k]) => state[k] > 0);
+    return `<h2>สกิล</h2>
+      <h3>ค่าสถานะ</h3><div class="lg-skill">
+        ${bar('กำลัง', state.strength, 12, 'ยกของ งานกรรมกร ป้องกันตัว')}
+        ${bar('คล่องตัว', state.agility, 12, 'หนีเอาตัวรอด สอบเข้ากิลด์')}
+        ${bar('ปัญญา', state.intelligence, 12, 'มินิเกมง่ายขึ้น')}
+        ${bar('ชื่อเสียง', state.rep || 0, 10, 'คนในเมืองเกรงใจมากขึ้น')}
+        ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
+        ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
+      <h3>ประสบการณ์งาน</h3>${jobs.length ? '<div class="lg-stats">' + jobs.map(([k, n]) => `<span>${n} · ${state[k]} วัน</span>`).join('') + '</div>' : '<p class="lg-muted">ยังไม่เคยทำงานครบวัน</p>'}`;
+  }
+  function mapHtml() {
+    const s = window.LIFE_INFO || {}, L = state.life, P = LifeSim.PLACES, Z = TownPano.ZONES;
+    const names = { town: 'ในเมือง', slum: 'ตรอกล่าง', carts: 'ลานเกวียนนอกประตูเมือง', market: 'ตลาดใหญ่' };
+    const work = LifeSim.PATHS[L.path] && LifeSim.PATHS[L.path].place, home = L.homeTonight || L.roomPref;
+    const skip = { guildhall: 1, bazaar: 1 };
+    return '<h2>แผนที่</h2><p class="lg-muted">📍 ตัวละคร · ⚒ ที่ทำงาน · 🛏 ที่นอนคืนนี้</p>' + Object.keys(names).map(z => {
+      const [a, b] = Z[z], W = 380, X = x => 14 + (x - a) / (b - a) * (W - 28);
+      const pl = Object.entries(P).filter(([id, p]) => !skip[id] && (LifeSim.zoneOf(id) || TownPano.zoneAt(p.x)) === z && p.x >= a - 50 && p.x <= b + 50).sort((u, v) => u[1].x - v[1].x);
+      const here = s.zone === z, LV = [[44, 30], [44, 14], [64, 80], [64, 96]];   // [line end, label y] above ×2, below ×2
+      const marks = pl.map(([id, p], i) => { const x = X(p.x), [ly, ty] = LV[i % 4], tag = (id === work ? '⚒' : '') + (id === home ? '🛏' : '');
+        const anchor = x < 50 ? 'start' : x > W - 50 ? 'end' : 'middle';
+        return `<line x1="${x}" x2="${x}" y1="54" y2="${ly < 54 ? ty + 4 : ty - 12}" stroke="#ffffff30"/><circle cx="${x}" cy="54" r="4.5" fill="${tag ? '#f2c14e' : '#cdb999'}"/>
+          <text x="${x}" y="${ty}" text-anchor="${anchor}" font-size="11.5" fill="${tag ? '#f2c14e' : '#f6ecd8'}">${tag}${esc(p.name)}</text>`; }).join('');
+      const me = here && s.x !== undefined ? `<text x="${Math.max(10, Math.min(W - 10, X(s.x)))}" y="60" text-anchor="middle" font-size="20">📍</text>` : '';
+      return `<div class="lg-zone ${here ? 'here' : ''}"><b>${names[z]}</b>${here ? ' <span class="lg-tag">อยู่ที่นี่</span>' : ''}
+        <svg viewBox="0 0 ${W} 104"><rect x="6" y="51" width="${W - 12}" height="6" rx="3" fill="#ffffff20"/>${marks}${me}</svg></div>`;
+    }).join('') + `<p class="lg-muted">ตอนนี้: ${esc(s.place || '')} · ${esc(s.act || '')}</p>`;
+  }
+  function panel(which) {
+    if (open) return;
+    if (typeof which === 'string' && UI_ICON[which]) tab = which;
+    const L = state.life;
+    const body = tab === 'bag' ? bagHtml() : tab === 'skill' ? skillHtml() : tab === 'map' ? mapHtml() : charHtml();
+    const d = el(`<div class="lg-card"><div class="lg-tabs">${TABS.map(([id, n]) => `<button data-tab="${id}" class="${id === tab ? 'on' : ''}">${uiIcon(id, 34)}${n}</button>`).join('')}</div>
+      ${body}
+      <button class="lg-btn lg-primary" data-a="close">ปิด</button></div>`);
     block(d);
+    const again = () => { d.remove(); block(null); save(); panel(); };
+    const on = (sel, fn) => { const x = d.querySelector(sel); if (x) x.onclick = fn; };
+    d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; d.remove(); block(null); panel(); });
     d.querySelectorAll('[data-room]').forEach(b => b.onclick = () => {
-      LifeSim.setRoomPref(state, b.dataset.room); log('ตั้งใจพัก' + LifeSim.ROOMS[b.dataset.room].name + 'ตั้งแต่คืนนี้');
-      d.remove(); block(null); save(); panel();
-    });
+      LifeSim.setRoomPref(state, b.dataset.room); log('ตั้งใจพัก' + LifeSim.ROOMS[b.dataset.room].name + 'ตั้งแต่คืนนี้'); again(); });
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
-    d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); d.remove(); block(null); save(); panel(); });
-    const cb = d.querySelector('[data-a=coach]'); if (cb) cb.onclick = () => { L.coach = !L.coach; d.remove(); block(null); save(); panel(); };
-    const eb = d.querySelector('[data-a=eatbag]'); if (eb) eb.onclick = () => { L.eatBag = !L.eatBag; d.remove(); block(null); save(); panel(); };
-    const cancel = d.querySelector('[data-a=nocmd]'); if (cancel) cancel.onclick = () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); d.remove(); block(null); save(); panel(); };
-    d.querySelector('[data-a=close]').onclick = () => closeOverlay(d);
-    d.querySelector('[data-a=path]').onclick = () => { d.remove(); choosePath(false); };
-    d.querySelector('[data-a=new]').onclick = () => { if (confirm('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?')) { d.remove(); newLife(); } };
+    d.querySelectorAll('[data-ride]').forEach(x => x.onclick = () => { L.ride = x.dataset.ride || null; log(L.ride ? 'เดินทางด้วย' + LifeSim.Bag.name(L.ride) : 'เดินเท้า'); again(); });
+    on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
+    on('[data-a=eatbag]', () => { L.eatBag = !L.eatBag; again(); });
+    on('[data-a=nocmd]', () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); again(); });
+    on('[data-a=close]', () => closeOverlay(d));
+    on('[data-a=path]', () => { d.remove(); choosePath(false); });
+    on('[data-a=new]', () => { if (confirm('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?')) { d.remove(); newLife(); } });
   }
 
   // ---------- story event ----------
@@ -416,6 +473,7 @@
   function drive() {
     const started = !!(state.life && state.life.started);
     if (hudEl) hudEl.style.display = started ? '' : 'none';
+    const mn = document.getElementById('lgmenu'); if (mn) mn.style.display = started ? '' : 'none';
     if (!started) { window.LIFE_HIDDEN = true; window.LIFE_INFO = null; return; }
     if (state.scene !== 'town') state.scene = 'town';
     if (typeof state._log !== 'function') state._log = m => log(m);
@@ -449,7 +507,9 @@
     hudEl.innerHTML = '<canvas></canvas><div><div class="l1"></div><div class="bars"></div><div class="l3"></div></div>';
     document.body.appendChild(hudEl);
     toastEl = document.createElement('div'); toastEl.id = 'lgtoast'; document.body.appendChild(toastEl);
-    const b = document.createElement('button'); b.id = 'lifebtn'; b.textContent = 'ชีวิต'; b.onclick = panel; document.body.appendChild(b);
+    const m = document.createElement('div'); m.id = 'lgmenu';
+    m.innerHTML = TABS.map(([id, n]) => `<button data-m="${id}">${uiIcon(id, 38)}${n}</button>`).join('');
+    m.querySelectorAll('button').forEach(b => b.onclick = () => panel(b.dataset.m)); document.body.appendChild(m);
     lastToast = state.events[0] || '';
     if (!LifeSim.ensure(state) || !state.life.started) {
       const resume = LifeSim.ensure(state) && !state.life.started;
