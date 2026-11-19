@@ -15,7 +15,7 @@
   #lgmenu button{width:64px;height:auto;padding:5px 0 4px;border-radius:14px;background:#2a2230e6;border:1px solid #ffffff55;color:#fff;font:600 11px/1.1 system-ui;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:manipulation}
   #lgmenu button:active{background:#5a4430}
   @media(max-width:520px){#lgmenu button{width:54px;font-size:10px}#lgmenu{gap:6px}}
-  .lg-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:-6px 0 10px}
+  .lg-tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-6px 0 10px}
   .lg-tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;border:1px solid #ffffff30;background:var(--lg-btn);color:var(--lg-muted);font:600 12px/1.2 system-ui}
   .lg-tabs .on{border-color:var(--lg-gold);color:var(--lg-gold);background:#4a3826}
   .lg-skill{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:14px}
@@ -64,6 +64,7 @@
   .lc-cut:active{transform:translateY(3px);box-shadow:0 1px 0 #743f20} .lc-cut:disabled{opacity:.6}
   .lc-stats{display:flex;justify-content:space-between;margin-top:10px;font-size:14px;color:var(--lg-muted)} .lc-stats b{color:#f3e6d3}
   .lc-skip{width:auto;margin:10px auto 0;text-align:center;font-weight:400;font-size:13px;padding:8px 14px}
+  .lg-story-progress{height:7px;border-radius:99px;background:#ffffff16;overflow:hidden}.lg-story-progress i{display:block;height:100%;background:#deb763} .lg-story-chapter{border-left:3px solid #bfa26d;padding-left:12px;margin:12px 0}.lg-story-choice{color:#9ed9ba}.lg-story-done{color:#83cba0}.lg-story-locked{color:#bea989}
   .lg-result{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));text-align:center}
   .lg-ic{display:inline-block;flex:none;vertical-align:middle;background:no-repeat;font-style:normal;text-align:center;filter:drop-shadow(0 2px 2px #0007)}
   .lg-emo{filter:none}
@@ -73,7 +74,9 @@
   .lg-chip{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:12px;background:#ffffff10}
   .lg-chip .p{color:#ffd76a} .lg-chip .m{color:#ff9a7a} .lg-chip small{font-weight:400;font-size:12px;color:var(--lg-muted);display:block}
   .lg-gain{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font:700 16px/1.2 system-ui}
-  .lg-bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+  .lg-bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .lg-item-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+  .lg-small{min-height:30px;padding:4px 6px;border-radius:7px;background:#392c24;border:1px solid #c6a46b;color:#f5e8d8;font-size:11px;flex:1;touch-action:manipulation}
   .lg-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border-radius:12px;background:#ffffff0d;border:1px solid #ffffff1c;font-size:12px;line-height:1.25;text-align:center}
   .lg-slot b{position:absolute;right:6px;top:4px;min-width:20px;padding:0 5px;border-radius:99px;background:#e0a84a;color:#2a1a0c;font-size:12px}
   .lg-slot .x{color:#ff9a7a} .lg-slot .d{color:var(--lg-muted);font-size:11px}
@@ -188,11 +191,12 @@
     return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.78)}px;line-height:${px}px">${it.icon}</i>`;
   }
   // v102 menu icons: ui_icons.webp is 2×2 — 0 bag · 1 skills · 2 map · 3 character
-  const UI_ICON = { bag: [0, '🎒'], skill: [1, '✨'], map: [2, '🗺️'], char: [3, '👤'] };
+  const UI_ICON = { bag: [0, '🎒'], skill: [1, '✨'], map: [2, '🗺️'], char: [3, '👤'], story: [4, '📖'], alchemy:[5,'🧪'], artisan:[6,'🔨'] };
   let uiOk = false;
   (function () { const im = new Image(); im.onload = () => { uiOk = true; document.querySelectorAll('[data-uiic]').forEach(e => { e.outerHTML = uiIcon(e.dataset.uiic, +e.dataset.px); }); }; im.src = 'ui_icons.webp?v=102'; })();
   function uiIcon(id, px) {
     const [k, emo] = UI_ICON[id];
+    if (id === 'story'||id==='alchemy'||id==='artisan') return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.72)}px;line-height:${px}px">${emo}</i>`;
     if (uiOk) return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(ui_icons.webp?v=102);background-size:200% 200%;background-position:${k % 2 * 100}% ${Math.floor(k / 2) * 100}%"></i>`;
     return `<i class="lg-ic lg-emo" data-uiic="${id}" data-px="${px}" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.72)}px;line-height:${px}px">${emo}</i>`;
   }
@@ -230,8 +234,10 @@
   function describeOrder(O) {
     const b = B(); if (!O) return 'ไม่มี (ตัวละครแวะธุระตามปกติ)';
     const when = O.repeat ? 'ทุกวัน' : O.day === state.day ? 'วันนี้' : 'พรุ่งนี้';
+    if (O.kind === 'skillquest') return 'ไปพบ' + (Skills.SKILL_QUESTS[O.questId] || {}).npc + 'เพื่อทำเควสสกิล · ' + when;
     if (O.kind === 'buy') return 'ซื้อ ' + b.label(Object.entries(O.items || {})) + ' ที่' + b.SHOPS[O.shop].name + ' · ' + when;
     if (O.kind === 'cook') return 'ทำ' + b.name(O.recipe) + 'กินเอง (' + LifeSim.stovePlace(state, O).name + ') · ' + when;
+    if(['artisanForge','artisanMentor','artisanCook'].includes(O.kind))return O.kind==='artisanMentor'?'นัดพบครูช่างตีเหล็ก · '+when:O.kind==='artisanCook'?'ปรุงอาหารพิเศษ · '+when:'หลอมอุปกรณ์พิเศษ · '+when;
     if (O.kind === 'forge') return 'ตี' + b.name(O.item) + 'เองที่โรงตีเหล็ก · ' + when;
     if (O.kind === 'gather') return b.GATHER[O.spot].name + ' · ' + when;
     if (O.kind === 'sell') return 'เอาของไปขายที่' + b.BUYERS[O.buyer].name + ' · ' + when;
@@ -242,7 +248,7 @@
     if (!g) return esc(B().name(id));
     const e = Skills.effectiveGear(state, id), col = Skills.RARITY_COLORS[Skills.rarityIndex(g.rarity)];
     const stats = [e.atk && 'ATK ' + e.atk, e.def && 'DEF ' + e.def,
-      ...Object.entries(e.bonus).map(([k,v]) => (Skills.STAT_NAME[k] || k) + ' +' + v)].filter(Boolean).join(' · ');
+      ...Object.entries(e.bonus).map(([k,v]) => (Skills.STAT_NAME[k] || k) + ' +' + v),e.special&&'✨ '+e.special.name].filter(Boolean).join(' · ');
     return `${esc(B().name(g.templateId))} <span class="lg-rarity" style="color:${col}">${esc(g.rarity)} +${g.step}</span><small>${esc(stats)}</small>`;
   };
   // the town smithy is reachable any day you are in town (the hero walks there after work); not while inside the tower
@@ -290,29 +296,45 @@
     return '<h3>อุปกรณ์ที่สวมใส่</h3>'+equipped+'<h3>อุปกรณ์ในกระเป๋า</h3>'+(loose||'<p class="lg-muted">ไม่มีอุปกรณ์ในกระเป๋า</p>');
   }
   function bagHtml() {
-    const b = B(), L = state.life, bag = b.list(state).slice().sort((x, y) => (x.exp || 1e9) - (y.exp || 1e9));
-    const rows = [`<div class="lg-slot">${iconHtml(state.money >= 10 ? 'coins' : 'coin', 52)}<b>${state.money}</b>เหรียญ</div>`]
-      .concat(Object.keys(b.vehicles(state)).map(id => `<div class="lg-slot">${iconHtml(id, 52)}${esc(b.name(id))}<span class="d">จอดไว้</span></div>`))
-      .concat(bag.map(st => { const it = b.ITEMS[st.id], left = b.daysLeft(st, state.day);
-        return `<div class="lg-slot">${iconHtml(st.id, 52)}<b>${st.n}</b>${st.instanceId ? gearText(st.instanceId) : esc(it.name) + (st.rarity ? ' [' + esc(st.rarity) + ']' : '')}${left === Infinity ? '' : left <= 0 ? '<span class="x">เสียคืนนี้</span>' : '<span class="d">เหลือ ' + (left + 1) + ' วัน</span>'}</div>`; })).join('');
-    const O = L.order && LifeSim.orderToday(state) || (L.order && L.order.day > state.day ? L.order : null);
-    return `<h3>กระเป๋า (${b.total(state)}/${b.CAP})</h3>
-      ${X() && X().safeInfo(state) ? '<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซน ชั้น ' + X().X(state).floor + ' · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
-      <div class="lg-bag">${rows}</div>${bag.length ? '' : '<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
-      ${isSmith() ? '<button class="lg-btn" data-enhance-city="1">🔨 ตีบวกอุปกรณ์ที่โรงตีเหล็ก</button>' : ''}
-      ${isSmith() && bag.some(s => s.instanceId) ? '<h3>ขายอุปกรณ์</h3>' + bag.filter(s => s.instanceId).map(s => `<button class="lg-btn" data-gear-sell="${esc(s.instanceId)}">💰 ${gearText(s.instanceId)}<small>ขายได้ ${B().gearSalePrice(state,s.instanceId,B().ITEMS[s.id].sell)} เหรียญ</small></button>`).join('') : ''}
-      <button class="lg-btn ${L.eatBag ? 'lg-cur' : ''}" data-a="eatbag">${L.eatBag ? '✓ ' : ''}กินของในกระเป๋าก่อน<small>มีของกินเมื่อไหร่ จะกินแทนการไปซื้อข้าวเย็น (ประหยัดเงิน ของใกล้เสียถูกกินก่อน)</small></button>
-      ${stashHtml()}
-      ${travelHtml()}
-      <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p>
-      <p class="lg-muted">สั่งก่อนเลิกงาน (16:00) จะทำวันนี้ หลังจากนั้นจะทำพรุ่งนี้</p>
+    const b=B(),L=state.life,automatic=b.auto(state),status=b.loadStatus(state,state.strength);
+    const bag=b.slotRows(state), shown=automatic?bag.slice().sort((x,y)=>(x.exp||1e9)-(y.exp||1e9)||x.id.localeCompare(y.id)):bag;
+    const rows=shown.map((entry,i)=>{
+      const it=b.ITEMS[entry.id],left=entry.exp?entry.exp-state.day:Infinity;
+      const label=entry.instanceId?gearText(entry.instanceId):esc(it.name)+(it.tier!==undefined&&it.tier>0?' [T'+it.tier+']':'')+(entry.rarity?' ['+esc(entry.rarity)+']':'');
+      const controls=automatic?'':`<div class="lg-item-actions">
+        <button class="lg-small" data-drop-one="${esc(entry.key)}">ทิ้ง 1</button>
+        <button class="lg-small" data-drop-all="${esc(entry.key)}">ทิ้งทั้งหมด</button>
+        <button class="lg-small" data-move-up="${esc(entry.key)}" ${i===0?'disabled':''}>↑</button>
+        <button class="lg-small" data-move-down="${esc(entry.key)}" ${i===shown.length-1?'disabled':''}>↓</button></div>`;
+      return `<div class="lg-slot">${iconHtml(entry.id,52)}<b>×${entry.n}</b>${label}<span class="d">${entry.weight.toFixed(2)} กก.</span>${left===Infinity?'':left<=0?'<span class="x">เสียคืนนี้</span>':'<span class="d">หมดอายุเร็วสุดใน '+(left+1)+' วัน</span>'}${controls}</div>`;
+    }).join('');
+    const loot=b.pending(state);
+    const queued=loot.map(p=>`<div class="lg-zone"><b>${iconHtml(p.id,26)} ${esc(b.name(p.id))} ×${p.n}</b>${p.rarity?' ['+esc(p.rarity)+']':''}
+      <div class="lg-item-actions"><button class="lg-small" data-pick="${esc(p.uid)}">เก็บ</button><button class="lg-small" data-leave="${esc(p.uid)}">ปล่อยทิ้ง</button></div></div>`).join('');
+    const mode=status.immobile?'🚫 หนักจนเดินไม่ได้ ต้องทิ้งหรือฝากของ':status.ratio>.75?'⚠️ แบกหนัก ความว่องไวและความเร็วลดลง':'✅ เดินและหลบหลีกตามปกติ';
+    const pct=Math.round(status.speed*100), agilityNote=`ความว่องไว ${state.agility}/${state.unburdenedAgility||state.agility}`;
+    const O=L.order&&LifeSim.orderToday(state)||(L.order&&L.order.day>state.day?L.order:null);
+    return `<h3>🎒 กระเป๋า (${b.slotCount(state)}/${b.CAP} ช่อง)</h3>
+      <div class="lg-zone"><b>น้ำหนัก ${status.weight.toFixed(2)} กก. · น้ำหนักสบาย ${status.comfortable.toFixed(2)} กก.</b>
+      <div class="lg-bar"><i style="width:${Math.min(100,status.ratio/2.25*100)}%;background:${status.immobile?'#d76565':status.ratio>.75?'#deaa4b':'#6bc595'}"></i></div>
+      <small>${mode} · เดินได้ ${pct}% · ${agilityNote}</small><small>น้ำหนักไม่มีเพดาน แต่แบกเกิน 225% ของน้ำหนักสบายจะเดินไม่ได้ · ของชนิดเดียวกันซ้อนได้ไม่จำกัดจำนวน</small></div>
+      <button class="lg-btn ${automatic?'lg-cur':''}" data-inv-auto="1">${automatic?'✓ อัตโนมัติ: เปิด':'อัตโนมัติ: ปิด — จัดการเอง'}<small>${automatic?'เก็บของจากหอคอยอัตโนมัติและเรียงกระเป๋า':'ของที่พบในหอคอยรอให้เลือกเก็บหรือทิ้ง · ใช้ปุ่มย้าย/ทิ้งของในแต่ละช่อง'}</small></button>
+      ${loot.length?`<h3>📦 ของรอเลือกเก็บ (${loot.length} รายการ)</h3><p class="lg-muted">ต้องเก็บก่อนออกจากชั้นที่พบ มิฉะนั้นของจะตกหาย</p>${queued}`:''}
+      ${X()&&X().safeInfo(state)?'<button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการเซฟโซน ชั้น '+X().X(state).floor+' · '+esc(X().safeInfo(state).name)+'</button>':''}
+      <div class="lg-bag">${rows}</div>${bag.length?'':'<p class="lg-muted">ยังไม่มีของในกระเป๋า</p>'}
+      ${isSmith()?'<button class="lg-btn" data-enhance-city="1">🔨 ตีบวกอุปกรณ์ที่โรงตีเหล็ก</button>':''}
+      ${isSmith()&&bag.some(s=>s.instanceId)?'<h3>ขายอุปกรณ์</h3>'+bag.filter(s=>s.instanceId).map(s=>`<button class="lg-btn" data-gear-sell="${esc(s.instanceId)}">💰 ${gearText(s.instanceId)}<small>ขายได้ ${b.gearSalePrice(state,s.instanceId,b.ITEMS[s.id].sell)} เหรียญ</small></button>`).join(''):''}
+      <button class="lg-btn ${L.eatBag?'lg-cur':''}" data-a="eatbag">${L.eatBag?'✓ ':''}กินของในกระเป๋าก่อน<small>ของใกล้เสียถูกกินก่อน</small></button>
+      ${!automatic&&b.count(state,'potion')?'<button class="lg-btn" data-use-potion="1">🧪 ใช้ยาฟื้นแรงด้วยตัวเอง (+30 สุขภาพ)</button>':''}
+      ${stashHtml()}${travelHtml()}
+      <h3>ธุระหลังเลิกงาน</h3><p>${esc(describeOrder(O))}</p><p class="lg-muted">สั่งก่อนเลิกงาน (16:00) จะทำวันนี้ หลังจากนั้นจะทำพรุ่งนี้</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
-        <button class="lg-btn" data-order="buy">🛒 ซื้อของ<small>ตลาด · ขนมปัง · เหล็ก · อะไหล่ · ม้า</small></button>
-        <button class="lg-btn" data-order="cook">🍳 ทำอาหาร<small>กินเอง เหลือเก็บใส่กระเป๋า</small></button>
-        <button class="lg-btn" data-order="forge">🔨 ตีเหล็ก<small>มีด เคียว ตะขอ มีดสั้น จักรยาน สกู๊ตเตอร์</small></button>
-        <button class="lg-btn" data-order="gather">🧺 เก็บของ<small>ลานของเก่า · ทุ่งนอกประตูเมือง</small></button>
-        <button class="lg-btn" data-order="sell">💰 ขายของ<small>ร้านรับซื้อ · ร้านยา · ตลาด · โรงตีเหล็ก</small></button>
-        ${O ? '<button class="lg-btn" data-a="nocmd">✖ ยกเลิกธุระ<small>กลับไปใช้ชีวิตตามปกติ</small></button>' : ''}
+        <button class="lg-btn" data-order="buy">🛒 ซื้อของ<small>ตลาด · ร้านค้า</small></button>
+        <button class="lg-btn" data-order="cook">🍳 ทำอาหาร<small>ทำและเก็บไว้กิน</small></button>
+        <button class="lg-btn" data-order="forge">🔨 ตีเหล็ก<small>ผลิตอุปกรณ์</small></button>
+        <button class="lg-btn" data-order="gather">🧺 เก็บของ<small>นอกเมือง</small></button>
+        <button class="lg-btn" data-order="sell">💰 ขายของ<small>ร้านรับซื้อ</small></button>
+        ${O?'<button class="lg-btn" data-a="nocmd">✖ ยกเลิกธุระ</button>':''}
       </div>`;
   }
   function travelHtml() {
@@ -341,7 +363,7 @@
     } else if (kind === 'cook') {
       const home = LifeSim.stovePlace(state, { stove: 'home' });
       sel.recipe = sel.recipe || 'meal_veg'; sel.stove = sel.stove || 'home';
-      body = Object.entries(b.RECIPES).map(([id, R]) => { const m = b.missing(state, R.needs);
+      body = Object.entries(b.RECIPES).filter(([id])=>id!=='meal_herbal'||state.mainStory&&state.mainStory.herbalRecipe).map(([id, R]) => { const m = b.missing(state, R.needs);
         return `<button class="lg-btn ${id === sel.recipe ? 'lg-cur' : ''}" data-recipe="${id}">${icon(id)} · ได้ ${R.makes} ที่<small>ใช้ ${esc(b.label(Object.entries(R.needs)))}${Object.keys(m.items).length ? ' · ขาด ' + esc(b.label(Object.entries(m.items))) + ' จะแวะซื้อในตลาด ~' + m.cost + ' เหรียญ' : ' · มีครบในกระเป๋า'} · สุขภาพ +${b.ITEMS[id].heal}</small></button>`; }).join('')
         + `<h3>ทำที่ไหน</h3>` + [['home', 'ที่พักคืนนี้', b.HOME_STOVE[home.place] ? home.name + ' ฟรี' : 'ที่พักคืนนี้ไม่มีเตา จะยืมครัวร้านอาหารแทน'],
           ['tavern', 'ยืมครัวร้านอาหาร', (L.path === 'kitchen' ? 'ฟรีสำหรับผู้ช่วยครัว' : '1 เหรียญ') + ' · ในเมือง'],
@@ -352,7 +374,7 @@
     } else if (kind === 'forge') {
       sel.item = sel.item || 'knife';
       const fee = L.path === 'smith' ? 0 : b.FORGE_FEE, odds = Math.round(Math.min(0.95, 0.6 + 0.03 * (state.smithWork || 0) + 0.02 * (state.strength || 15) / 5) * 100);
-      body = Object.entries(b.FORGE).map(([id, f]) => { const lack = Object.entries(f).filter(([i, n]) => i !== 'iron' && b.count(state, i) < n);
+      body = Object.entries(b.FORGE).filter(([id])=>id!=='guardianVest'||state.mainStory&&state.mainStory.blueprint).map(([id, f]) => { const lack = Object.entries(f).filter(([i, n]) => i !== 'iron' && b.count(state, i) < n);
           const owned = b.ITEMS[id].kind === 'vehicle' && b.vehicles(state)[id];
           return `<button class="lg-btn ${id === sel.item ? 'lg-cur' : ''}" data-item="${id}" ${owned ? 'disabled' : ''}>${icon(id)} · ${esc(b.label(Object.entries(f)))}<small>${owned ? 'มีแล้ว' : esc(b.ITEMS[id].desc || 'ขายให้โรงตีเหล็กได้ ' + b.ITEMS[id].sell + ' เหรียญ')}${lack.length ? ' · ยังขาด ' + esc(b.label(lack)) : ''}</small></button>`; }).join('')
         + `<p class="lg-muted">มีเหล็กแท่ง ${b.count(state, 'iron')} · ขาดจะซื้อที่โรงตีเหล็กแท่งละ ${b.SHOPS.smith.items.iron} · ค่าเตา ${fee ? fee + ' เหรียญ' : 'ฟรี (ช่างฝึกหัด)'} · โอกาสสำเร็จ ${odds}% · แรง -12</p>`;
@@ -405,7 +427,7 @@
   }
 
   // ---------- life panel ----------
-  const TABS = [['bag', 'กระเป๋า'], ['skill', 'สกิล'], ['map', 'แผนที่'], ['char', 'ตัวละคร']];
+  const TABS = [['bag', 'กระเป๋า'], ['skill', 'สกิล'], ['map', 'แผนที่'], ['story', 'เนื้อเรื่อง'], ['alchemy','ปรุงยา'], ['artisan','ช่างฝีมือ'], ['char', 'ตัวละคร']];
   let tab = 'char';
   function charHtml() {
     const L = state.life, o = LifeSim.originOf(state);
@@ -415,6 +437,7 @@
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>
       ${expHtml()}
+      <h3>สถานะร่างกาย</h3><p class="lg-muted">${window.Alchemy&&Alchemy.labels(state).length?Alchemy.labels(state).map(s=>s.icon+' '+esc(s.name)+' Lv.'+s.level).join(' · '):'✅ ปกติ'}</p>
       ${gearSummaryHtml()}
       ${guildHtml()}
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
@@ -582,8 +605,9 @@
         setTimeout(() => {
           clearInterval(t);
           const fight = res.fight ? `<p class="lg-muted">พลังฝ่ายเรา ${res.fight.power} · ${esc(enc.monster.name)} ${res.fight.monster} · โอกาสชนะหลังสล็อต ${res.fight.p}%</p>` : '';
+          const triggered = res.triggered ? `<div class="lg-drop-special" style="border-color:#f9ae4e;color:#ffcf83"><b>${esc(res.triggered.icon)} ${esc(res.triggered.name)}ตื่น!</b> ${esc(res.triggered.effectName)} · เกิดจังหวะสอง</div>` : '';
           const special = res.reward ? `<div class="lg-drop-special" style="border-color:${Skills.rarityIndex(res.reward.rarity)>=2 ? Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)] : '#ffffff22'};${Skills.rarityIndex(res.reward.rarity)>=2 ? 'box-shadow:0 0 15px #dbaf6755;' : ''}">${res.reward.gained ? '✦ ได้รางวัลพิเศษ' : '⚠️ กระเป๋าเต็ม ของตกหาย'} · <span class="lg-rarity" style="color:${Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)]}">${esc(B().name(res.reward.templateId))} [${esc(res.reward.rarity)}]</span></div>` : '';
-          actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${special}${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
+          actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${triggered}${special}${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
             ${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">${res.dead ? '...' : 'ตกลง'}</button>`);
           for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
           actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else closeOverlay(d); };
@@ -620,6 +644,67 @@
         <button class="lg-btn" data-stash="in">ฝากของ<small>ทุกอย่างยกเว้นของกิน</small></button>
         <button class="lg-btn" data-stash="out" ${n ? '' : 'disabled'}>รับของคืน<small>เท่าที่กระเป๋าใส่ได้</small></button></div>`;
   }
+  // v121: real smithcraft and buff-food panels; requests travel to their NPC location after work.
+  function artisanHtml(){
+    const Ar=window.Artisan,B=window.Bag;if(!Ar)return '<p>ยังไม่มีระบบช่างฝีมือ</p>';
+    const a=Ar.data(state),q=Ar.mentorStatus(state),inTower=!!(X()&&X().active(state));
+    const needsHtml=needs=>Object.entries(needs).map(([id,n])=>esc(B.name(id))+' ×'+n+(B.count(state,id)<n?' (ขาด '+(n-B.count(state,id))+')':'')).join(' · ');
+    const mineral=Object.entries(Ar.MINERALS).map(([id,r])=>`<span class="lg-tag">${esc(r.name)} T${r.tier} · ${B.count(state,id)} ชิ้น</span>`).join(' ');
+    const recipes=Object.entries(Ar.FORGE_RECIPES).map(([id,r])=>{
+      const m=Ar.MINERALS[Object.keys(r.needs).filter(k=>Ar.MINERALS[k]).sort((a,b)=>Ar.MINERALS[b].tier-Ar.MINERALS[a].tier)[0]];
+      return `<div class="lg-zone"><b>${esc(r.name)} · T${r.tier}</b>
+        <p class="lg-muted">วัตถุดิบ: ${needsHtml(r.needs)}<br>โอกาสสำเร็จ ${Math.round(Ar.chance(state,id)*100)}% · โอกาสโบนัสค่าสถานะ/คุณสมบัติอิงกับ${esc(m.name)} · วัตถุดิบใช้หมดเมื่อหลอม</p>
+        <button class="lg-btn" data-artisan-forge="${id}" ${inTower||a.tier<r.tier||!B.has(state,r.needs)?'disabled':''}>🔨 นัดไปหลอม${esc(r.name)}<small>${a.tier<r.tier?'ต้องสอบถึง Tier '+r.tier:inTower?'ต้องกลับเมืองก่อน':'เดินทางไปโรงตีเหล็กหลังเลิกงาน'}</small></button></div>`;
+    }).join('');
+    const food=Object.entries(Ar.SPECIAL_FOOD).map(([id,r])=>`<div class="lg-zone"><b>${esc(B.name(id))} · T${r.tier}</b><p class="lg-muted">${needsHtml(r.needs)}<br>บัฟ ${r.hours} ชั่วโมงเกม: ${esc(Object.entries(r.buff||{resist:r.resist}).map(([k,v])=>(Skills.STAT_NAME[k]||k)+' '+v).join(', '))}</p>
+      <button class="lg-btn" data-artisan-cook="${id}" ${inTower||!B.has(state,r.needs)||Math.max(1,Skills.tierOf(state,'cooking'))<r.tier?'disabled':''}>🍳 นัดทำอาหารพิเศษ</button></div>`).join('');
+    const edible=B.slotRows(state).filter(s=>Ar.SPECIAL_FOOD[s.id]).map(s=>`<button class="lg-btn" data-artisan-eat="${s.id}">🍽️ กิน${esc(B.name(s.id))} ×${s.n}<small>บัฟตามเวลาจริงในเกม</small></button>`).join('');
+    const buff=Ar.buffs(state).map(s=>`<div class="lg-zone">✨ ${esc(B.name(s.source))} · เหลือ ${Math.max(0,(s.until-Ar.now(state)).toFixed(1))} ชั่วโมงเกม</div>`).join('');
+    return `<h2>🔨 เหมือง · ตีเหล็ก · อาหารพิเศษ</h2><div class="lg-zone"><b>ช่างตีเหล็ก Tier ${a.tier}/5</b> · XP ${a.xp} · สำเร็จ ${a.successes}/${a.attempts}<br><small>ขุดพบแร่สูงสุด T${a.mineTier} · ปรุงสำเร็จ ${Object.keys(a.recipes).length} ตำรับ</small></div>
+      <h3>บัฟที่กำลังทำงาน</h3>${buff||'<p class="lg-muted">ไม่มีบัฟ</p>'}
+      <h3>แร่ในกระเป๋า (12 ชนิด)</h3><p class="lg-muted">${mineral}</p>
+      <h3>เควสเลื่อนขั้นช่างตีเหล็ก</h3><p class="lg-muted">${q.status==='max'?'ขั้นสูงสุดแล้ว':q.status==='training'?'ต้องมี XP '+q.spec.xp+' ตีสำเร็จ '+q.spec.success+' ครั้ง และทำครบ '+q.spec.variety+' สูตร':q.status==='ready'?'ผ่านบทนี้แล้ว กลับไปพบ NPC':'ต้องผ่านบททดสอบจากช่างตีเหล็ก (ขั้นที่ '+(q.stage+1)+'/3)'}</p>
+      ${q.status==='max'?'':`<button class="lg-btn" data-artisan-mentor="1" ${inTower||q.status==='training'||q.status==='active'?'disabled':''}>📜 นัดพบช่างตีเหล็กเพื่อ${q.status==='available'?'รับเควส':'ส่งบททดสอบ'}</button>`}
+      <h3>สูตรตีเหล็กจากแร่</h3>${recipes}
+      <h3>ทำอาหารเพิ่มค่าสถานะ</h3>${food}
+      <h3>อาหารพิเศษที่พกอยู่</h3>${edible||'<p class="lg-muted">ยังไม่มีอาหารพิเศษ</p>'}`;
+  }
+  // v120: full medicine, tier, and condition UI. Quests and craft use real after-work travel.
+  function alchemyHtml(){
+    const A=window.Alchemy,B=window.Bag;if(!A)return '<h2>ปรุงยา</h2><p>ระบบยังไม่พร้อม</p>';
+    const a=A.data(state),inTower=!!(X()&&X().active(state)),q=A.mentorStatus(state);
+    const severity=['ปกติ','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
+    const conditions=A.labels(state).map(s=>`<div class="lg-zone"><b>${s.icon} ${esc(s.name)} · ${severity[s.level]} (Lv.${s.level}/4)</b><div class="lg-bar"><i style="width:${s.level*25}%;background:${s.level>=3?'#d7615b':'#bfa35d'}"></i></div></div>`).join('');
+    const medicine=B.slotRows(state).filter(s=>B.ITEMS[s.id]&&B.ITEMS[s.id].kind==='medicine'||s.id==='clean_water');
+    const relief=Object.entries(A.RECIPES).map(([id,r])=>{
+      const needs=Object.entries(r.needs).map(([i,n])=>esc(B.name(i))+' ×'+n+(B.count(state,i)<n?' (ขาด '+(n-B.count(state,i))+')':'')).join(' · ');
+      const effects=Object.entries(r.remove).map(([i,n])=>esc(A.CONDITIONS[i].name)+' −'+n).join(' · ')+(r.buff?' · บัฟ '+r.hours+' ชั่วโมงเกม: '+esc(Object.entries(r.buff).map(([k,v])=>(Skills.STAT_NAME[k]||k)+' '+v).join(', ')):'');const steps=A.STEPS[r.form].join(' → ');
+      const allowed=a.tier>=r.tier,ready=B.has(state,r.needs),chance=Math.round(A.chance(state,id,'apothecary')*100);
+      return `<div class="lg-zone"><b>${iconHtml(id,30)} ${esc(B.name(id))}</b> <span class="lg-tag">T${r.tier} · ${r.form==='tablet'?'ยาเม็ด':'ยาน้ำ'}</span>
+        <p class="lg-muted">ผล: ${effects}<br>วัตถุดิบ: ${needs}<br>วิธีทำ: ${steps}<br>เวลา ${r.time} นาที · สำเร็จ ${chance}% · XP สำเร็จ +${4*r.tier}, พลาด +${r.tier}</p>
+        <button class="lg-btn" data-alchemy-craft="${id}" ${!allowed||!ready||inTower?'disabled':''}>🧪 ${allowed?'นัดไปปรุงที่ร้านยาหลังเลิกงาน':'🔒 ต้องเลื่อนเป็น Tier '+r.tier}<small>${inTower?'ต้องออกจากหอคอยก่อน':'ใช้วัตถุดิบจริงและมีโอกาสล้มเหลว'}</small></button></div>`;
+    }).join('');
+    const medicines=medicine.map(s=>{
+      const r=A.RECIPES[s.id],title=r?Object.entries(r.remove).map(([i,n])=>A.CONDITIONS[i].name+' −'+n).join(' · '):'';
+      return `<div class="lg-zone"><b>${iconHtml(s.id,28)} ${esc(B.name(s.id))} ×${s.n}</b> <small>${esc(title)}</small>
+      <button class="lg-btn" data-alchemy-use="${s.id}">ใช้ 1 ชิ้น${r&&r.form==='tablet'?' (ยาเม็ดออกฤทธิ์ช้า)':''}</button></div>`;
+    }).join('');
+    const P=A.patient(state),patientText=P.treated?'รักษาเรียบร้อยวันนี้':esc(A.CONDITIONS[P.id].name)+' · ระดับ '+P.level;
+    const clinic=medicine.filter(s=>A.RECIPES[s.id]&&A.RECIPES[s.id].remove[P.id]).map(s=>`<button class="lg-btn" data-alchemy-clinic="${s.id}" ${inTower||P.treated?'disabled':''}>🧑‍⚕️ นัดรักษาผู้ป่วยด้วย ${esc(B.name(s.id))}</button>`).join('');
+    const qDesc=q.status==='max'?'ถึงขั้นปรมาจารย์แล้ว':q.status==='training'?'ต้องมี XP '+q.spec.xp+', ปรุงสำเร็จ '+q.spec.success+' ครั้ง, เรียนรู้ '+q.spec.variety+' ตำรับก่อน':
+      q.status==='available'?'พร้อมค้นหาผู้สอนเพื่อเริ่มสายเควส':q.status==='ready'?'ผ่านบทนี้ กลับไปพบหมอยารับบทถัดไป':
+      q.stage===0?'ค้นพบสมุนไพร Tier '+q.spec.gather+' ขึ้นไป':q.stage===1?'ปรุงสำเร็จอีก '+q.spec.practice+' ครั้งนับจากรับบท':'รักษาอาการจริงสะสม '+q.spec.treat+' ระดับหลังรับบท';
+    return `<h2>🧪 สมุนไพรและการปรุงยา</h2>
+      <div class="lg-zone"><b>ระดับผู้ปรุงยา T${a.tier}/5</b> · XP ${a.xp} · สำเร็จ ${a.successes}/${a.attempts} ครั้ง · รู้จัก ${Object.keys(a.recipes).length} ตำรับ<br>
+      <small>ปลดล็อกสูตรตาม Tier ผู้ปรุงยา · ตัวละครไม่มีเลเวล</small></div>
+      <h3>สถานะผิดปกติ (0–4)</h3>${conditions||'<p>✅ ปกติ ไม่มีสถานะผิดปกติ</p>'}
+      ${a.pending.length?`<p class="lg-muted">⏳ ยาเม็ดกำลังรอออกฤทธิ์ ${a.pending.length} เม็ด</p>`:''}
+      <h3>ยาที่พกอยู่</h3>${medicines||'<p class="lg-muted">ไม่มียารักษาหรือน้ำดื่ม</p>'}
+      <h3>ผู้ป่วยที่ร้านหมอยาวันนี้</h3><p class="lg-muted">${patientText} · ให้ยาตรงอาการเพื่อสะสมประสบการณ์รักษาและเลื่อน Tier</p>${clinic||'<p class="lg-muted">ไม่มียาที่รักษาผู้ป่วยรายนี้ได้ในกระเป๋า</p>'}
+      <h3>เควสเลื่อนขั้นจาก NPC</h3><p class="lg-muted">${esc(qDesc)} · นับจากการกระทำจริง ไม่แจกขั้นจากการปรุงซ้ำอย่างเดียว</p>
+      ${q.status==='max'?'':`<button class="lg-btn" data-alchemy-mentor="1" ${inTower||q.status==='training'||q.status==='active'?'disabled':''}>📜 ${q.status==='ready'?'กลับไปรายงานบททดสอบ':'ไปพบหมอยาเพื่อขอรับภารกิจ'}<small>เดินทางไปหลังเลิกงานที่ร้านยา</small></button>`}
+      <h3>ตำรับยา ${Object.keys(A.RECIPES).length} สูตร</h3>${relief}`;
+  }
   // v108 stats come only from passive skills, gear and the worn title; skills have tiers, a proficiency bar and promotion trials
   function skillHtml() {
     const S = Skills, b = S.bonus(state), weak = (state.wounds && state.wounds.until || 0) >= state.day;
@@ -628,13 +713,33 @@
     const jobs = [['smithWork', 'ตีเหล็ก'], ['guildWork', 'เข้าหอคอยกับโล่เหล็ก'], ['compassWork', 'กิลด์เข็มทิศเงิน'], ['porterWork', 'แบกของเข้าหอคอย'], ['tmerchWork', 'กิลด์พ่อค้าหอคอย'], ['gchefWork', 'พ่อครัวกิลด์'], ['marketWork', 'รับจ้างที่ตลาด'], ['hotelWork', 'งานโรงแรม'], ['tavernWork', 'ผู้ช่วยครัว'], ['scrapWork', 'เก็บของเก่า'], ['cargoWork', 'กรรมกรลานเกวียน'], ['towerWins', 'ชนะมอนสเตอร์']]
       .filter(([k]) => state[k] > 0);
     const TYPE = { passive: 'พาสซีฟ', active: 'แอ็กทีฟ', life: 'สกิลชีวิต' };
+    const questCards = Object.entries(S.SKILL_QUESTS).map(([id, Q]) => {
+      const status = S.questState(state,id), record = state.skillQuests && state.skillQuests[id];
+      const stage = record && Number.isInteger(record.stage) ? record.stage : 0;
+      const chapter = S.questChapter(Q,stage), total = S.questChapterCount(Q);
+      const objective = chapter.objectives.map((o,i) => esc(o.text) + ': ' + Math.min(o.need,record && record.progress[i] || 0) + '/' + o.need).join('<br>');
+      const inTower = X() && X().active(state);
+      const target = S.TIERS[Q.rewardTier-1].name;
+      const buttonLabel = status === 'ready' ? stage+1 === total ? '🎁 กลับไปพบ NPC เพื่อเรียนสกิล' : '📜 กลับไปพบ NPC รับบทถัดไป' : '💬 นัดพบ NPC เพื่อรับเควส';
+      return `<div class="lg-zone"><b>${S.SKILLS[Q.reward].icon} ${esc(Q.name)}</b> <span class="lg-tag">${S.SKILLS[Q.reward].type === 'active' ? 'แอ็กทีฟหายาก' : 'พาสซีฟ'} · tier ${Q.rewardTier}</span>
+        <p class="lg-muted">ผู้สอน: ${esc(Q.npc)} · สถานที่: ${esc(LifeSim.PLACES[Q.place].name)}<br>รางวัล: ${esc(S.SKILLS[Q.reward].name)} ขั้น${esc(target)} · เควสต่อเนื่อง ${total} บท</p>
+        ${status === 'locked' ? `<small class="lg-muted">🔒 ต้องชนะในหอคอยอย่างน้อย ${Q.minWins} ครั้งก่อนรับเควส</small>` :
+          status === 'claimed' ? '<small>✓ ผ่านสายเควสครบ ได้รับการถ่ายทอดขั้นสูงแล้ว</small>' : `<small>บท ${stage+1}/${total}: ${esc(chapter.name)}<br>${objective}</small>`}
+        ${['available','ready'].includes(status) ? `<button class="lg-btn" data-skillquest="${id}" ${inTower ? 'disabled' : ''}>${buttonLabel}<small>ตัวละครไปพบผู้สอนหลังเลิกงาน${inTower ? ' · ต้องออกจากหอคอยก่อน' : ''}</small></button>` : ''}
+      </div>`;
+    }).join('');
     const skills = Object.entries(state.skills || {}).map(([id, sk]) => {
       const D = S.SKILLS[id], T = S.TIERS[sk.tier - 1], cap = T.cap, trial = state.trials[id], spec = S.trialOf(state, id);
       const eff = D.stat ? Object.entries(D.stat).map(([k, v]) => S.STAT_NAME[k] + ' +' + v[sk.tier - 1]).join(' ') : D.power ? 'พลังต่อสู้ +' + D.power[sk.tier - 1] : D.desc;
       let tr = '';
       if (trial && spec) tr = trial.accepted ? `<small style="display:block;color:var(--lg-gold)">ภารกิจเลื่อนขั้น: ${esc(spec.text)} · ${trial.done}/${spec.need}</small>`
         : `<button class="lg-btn" data-trial="${id}">รับภารกิจเลื่อนขั้นจาก${esc(D.teacher)}<small>${esc(spec.text)}</small></button>`;
+      const triggerText = D.trigger ? ({ hpLost: 'เมื่อเสียเลือดเกิน ' + (D.trigger.value*100) + '%', hpBelow: 'เมื่อสุขภาพต่ำกว่า ' + D.trigger.value,
+        outnumbered: 'เมื่ออยู่คนเดียวหรือหลุดจากทีม', terrain: 'เมื่ออยู่ภูมิประเทศ ' + D.trigger.value,
+        nearDeath: 'เมื่อการต่อสู้กำลังจะถึงตาย' }[D.trigger.when] || 'เงื่อนไขพิเศษ') +
+        ': ' + (D.effect.name || D.effect.kind) + ' (ปลดล็อก tier ชำนาญ)' + (D.oncePerDay ? ' · วันละครั้ง' : '') : '';
       return `<div class="lg-zone"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
+        ${triggerText ? `<small style="display:block;color:var(--lg-gold)">${esc(triggerText)}${sk.tier < 2 ? ' 🔒' : ' ✓'}</small>` : ''}
         ${D.type === 'active' ? `<button class="lg-btn ${S.activeOf(state) === id ? 'lg-cur' : ''}" data-active="${id}">${S.activeOf(state) === id ? '✓ กำลังใช้สกิลนี้' : 'เลือกเป็นสกิลแอ็กทีฟ'}</button>` : ''}
         ${cap ? `<div class="lg-bar" style="margin:6px 0 2px"><i style="width:${Math.max(3, sk.xp / cap * 100)}%"></i></div><small class="lg-muted">ความชำนาญ ${sk.xp}/${cap}${sk.xp >= cap ? ' · เต็มขั้นแล้ว' : ''}</small>` : '<small class="lg-muted">ขั้นสูงสุด</small>'}${tr}</div>`;
     }).join('') || '<p class="lg-muted">ยังไม่มีสกิล ทำงานหรือฝึกแล้วจะได้สกิลแรก</p>';
@@ -650,10 +755,11 @@
     return `<h2>สกิล</h2>
       <p>พลังต่อสู้ <b style="color:var(--lg-gold);font-size:20px">${S.power(state)}</b> <span class="lg-muted">(กำลัง + คล่องตัว + ปัญญาบางส่วน + อาวุธ เกราะ และวิชาดาบ)</span></p>
       <h3>ค่าสถานะ</h3><p class="lg-muted">เพิ่มได้จากสกิลพาสซีฟ อุปกรณ์ และฉายาเท่านั้น</p><div class="lg-skill">
-        ${stat('strength', 'สู้ แบกของ')}${stat('agility', 'หลบ หนีเอาตัวรอด')}${stat('intelligence', 'มินิเกม แผนที่ ตีราคา')}
+        ${stat('strength', 'สู้ แบกของ')}${stat('agility', 'หลบ หนีเอาตัวรอด')}${stat('intelligence', 'มินิเกม แผนที่ ตีราคา')}${stat('magicPower','เพิ่มประสิทธิภาพสกิลเวท')}
         ${bar('ชื่อเสียง', state.rep || 0, 50, 'คนในเมืองเกรงใจมากขึ้น')}
         ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
+      <h3>เควสเรียนสกิลจาก NPC</h3><p class="lg-muted">นัดพบผู้สอนหลังเลิกงาน → ทำบททดสอบ → กลับไปรับสกิล แอ็กทีฟขั้นสูงต้องผ่านการต่อสู้ยากมาก และจะใช้ได้เฉพาะเมื่อวงล้อเปิดจังหวะ</p>${questCards}
       <h3>สกิล</h3><p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
       ${Object.entries(S.BOOK_SKILL).flatMap(([book,id])=>B().list(state).filter(s=>s.id===book).map(s=>`<button class="lg-btn" data-read="${book}" data-rarity="${esc(s.rarity||'normal')}">📖 อ่าน ${esc(B().name(book))} <small>${esc(s.rarity||'normal')} · ฝึก ${esc(S.SKILLS[id].name)} ×${S.rarityMultiplier(s.rarity||'normal')}</small></button>`)).join('')}
       ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการ · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
@@ -670,7 +776,7 @@
     const towerMap = x ? (() => {
       const f = E.floorWorld(state, x.floor), safe = E.safeInfo(state);
       if (safe) return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(safe.name)}</h3><p class="lg-muted">${esc(safe.desc)} · ทั้งชั้นไม่มีอสูร ศิลาทั้งสองชนิดพร้อมใช้</p><button class="lg-btn lg-primary" data-safe="1">🏕 เปิดบริการ · ${esc(safe.name)}</button>`;
-      return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(E.terrainOf(x.floor).name)}</h3><p class="lg-muted">สี่อาณาเขตของอสูร (เหนือ→ตะวันออก→ใต้→ตะวันตก→เหนือ) จำนวนเปลี่ยนทุกวันแม้ผู้เล่นไม่อยู่</p><div class="lg-tower-directions">${f.species.map(y => `<div class="lg-zone"><b>${esc(y.direction)}</b><p>${esc(y.name)}</p><small>จำนวน ${y.count} · ระดับ ${esc(E.RANKS[Math.min(6,[60,120,210,340,480,650].filter(z=>y.champion>=z).length)])} · พลังหัวฝูง ${Math.round(y.champion)}</small></div>`).join('')}</div>`;
+      return `<h3>แผนที่หอคอย ชั้น ${x.floor} · ${esc(E.terrainOf(x.floor,state).name)}</h3><p class="lg-muted">เขตธีมชั้น ${Math.floor((x.floor-1)/10)*10+1}–${Math.min(100,Math.floor((x.floor-1)/10)*10+10)} · สุ่มครั้งเดียวต่อโลก</p><p class="lg-muted">สี่อาณาเขตของอสูร (เหนือ→ตะวันออก→ใต้→ตะวันตก→เหนือ) จำนวนเปลี่ยนทุกวันแม้ผู้เล่นไม่อยู่</p><div class="lg-tower-directions">${f.species.map(y => `<div class="lg-zone"><b>${esc(y.direction)}</b><p>${esc(y.name)}</p><small>จำนวน ${y.count} · ระดับ ${esc(E.RANKS[Math.min(6,[60,120,210,340,480,650].filter(z=>y.champion>=z).length)])} · พลังหัวฝูง ${Math.round(y.champion)}</small></div>`).join('')}</div>`;
     })() : '';
     const seenFloors = new Set(Object.entries(state.tower && state.tower.floors || {})
       .filter(([floor, f]) => E && E.isSafeFloor(+floor) && f.visited).map(([floor]) => +floor));
@@ -692,11 +798,44 @@
         <svg viewBox="0 0 ${W} 104"><rect x="6" y="51" width="${W - 12}" height="6" rx="3" fill="#ffffff20"/>${marks}${me}</svg></div>`;
     }).join('') + `<p class="lg-muted">ตอนนี้: ${esc(s.place || '')} · ${esc(s.act || '')}</p>`;
   }
+  // ---------- v118: hidden progression quests (no automatic story popups) ----------
+  function storyHtml() {
+    const M=window.MainStory;
+    if(!M)return '<h2>สมุดข่าวลือ</h2><p>ระบบเมนเควสไม่พร้อมใช้งาน</p>';
+    const known=M.journal(state,B(),Skills),complete=known.filter(q=>q.status==='completed').length;
+    const inTower=!!(X()&&X().active(state));
+    const visitedPlaces=['inn','porter','smith','compass','apothecary','guild','shrine','tower'];
+    const history=M.historyNote(state);
+    const rumorCards=known.map(q=>{
+      const r=q.record,stage=r&&q.steps[r.stage],ready=q.canTurnIn;
+      const miss=stage&&stage.type==='materials'?Object.entries(stage.items).map(([id,n])=>esc(B().name(id))+': ส่งแล้ว '+Math.min(n,r?.delivered?.[id]||0)+'/'+n+' · มี '+B().count(state,id)).join(' · '):
+        stage&&stage.type==='skill'?esc(Skills.SKILLS[stage.skill]?.name||stage.skill)+' ระดับ '+Skills.tierOf(state,stage.skill)+'/'+stage.tier:
+        stage&&stage.type==='win'?'พิชิต'+(stage.winType==='boss'?'บอส':stage.winType==='elite'?'จ่าฝูงหรือผู้พิทักษ์':'ศัตรู')+' '+Math.min(stage.need,r&&r.progress||0)+'/'+stage.need+' (ชั้น '+stage.minFloor+' ขึ้นไป)':
+        stage&&stage.type==='return'?'กลับไปพบผู้สอนเพื่อรับรางวัล':'';
+      const action=q.status==='ready'?'🗣️ นัดพบ NPC เพื่อเปิดเควส':q.status==='active'?(ready?'✅ กลับไปส่งบททดสอบ':'🗣️ ขอคำแนะนำจากผู้สอน'):'';
+      const cur=q.status==='completed'?'✓ สำเร็จ':q.status==='ready'?'ครบเบาะแส พร้อมพบผู้สอน':q.status==='active'?'บท '+(r.stage+1)+'/'+q.steps.length:'เบาะแสไม่ครบ';
+      return `<div class="lg-story-chapter"><h3>${esc(q.name)} <span class="lg-tag">${esc(cur)}</span></h3>
+        <p class="lg-muted">${q.status==='rumor'?'มีเพียงข่าวลือและหลักฐานที่กระจัดกระจาย':esc(q.npc)+' · เริ่มค้นพบได้ช่วงชั้น '+q.minFloor+' ขึ้นไป'}</p>
+        ${q.status==='rumor'?`<small>เบาะแสจากผู้คน ${q.rumor.town?'✓':'?'} · หลักฐานในหอคอย ${q.rumor.tower?'✓':'?'}</small>`:''}
+        ${stage&&q.status==='active'?`<p>${esc(stage.name)} · ${miss}</p>`:''}
+        ${q.status==='completed'?'<p>ได้รับรางวัลแล้ว · ไม่มีการรับซ้ำ</p>':action?`<button class="lg-btn" data-mainquest="${q.id}" ${inTower?'disabled':''}>${esc(action)}<small>${inTower?'ต้องกลับเมืองก่อน':'จะเดินไปพบผู้สอนหลังเลิกงาน'}</small></button>`:''}
+      </div>`;
+    }).join('');
+    return `<h2>📖 สมุดข่าวลือและเมนเควส</h2>
+      <p class="lg-muted">หอคอย 100 ชั้น · เมนเควสลับ 10 สายของชั้น 1–50 · เป้าหมายคือฝึกสกิล ฟาร์มของ และเพิ่มโอกาสกลับบ้าน</p>
+      <p>ค้นพบ ${known.length}/10 สาย · สำเร็จ ${complete}/10 สาย · <b>ไม่แจกเควสเมื่อขึ้นชั้น</b></p>
+      ${history?`<p class="lg-muted">${esc(history)}</p>`:''}
+      <h3>ตามข่าวลือในเมือง</h3><p class="lg-muted">เลือกสถานที่ที่จะสอบถาม ตัวละครจะเดินทางไปจริงหลังเลิกงาน · แต่ละแห่งสอบถามได้วันละครั้ง · อาจไม่พบข่าวสำคัญ</p>
+      ${visitedPlaces.map(place=>`<button class="lg-btn" data-story-search="${place}" ${inTower?'disabled':''}>🔎 สอบถามผู้คนที่${esc(LifeSim.PLACES[place].name)}</button>`).join('')}
+      <h3>เควสที่ค้นพบ</h3>${rumorCards||'<p class="lg-muted">ยังไม่พบเบาะแส ลองไปพบผู้คนและสำรวจหอคอย</p>'}
+      <p class="lg-muted">เบาะแสจะพบจากเหตุการณ์สำรวจและการพบ NPC จริง วัตถุดิบต้องเก็บในกระเป๋าก่อนส่ง ผู้สอนเปิดบทใหม่หลังจบบทก่อนเท่านั้น</p>
+      <p class="lg-muted">ชั้น 51–100 ยังไม่เปิดสายเมนเควสใหม่ และไม่มีพรจนกว่าจะพิชิตชั้น 100</p>`;
+  }
   function panel(which) {
     if (open) return;
     if (typeof which === 'string' && UI_ICON[which]) tab = which;
     const L = state.life;
-    const body = tab === 'bag' ? bagHtml() : tab === 'skill' ? skillHtml() : tab === 'map' ? mapHtml() : charHtml();
+    const body = tab === 'bag' ? bagHtml() : tab === 'alchemy' ? alchemyHtml() : tab === 'artisan' ? artisanHtml() : tab === 'skill' ? skillHtml() : tab === 'map' ? mapHtml() : tab === 'story' ? storyHtml() : charHtml();
     const d = el(`<div class="lg-card"><div class="lg-tabs">${TABS.map(([id, n]) => `<button data-tab="${id}" class="${id === tab ? 'on' : ''}">${uiIcon(id, 34)}${n}</button>`).join('')}</div>
       ${body}
       <button class="lg-btn lg-primary" data-a="close">ปิด</button></div>`);
@@ -704,6 +843,17 @@
     const again = () => { d.remove(); block(null); save(); panel(); };
     const on = (sel, fn) => { const x = d.querySelector(sel); if (x) x.onclick = fn; };
     d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; d.remove(); block(null); panel(); });
+    d.querySelectorAll('[data-story-search]').forEach(b=>b.onclick=()=>{
+      const place=b.dataset.storySearch;if(X()&&X().active(state))return;
+      const day=LifeSim.setOrder(state,{kind:'rumor',place,repeat:false},clock);
+      log('นัดไปสืบข่าวที่'+LifeSim.PLACES[place].name+' วันที่ '+day);again();
+    });
+    d.querySelectorAll('[data-mainquest]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.mainquest;if(X()&&X().active(state))return;
+      const Q=window.MainStory&&window.MainStory.QUESTS[id];if(!Q)return;
+      const day=LifeSim.setOrder(state,{kind:'mainquest',questId:id,repeat:false},clock);
+      log('นัดพบ'+Q.npc+' เกี่ยวกับเมนเควส วันที่ '+day);again();
+    });
     d.querySelectorAll('[data-room]').forEach(b => b.onclick = () => {
       LifeSim.setRoomPref(state, b.dataset.room); log('ตั้งใจพัก' + LifeSim.ROOMS[b.dataset.room].name + 'ตั้งแต่คืนนี้'); again(); });
     d.querySelectorAll('[data-order]').forEach(b => b.onclick = () => { d.remove(); block(null); orderCard(b.dataset.order); });
@@ -715,6 +865,13 @@
     d.querySelectorAll('[data-active]').forEach(b => b.onclick = () => { if (Skills.selectActive(state, b.dataset.active)) log('เลือกสกิลแอ็กทีฟ ' + Skills.SKILLS[b.dataset.active].name); again(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
 
+    d.querySelectorAll('[data-skillquest]').forEach(b => b.onclick = () => {
+      const id = b.dataset.skillquest, Q = Skills.SKILL_QUESTS[id], status = Skills.questState(state,id);
+      if (!Q || !['available','ready'].includes(status) || X() && X().active(state)) return;
+      const day = LifeSim.setOrder(state, {kind:'skillquest', questId:id, repeat:false}, clock);
+      log('นัดพบ' + Q.npc + ' เพื่อ' + (status === 'ready' ? 'ส่งบททดสอบหรือรับบทถัดไป' : 'รับเควส') + ' วันที่ ' + day);
+      again();
+    });
     d.querySelectorAll('[data-trial]').forEach(x => x.onclick = () => { Skills.accept(state, x.dataset.trial); log('รับภารกิจเลื่อนขั้น ' + Skills.SKILLS[x.dataset.trial].name); again(); });
     d.querySelectorAll('[data-title]').forEach(x => x.onclick = () => { Skills.wearTitle(state, x.dataset.title); log('ใช้ฉายา "' + Skills.TITLES[x.dataset.title].name + '"'); again(); });
     d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip;
@@ -727,6 +884,22 @@
     d.querySelectorAll('[data-chef]').forEach(b => b.onclick = () => { L.chefNext = b.dataset.chef; log('พรุ่งนี้ไปทำครัวที่กิลด์ใหม่'); again(); });
     d.querySelectorAll('[data-stash]').forEach(b => b.onclick = () => { const day = LifeSim.requestStash(state, b.dataset.stash, clock);
       log((b.dataset.stash === 'in' ? 'ฝากของ' : 'รับของ') + 'ที่ห้องเก็บของกิลด์' + (day === state.day ? 'หลังเลิกงานวันนี้' : 'พรุ่งนี้')); again(); });
+    d.querySelectorAll('[data-artisan-eat]').forEach(b=>b.onclick=()=>{state.townClock=clock;const r=Artisan.consumeFood(state,b.dataset.artisanEat);log(r.why);again();});
+    d.querySelectorAll('[data-artisan-forge],[data-artisan-cook]').forEach(b=>b.onclick=()=>{if(X()&&X().active(state))return;const isForge=!!b.dataset.artisanForge,id=b.dataset.artisanForge||b.dataset.artisanCook;
+      const day=LifeSim.setOrder(state,{kind:isForge?'artisanForge':'artisanCook',recipe:id,repeat:false},clock);log('นัด'+(isForge?'ตีเหล็ก':'ทำอาหาร')+' วันที่ '+day);again();});
+    on('[data-artisan-mentor]',()=>{if(X()&&X().active(state))return;const day=LifeSim.setOrder(state,{kind:'artisanMentor',repeat:false},clock);log('นัดพบช่างตีเหล็กวันที่ '+day);again();});
+    d.querySelectorAll('[data-alchemy-use]').forEach(b=>b.onclick=()=>{state.townClock=clock;const r=Alchemy.use(state,b.dataset.alchemyUse,clock);log(r.why);again();});
+    d.querySelectorAll('[data-alchemy-craft]').forEach(b=>b.onclick=()=>{if(X()&&X().active(state))return;const id=b.dataset.alchemyCraft;const day=LifeSim.setOrder(state,{kind:'alchemy',recipe:id,repeat:false},clock);log('นัดไปปรุง'+B().name(id)+' หลังเลิกงาน วันที่ '+day);again();});
+    on('[data-alchemy-mentor]',()=>{if(X()&&X().active(state))return;const day=LifeSim.setOrder(state,{kind:'alchemyMentor',repeat:false},clock);log('นัดพบผู้สอนปรุงยาที่ร้านยา วันที่ '+day);again();});
+    d.querySelectorAll('[data-alchemy-clinic]').forEach(b=>b.onclick=()=>{if(X()&&X().active(state))return;const day=LifeSim.setOrder(state,{kind:'alchemyClinic',recipe:b.dataset.alchemyClinic,repeat:false},clock);log('นัดไปรักษาผู้ป่วยที่ร้านยา วันที่ '+day);again();});
+    on('[data-inv-auto]', () => { const enabled=B().setAuto(state,!B().auto(state));log('จัดการกระเป๋าอัตโนมัติ: '+(enabled?'เปิด':'ปิด'));again(); });
+    d.querySelectorAll('[data-drop-one]').forEach(x=>x.onclick=()=>{const n=B().discardSlot(state,x.dataset.dropOne,1);if(n)log('ทิ้งของ 1 ชิ้น');again();});
+    d.querySelectorAll('[data-drop-all]').forEach(x=>x.onclick=()=>{const key=x.dataset.dropAll,row=B().slotRows(state).find(r=>r.key===key);if(row&&confirm('ทิ้ง '+B().name(row.id)+' ทั้งหมด ×'+row.n+' ?')){B().discardSlot(state,key,'all');log('ทิ้ง'+B().name(row.id)+' ×'+row.n);again();}});
+    d.querySelectorAll('[data-move-up]').forEach(x=>x.onclick=()=>{B().moveSlot(state,x.dataset.moveUp,-1);again();});
+    d.querySelectorAll('[data-move-down]').forEach(x=>x.onclick=()=>{B().moveSlot(state,x.dataset.moveDown,1);again();});
+    d.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{const r=B().claimLoot(state,x.dataset.pick);log(r.why);if(r.ok&&X()&&X().X(state)){const ex=X().X(state);ex.loot[r.id]=(ex.loot[r.id]||0)+r.n;}again();});
+    d.querySelectorAll('[data-leave]').forEach(x=>x.onclick=()=>{if(B().leaveLoot(state,x.dataset.leave))log('ปล่อยของที่พบไว้');again();});
+    on('[data-use-potion]',()=>{if(B().take(state,'potion',1)){state.health=Math.min(100,state.health+30);log('ดื่มยาฟื้นแรง สุขภาพ +30');}again();});
     on('[data-a=eatbag]', () => { L.eatBag = !L.eatBag; again(); });
     on('[data-a=nocmd]', () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); again(); });
     on('[data-a=close]', () => closeOverlay(d));
@@ -812,6 +985,8 @@
     }
   }
   function drive() {
+    if(window.Artisan&&state&&state.life){state.townClock=clock;const expired=Artisan.expire(state);if(expired)log('บัฟหมดเวลา '+expired+' รายการ');}
+    if(window.Alchemy&&state&&state.life){const notices=Alchemy.flush(state,clock);for(const n of notices)log(n);if(notices.length)save();}
     const started = !!(state.life && state.life.started);
     if (hudEl) hudEl.style.display = started ? '' : 'none';
     const mn = document.getElementById('lgmenu'); if (mn) mn.style.display = started ? '' : 'none';

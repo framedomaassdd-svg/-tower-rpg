@@ -17,6 +17,9 @@
   const Skills = (typeof globalThis !== 'undefined' && globalThis.Skills) || (typeof require === 'function' ? require('./skills.js') : null);
   // v109 expeditions into the tower (expedition.js)
   const Exp = (typeof globalThis !== 'undefined' && globalThis.Expedition) || (typeof require === 'function' ? require('./expedition.js') : null);
+  const Alchemy = (typeof globalThis !== 'undefined' && globalThis.Alchemy) || (typeof require === 'function' ? require('./alchemy.js') : null);
+  const Artisan = (typeof globalThis !== 'undefined' && globalThis.Artisan) || (typeof require === 'function' ? require('./artisan.js') : null);
+  const MainStory = (typeof globalThis !== 'undefined' && globalThis.MainStory) || (typeof require === 'function' ? require('./main-story.js') : null);
   const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24198, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
@@ -147,10 +150,10 @@
     const origin = ORIGINS[Math.floor(r() * ORIGINS.length)];
     st.profession = origin.name;
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
-    st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5 };
-    st.skills = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null;
+    st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5, magicPower: 15 };
+    st.skills = {}; st.skillQuests = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null; st.mainStory = null;
     Skills.recalc(st);
-    st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; if (Bag) Bag.add(st, 'ration', 1);
+    st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; st.bagPending=[]; st.bagPendingNext=0; st.inventoryAuto=true; st.inventoryVersion=120; st.conditions={}; st.alchemy=null; st.artisan=null; st.buffs=[]; if (Bag) Bag.add(st, 'ration', 1);
     st.life = { v: 1, origin: origin.id, age: 18 + Math.floor(r() * 28), path: origin.suggest, pendingPath: null,
       started: false, done: {}, sleptAt: 'inn', homeTonight: 'inn', roomPref: 'mid', roomSlept: 'mid', roomTonight: 'mid', focusDay: 0,
       restDay: 0, todayStars: null, workedDay: 0,
@@ -168,8 +171,11 @@
     if (!PLACES[L.homeTonight]) L.homeTonight = 'inn';
     for (const k of ['roomPref', 'roomSlept', 'roomTonight']) if (!ROOMS[L[k]]) L[k] = 'mid';
     if (Bag) Bag.migrate(st);
+    if (Alchemy) Alchemy.data(st);
+    if (Artisan) Artisan.data(st);
     if (Skills) Skills.recalc(st);
     if (Exp) { Exp.ensureWorld(st); if (L.exp && !L.exp.over && Exp.isSafeFloor(L.exp.floor)) Exp.safeInfo(st); }
+    if (MainStory) MainStory.ensure(st);
     if (L.eatBag === undefined) L.eatBag = true;
     return true;
   }
@@ -210,12 +216,13 @@
     const L = st.life || {}, V = (Bag && Bag.vehicles(st)) || {}, T = L.rideDay && L.rideDay.day === st.day ? L.rideDay : L;
     const mode = T.ride && V[T.ride] ? T.ride : null;
     const weak = mode === 'horse' && (V.horse.hungry || 0) >= 2;            // a hungry horse only trots
-    return { mode, mult: mode ? (weak ? 1.6 : Bag.ITEMS[mode].speed) : 1, coach: !mode && !!T.coach, n: 0 };
+    return { mode, mult: mode ? (weak ? 1.6 : Bag.ITEMS[mode].speed) : 1, coach: !mode && !!T.coach, n: 0,
+      burden: Bag ? Bag.loadStatus(st,st.strength).speed : 1 };
   }
   const nearest = (list, x) => list.reduce((a, b) => Math.abs(b - x) < Math.abs(a - x) ? b : a);
   // one stretch along a street: walk, ride, or walk–wait–coach–walk
   function stretch(t, x0, x1, zone, to, act) {
-    const R = RIDE, mk = (t0, a, b, v, extra) => Object.assign({ kind: 'walk', t0, t1: t0 + Math.abs(b - a) / v, x0: a, x1: b, y: STREET_Y, place: to, act, zone }, extra || {});
+    const R = RIDE, walkSpeed = Math.max(1, SPEED * (R.burden===undefined ? 1 : R.burden)), mk = (t0, a, b, v, extra) => Object.assign({ kind: 'walk', t0, t1: t0 + Math.abs(b - a) / v, x0: a, x1: b, y: STREET_Y, place: to, act, zone }, extra || {});
     // v96: anything on wheels or hooves uses the road, not the sidewalk: step down, ride along it, step back up
     const onRoad = (t0, a, b, v, ride, extra) => {
       const down = { kind: 'walk', t0, t1: t0 + ROAD_STEP, x0: a, x1: a, y: STREET_Y, y1: ROAD_Y, place: to, act, zone, ride };
@@ -223,19 +230,19 @@
       const up = { kind: 'walk', t0: along.t1, t1: along.t1 + ROAD_STEP, x0: b, x1: b, y: ROAD_Y, y1: STREET_Y, place: to, act: along.act, zone, ride };
       return [down, along, up];
     };
-    if (R.mode) return Math.abs(x1 - x0) < 60 ? [mk(t, x0, x1, SPEED)] : onRoad(t, x0, x1, SPEED * R.mult, R.mode);
+    if (R.mode) return Math.abs(x1 - x0) < 60 ? [mk(t, x0, x1, walkSpeed)] : onRoad(t, x0, x1, SPEED * R.mult, R.mode);
     const stops = COACH[zone];
     if (R.coach && stops && Math.abs(x1 - x0) >= COACH_MIN) {
       const sa = nearest(stops, x0), sb = nearest(stops, x1);
       if (sa !== sb && Math.abs(sb - sa) > Math.abs(x1 - x0) * 0.5) {
-        const out = [], w1 = mk(t, x0, sa, SPEED); out.push(w1);
+        const out = [], w1 = mk(t, x0, sa, walkSpeed); out.push(w1);
         const wait = { kind: 'stay', t0: w1.t1, t1: w1.t1 + COACH_WAIT, x0: sa, x1: sa, y: STREET_Y, place: to, act: 'รอรถม้าโดยสารที่ป้าย', zone, milestone: 'coach' + (++R.n) };
         const ride = onRoad(wait.t1, sa, sb, SPEED * COACH_SPEED, 'coach', { act: 'นั่งรถม้าโดยสาร' });
-        out.push(wait, ...ride, mk(ride[2].t1, sb, x1, SPEED));
+        out.push(wait, ...ride, mk(ride[2].t1, sb, x1, walkSpeed));
         return out;
       }
     }
-    return [mk(t, x0, x1, SPEED)];
+    return [mk(t, x0, x1, walkSpeed)];
   }
   function route(t0, from, to, act) {
     const za = zoneOf(from), zb = zoneOf(to);
@@ -393,7 +400,10 @@
   }
   function due(st, clock) {
     const L = st.life;
-    return milestones(st).filter(([k, t]) => t <= clock + 1e-9 && L.done[k] !== st.day).map(([k]) => k);
+    // v119: an immobile player cannot complete scheduled travel, work or tower exploration off-screen.
+    if (Bag && Bag.loadStatus(st,st.strength).immobile) return [];
+    return milestones(st).filter(([k,t])=>t<=clock+1e-9 && L.done[k]!==st.day &&
+      !(L.weightSkipDay===st.day && t<L.weightSkipClock-1e-9)).map(([k])=>k);
   }
   function sample(st, clock) {
     const c = clamp(Number.isFinite(clock) ? clock : 0, 0, 19.999);
@@ -402,10 +412,27 @@
     for (const seg of segs) if (c >= seg.t0 && c < seg.t1) { s = seg; break; }
     const f = s.kind !== 'stay' && s.t1 > s.t0 ? clamp((c - s.t0) / (s.t1 - s.t0), 0, 1) : 0;
     const x = s.x0 + (s.x1 - s.x0) * f, y = s.y1 !== undefined ? s.y + (s.y1 - s.y) * f : s.y;
-    return { x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
+    const result={ x, y, hidden: !!s.hidden, moving: s.kind !== 'stay', face: s.x1 > s.x0 ? 1 : s.x1 < s.x0 ? -1 : 0,
       zone: s.zone || zoneOf(s.place), lane: s.lane || null, laneT: s.kind === 'lane' ? f : 0,
       act: s.act, place: PLACES[s.place].name, anim: c * 30,
       task: s.task || null, ride: s.ride || null, room: s.room || null, sleep: !!s.sleep, rest: !!s.rest, lie: !!s.lie, shelter: s.shelter || null, working: !!s.working, eating: !!s.eating, tower: !!s.tower };
+    const L=st.life||{}, load=Bag&&Bag.loadStatus(st,st.strength);
+    if(load&&load.immobile){
+      if(!L.weightAnchor) L.weightAnchor={x:Number.isFinite(st.position)?st.position:x,
+        y:Number.isFinite(st.positionY)?st.positionY:y,zone:result.zone,day:st.day,hidden:result.hidden};
+      return {...result,x:L.weightAnchor.x,y:L.weightAnchor.y,zone:L.weightAnchor.zone,
+        hidden:L.weightAnchor.hidden,moving:false,ride:null,working:false,act:'สัมภาระหนักจนเดินไม่ได้ · ลดน้ำหนักในกระเป๋า'};
+    }
+    if(L.weightAnchor){ L.weightResume={...L.weightAnchor,at:c,day:st.day};L.weightAnchor=null;
+      L.weightSkipDay=st.day;L.weightSkipClock=c; }
+    if(L.weightResume&&L.weightResume.day===st.day && c<L.weightResume.at+.4){
+      const k=clamp((c-L.weightResume.at)/.4,0,1);
+      return {...result,x:L.weightResume.x+(result.x-L.weightResume.x)*k,
+        y:L.weightResume.y+(result.y-L.weightResume.y)*k,
+        zone:k<.5?L.weightResume.zone:result.zone,moving:true,hidden:k<.5?L.weightResume.hidden:result.hidden};
+    }
+    if(L.weightResume&&L.weightResume.day!==st.day) L.weightResume=null;
+    return result;
   }
 
   // ---- daily effects ----------------------------------------------------
@@ -494,13 +521,38 @@
   // the stops an order adds after work; cooked = dinner is what got cooked
   function orderStops(st, O) {
     const stops = [];
+    if (O.kind === 'rumor') {
+      if (!MainStory || !PLACES[O.place]) return null;
+      stops.push({place:O.place,dur:0.45,act:'ถามข่าวและสืบเบาะแสใน'+PLACES[O.place].name,task:'rumor'});
+      return {stops};
+    }
+    if (O.kind === 'mainquest') {
+      const q=MainStory&&MainStory.QUESTS[O.questId];if(!q||!PLACES[q.place])return null;
+      stops.push({place:q.place,dur:0.6,act:'ตามหาผู้รู้เกี่ยวกับ'+q.name,task:'mainquest'});
+      return {stops};
+    }
+    if(['artisanForge','artisanMentor','artisanCook'].includes(O.kind)){
+      if(!Artisan)return null;
+      const smith=O.kind!=='artisanCook',place=smith?'smith':'tavern';
+      const name=O.kind==='artisanForge'?'หลอมอุปกรณ์จากแร่':O.kind==='artisanMentor'?'รับบททดสอบช่างตีเหล็ก':'ปรุงอาหารพิเศษ';
+      stops.push({place,dur:O.kind==='artisanForge'?1.2:0.65,act:name,room:smith?'forge':'kitchen',task:smith?'forge':'cook'});return {stops};
+    }
+    if (O.kind === 'alchemy' || O.kind === 'alchemyMentor' || O.kind === 'alchemyClinic') {
+      if(!Alchemy)return null;stops.push({place:'apothecary',dur:O.kind==='alchemy'?Math.max(.35,Math.min(4,(Alchemy.RECIPES[O.recipe]?.time||30)/75)):.6,act:O.kind==='alchemy'?'ทดลองปรุงยาที่ร้านยา':O.kind==='alchemyClinic'?'รักษาผู้ป่วยที่ร้านยา':'ขอรับบททดสอบจากหมอยา',room:'apothecary',task:'alchemy'});return {stops};
+    }
+    if (O.kind === 'skillquest') {
+      const Q = Skills.SKILL_QUESTS[O.questId]; if (!Q || !PLACES[Q.place]) return null;
+      stops.push({place:Q.place, dur:0.4, act:'คุยเรื่องเควสสกิลกับ' + Q.npc, task:'mentor'});
+      return {stops};
+    }
     if (O.kind === 'buy') {
       const S = Bag.SHOPS[O.shop]; if (!S) return null;
       stops.push({ place: S.place, dur: 0.25, act: 'ซื้อของที่' + S.name, room: S.place === 'bakery' ? 'bakery' : S.place === 'smith' ? 'forge' : null, task: 'buy' });
       return { stops };
     }
     if (O.kind === 'cook') {
-      const R = Bag.RECIPES[O.recipe]; if (!R) return null;
+      if(O.recipe==='meal_herbal' && !(st.mainStory&&st.mainStory.herbalRecipe))return say(st,'ต้องเรียนสูตรน้ำสมุนไพรจากเมนเควสก่อน');
+      const R = Bag.RECIPES[O.recipe]; if (!R || O.recipe==='meal_herbal' && !(st.mainStory&&st.mainStory.herbalRecipe)) return null;
       const need = Bag.missing(st, R.needs), stove = stovePlace(st, O);
       if (Object.keys(need.items).length) stops.push({ place: 'bazaar', dur: 0.2, act: 'ซื้อวัตถุดิบในตลาด', task: 'buy' });
       stops.push({ place: stove.place, dur: 0.45, act: 'ทำ' + Bag.name(O.recipe) + 'ที่' + stove.name, task: 'cook',
@@ -508,7 +560,7 @@
       return { stops, cooked: true };
     }
     if (O.kind === 'forge') {
-      if (!Bag.FORGE[O.item]) return null;
+      if (!Bag.FORGE[O.item] || O.item==='guardianVest' && !(st.mainStory&&st.mainStory.blueprint)) return null;
       stops.push({ place: 'smith', dur: 0.6, act: 'ตี' + Bag.name(O.item) + 'เองในโรงตีเหล็ก', room: 'forge', task: 'forge' });
       return { stops };
     }
@@ -537,12 +589,31 @@
   // milestone 'errand' / 'errand2' / 'cook' while an order runs
   function applyOrder(st, k) {
     const L = st.life, O = orderToday(st); if (!O) return null;
+    if (['alchemy','alchemyMentor','alchemyClinic','artisanForge','artisanMentor','artisanCook'].includes(O.kind)&&O.doneDay===st.day&&!O.repeat)return null;
+    if (O.kind === 'rumor') {
+      orderDone(st);const r=MainStory.searchTown(st,O.place);return say(st,r.why);
+    }
+    if (O.kind === 'mainquest') {
+      orderDone(st);const r=MainStory.meet(st,O.questId,Bag,Skills);return say(st,r.why);
+    }
+    if(['artisanForge','artisanMentor','artisanCook'].includes(O.kind)){
+      orderDone(st);const r=O.kind==='artisanForge'?Artisan.forge(st,O.recipe):O.kind==='artisanMentor'?Artisan.meetMentor(st):Artisan.cook(st,O.recipe);
+      return say(st,r.why);
+    }
+    if (O.kind === 'alchemy' || O.kind === 'alchemyMentor' || O.kind === 'alchemyClinic') {
+      orderDone(st);const r=O.kind==='alchemy'?Alchemy.craft(st,O.recipe,'apothecary'):O.kind==='alchemyClinic'?Alchemy.treatPatient(st,O.recipe):Alchemy.meetMentor(st);return say(st,r.why);
+    }
+    if (O.kind === 'skillquest') {
+      orderDone(st); const r = Skills.meetQuestNPC(st, O.questId);
+      return say(st, r.why);
+    }
     if (O.kind === 'buy') {
       const got = buyList(st, O.shop, O.items); orderDone(st);
       const ride = got.some(([id]) => Bag.ITEMS[id].kind === 'vehicle');
       return say(st, got.length ? 'ซื้อ' + Bag.label(got) + (ride ? ' เลือกใช้ได้ในส่วนการเดินทาง' : ' ใส่กระเป๋า') + ' (เหลือเงิน ' + st.money + ')' : 'เงินไม่พอหรือกระเป๋าเต็ม ซื้ออะไรไม่ได้');
     }
     if (O.kind === 'cook') {
+      if(O.recipe==='meal_herbal' && !(st.mainStory&&st.mainStory.herbalRecipe))return say(st,'ต้องเรียนสูตรน้ำสมุนไพรจากเมนเควสก่อน');
       const R = Bag.RECIPES[O.recipe];
       if (k === 'errand') {                            // the market stop on the way
         const want = Bag.missing(st, R.needs).items; if (!Object.keys(want).length) return null;
@@ -562,6 +633,7 @@
       return say(st, 'ทำ' + Bag.name(O.recipe) + 'ที่' + stove.name + (stove.fee ? ' (ค่าเตา ' + stove.fee + ')' : '') + ' กินไป 1 ที่ สุขภาพ +' + heal + (kept ? ' · เก็บใส่กระเป๋าอีก ' + kept + ' ที่' : ''));
     }
     if (O.kind === 'forge') {
+      if (O.item==='guardianVest' && !(st.mainStory&&st.mainStory.blueprint)) return say(st,'ต้องได้รับพิมพ์เขียวจากเมนเควสก่อน');
       const need = Bag.FORGE[O.item], fee = L.path === 'smith' ? 0 : Bag.FORGE_FEE; orderDone(st);
       if (Bag.ITEMS[O.item].kind === 'vehicle' && Bag.vehicles(st)[O.item]) return say(st, 'มี' + Bag.name(O.item) + 'อยู่แล้ว');
       const short = (need.iron || 0) - Bag.count(st, 'iron');
@@ -586,6 +658,7 @@
         let n = a + Math.floor(Math.random() * (b - a + 1)) + (i === 0 && Bag.count(st, G.tool) ? 1 : 0);
         n = Bag.add(st, id, n); if (n) got.push([id, n]);
       });
+      if(O.spot==='field'&&Alchemy){const extra=Alchemy.forageField(st);if(extra)got.push([extra.id,extra.n]);}
       return say(st, got.length ? G.name + ' ได้ ' + Bag.label(got) : 'กระเป๋าเต็ม เก็บอะไรไม่ได้');
     }
     if (O.kind === 'sell') {
@@ -618,12 +691,21 @@
       else if (++V.horse.hungry >= 4) { delete V.horse; if (L.ride === 'horse') L.ride = null; msgs.push('ไม่มีเงินซื้ออาหารม้ามาหลายวัน ม้าหนีออกจากคอกไปแล้ว'); }
       else msgs.push('ไม่มีเงินซื้ออาหารม้า ม้าหิว' + (V.horse.hungry >= 2 ? ' วิ่งช้าลง' : ''));
     }
+    if(Artisan) {const old=Artisan.expire(st);if(old)msgs.push('บัฟอาหารหรือยาหมดเวลา '+old+' รายการ');}
     const gone = Bag.spoil(st, st.day);
     if (gone.length) msgs.push(Bag.label(gone) + ' เสียแล้ว ต้องทิ้ง');
-    if (L.fedDay !== st.day - 1) {
+    let ate = L.fedDay === st.day - 1;
+    if (!ate) {
       const id = Bag.eat(st);
-      if (id) msgs.push('ไม่ได้กินข้าวเย็น เลยกิน' + Bag.name(id) + 'จากกระเป๋าก่อนนอน');
+      if (id) {ate=true; msgs.push('ไม่ได้กินข้าวเย็น เลยกิน' + Bag.name(id) + 'จากกระเป๋าก่อนนอน');}
       else { st.health = Math.max(1, st.health - 5); msgs.push('ไม่มีอาหาร สุขภาพลดลง 5'); }
+    }
+    if (Alchemy) {
+      const inTower=!!(L.exp&&!L.exp.over), drank=Alchemy.data(st).drinkDay===st.day-1;
+      if(inTower&&!drank&&Bag.auto(st)&&Bag.count(st,'clean_water')){
+        const w=Alchemy.use(st,'clean_water');msgs.push(w.why);
+      }
+      msgs.push(...Alchemy.daily(st,{fed:ate,inTower,drank:drank||Alchemy.data(st).drinkDay===st.day,rested:L.sleptAt!=='bench'}));
     }
     if (Exp) msgs.push(...Exp.tickWorld(st, st.day));
     return msgs;
@@ -642,22 +724,26 @@
   const ALLY = { guild: 55, compass: 30, porter: 45 };
   function towerFight(st, path, tired, salt, notes) {
     const L = st.life, list = MONSTERS[L.quest] || MONSTERS.normal, m = list[roll(st, salt) < 0.5 ? 0 : 1], mon = { name: m[0], power: m[1] };
-    const res = Skills.fight(st, mon, ALLY[path] * (tired ? 0.85 : 1), roll(st, salt + 1), roll(st, salt + 2));
+    const res = Skills.fight(st, mon, ALLY[path] * (tired ? 0.85 : 1), roll(st, salt + 1), roll(st, salt + 2), 0,
+      { r3: Exp.hash(Exp.seed(st), st.day, path, salt, 'f3'), r4: Exp.hash(Exp.seed(st), st.day, path, salt, 'f4'), alone: false });
+    if (res.triggered) notes.push(res.triggered.icon + ' ' + res.triggered.name + 'ตื่น! ' + res.triggered.effectName + ' · ' +
+      (res.win ? 'พลิกกลับมาชนะ' : 'ยังไม่อาจเอาชนะได้'));
+    if (res.damage) notes.push('บาดเจ็บจากจังหวะแรก สุขภาพ −' + res.damage);
     const learn = (id, xp) => { const x = Skills.train(st, id, xp); if (x) notes.push(x); };
     if (res.win) {
       st.towerWins = (st.towerWins || 0) + 1; learn('sword', 2); learn('nimble', 1);
-      notes.push(...Skills.progress(st, 'win', mon.power)); if (!res.hurt) notes.push(...Skills.progress(st, 'clean_win'));
+      notes.push(...Skills.progress(st, 'win', mon.power, 'work:'+st.day+':'+path)); if (!res.hurt) notes.push(...Skills.progress(st, 'clean_win', undefined, 'work:'+st.day+':'+path));
       if (st.towerWins >= 15) { const t = Skills.earnTitle(st, 'slayer'); if (t) notes.push(t); }
-      if (res.hurt) { st.health = Math.max(1, st.health - 8); return ' · ทีมล้ม' + mon.name + ' (พลัง ' + mon.power + ') แต่โดนข่วน (สุขภาพ −8)'; }
+      if (res.hurt) { if (!res.damage) st.health = Math.max(1, st.health - 8); return ' · ทีมล้ม' + mon.name + ' (พลัง ' + mon.power + ') แต่โดนข่วน (สุขภาพ −8)'; }
       return ' · ทีมล้ม' + mon.name + ' (พลัง ' + mon.power + ')';
     }
     learn('sword', 1);
     if (res.deadly) {
       const p = Skills.rescuePenalty(st, 6), names = p.gearLabels;
-      st.health = Math.max(1, st.health - 30); const t = Skills.earnTitle(st, 'survivor'); if (t) notes.push(t);
+      if (!res.damage) st.health = Math.max(1, st.health - 30); const t = Skills.earnTitle(st, 'survivor'); if (t) notes.push(t);
       return ' · ' + mon.name + 'เกือบเอาชีวิต! เพื่อนร่วมทีมลากออกมาได้ เสียเงิน ' + p.money + ' เหรียญ' + (names.length ? ' และ' + names.join(' ') : '') + ' ค่าสถานะลดครึ่งถึงวันที่ ' + p.until + ' (สุขภาพ −30)';
     }
-    st.health = Math.max(1, st.health - 15);
+    if (!res.damage) st.health = Math.max(1, st.health - 15);
     return ' · แพ้' + mon.name + ' (พลัง ' + mon.power + ') ต้องถอยกลับ (สุขภาพ −15)';
   }
   function payWork(st, wage, core, ordinary) {

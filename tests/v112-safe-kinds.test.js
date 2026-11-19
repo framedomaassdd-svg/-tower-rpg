@@ -66,7 +66,7 @@ check('migration of v111 floor world adds one kind without resetting old species
   const upgraded = Expedition.floorWorld(st, 20);
   assert.equal(upgraded.safeKind, 'village');
   assert.deepEqual(upgraded.species, before);
-  assert.equal(st.tower.v, 112);
+  assert.equal(st.tower.v, 114);
 });
 check('many real seeds produce all four kinds and deeper floors increase city weight', () => {
   const hits = {};

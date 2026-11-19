@@ -48,7 +48,7 @@ check('new game enters tower at floor 1; old saves migrate with no new-field ass
   assert.equal(Expedition.X(st).floor, 1);
   const old = hero(); delete old.tower; delete old.activeSkill;
   old.skills.sword = {tier: 2, xp: 3}; LifeSim.ensure(old);
-  assert.equal(old.activeSkill, 'sword'); assert.equal(old.tower.v, 112);
+  assert.equal(old.activeSkill, 'sword'); assert.equal(old.tower.v, 114);
   assert.ok(old.tower.floors && Array.isArray(old.tower.news));
 });
 check('floor 5 arrival opens repeatable safe zone once; floor 10 is also a safe zone', () => {
@@ -199,10 +199,11 @@ check('actual life-ui.js loads in Node under minimal document interfaces; no obs
   assert.ok(src.includes('data-safe-action')); assert.ok(!src.includes('MutationObserver'));
   assert.ok(src.includes("['shop','ร้าน']")); assert.ok(src.includes("['forage','หาของกิน']"));
 });
-check('index.html loads the edited original modules with v112 cache keys in correct order', () => {
+check('index.html loads original modules with current v119 cache keys in correct order', () => {
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  for (const name of ['bag','expedition','life-ui']) assert.ok(html.includes(name+'.js?v=112'),name);
-  for (const name of ['skills','life-sim']) assert.ok(html.includes(name+'.js?v=111'),name);
+  for (const name of ['bag','skills']) assert.ok(html.includes(name+'.js?v=119'),name);
+  for (const name of ['expedition','life-ui']) assert.ok(html.includes(name+'.js?v=119'),name);
+  assert.ok(html.includes('life-sim.js?v=119')); 
   assert.ok(html.indexOf('tower-slot-engine.js') < html.indexOf('expedition.js'));
   assert.ok(html.indexOf('expedition.js') < html.indexOf('life-sim.js'));
   assert.ok(html.indexOf('life-sim.js') < html.indexOf('life-ui.js'));

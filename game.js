@@ -37,7 +37,7 @@ function update() { save(); }
 
 // ---- the town keeps going whether or not the player does anything
 function nextDay() {
-  TownResidents.closeDay(state); clock = 0; state.day++;
+  TownResidents.closeDay(state); clock = 0; state.day++; state.townClock = 0;
   const taxPeriods = CityCore.accrueTax(state);
   if (taxPeriods) log('ถึงรอบภาษีเมือง ยอดค้าง ' + state.taxDue + ' เหรียญ');
   if (LifeSim.night) for (const m of LifeSim.night(state)) log(m);              // v93: spoilage + supper from the bag
