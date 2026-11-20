@@ -38,6 +38,31 @@
     ctx.drawImage(img, f * fw, 0, fw, fh, -w / 2, -h / 2, w, h); ctx.restore();
   }
   let heal = 0;
+  // v130 the people who came along: the guild party / hired guard / your own party, plus a stranded companion.
+  // Drawn with the town's NPC sheets (4×3: walk / work / stand); nobody is drawn while you're separated from them.
+  const TEAM_SHEETS = { guild: ['warrior', 'archer', 'mage'], compass: ['explorer', 'scout'], porter: ['porterA', 'warrior', 'porterB'], guard: ['veteran'] };
+  function sheetOfPerson(id) {
+    const N = root.TownNPCs; if (!N) return null;
+    if (N.SHEETS[id]) return id;
+    const p = (N.PEOPLE || []).find(q => q.id === id) || (root.TownResidents && (root.TownResidents.PEOPLE || []).find(q => q.id === id));
+    if (p && p.sheet && N.SHEETS[p.sheet]) return p.sheet;
+    if (N.RESIDENT_LOOK && N.RESIDENT_LOOK[id]) return N.RESIDENT_LOOK[id].sheet;
+    return 'rookie';
+  }
+  function teamOf(st) {
+    const x = X(st); if (!x) return [];
+    let t = [];
+    if (x.party && !x.separated) {
+      if (x.party === 'personal') { const M = root.Management && root.Management.ensure(st); t = (M && M.party && M.party.members || []).map(sheetOfPerson); }
+      else t = (TEAM_SHEETS[x.party] || []).slice();
+    }
+    if (x.ally) t.push('summoned');
+    return t.filter(Boolean).slice(0, 4);
+  }
+  function drawMate(ctx, sheet, row, col, x, gy, u, face) {
+    const N = root.TownNPCs; if (!N || !N.blit) return;
+    N.blit(ctx, sheet, row, col, face < 0, 330 * u, x, gy - 8 * u);
+  }
   const monImg = {};
   const monOf = id => { if (!MON[id]) return null; if (!monImg[id]) monImg[id] = im('monsters/' + id + '.webp?v=127'); return monImg[id]; };
   const idOf = name => { name = String(name || ''); const n = NAMES.find(([k]) => name.includes(k)); return n ? n[1] : null; };
@@ -115,6 +140,8 @@
     if (stones.up) drawProp(ctx, PROPS.up, W * 0.95, gy, 430 * u);
     const now0 = performance.now();
     if (night) {
+      const team = teamOf(st), spots = [0.62, 0.22, 0.72, 0.14];
+      team.forEach((sh, i) => { if (info.sleep && i > 0) return; drawMate(ctx, sh, 2, 0, W * spots[i], gy - 4 * u, u, i % 2 ? 1 : -1); });
       drawProp(ctx, PROPS.camp, W * 0.5, gy + 10 * u, 300 * u);
       if (info.sleep) drawLying(ctx, W * 0.34, gy + 6 * u, u); else drawWalk(ctx, 0, W * 0.36, gy, u, 1, false);
       if (heal) { const q = (now0 - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, W * 0.36, gy - 190 * u, 720 * u); }
@@ -140,6 +167,8 @@
         if (k > 0.3 && k < 1.1) hcol = f4(0.3, 0.2);
         else if (!fx.win && k >= 1.36) { hrow = 4; hcol = k < 1.8 ? 0 : 2; }
         else if (k >= 1.1) hcol = 3;
+        const team = teamOf(st), busy = k > 0.3 && k < 1.2;
+        team.forEach((sh, i) => drawMate(ctx, sh, busy ? 1 : 2, busy ? Math.floor(k * 7 + i) % 4 : 0, hx - (130 + 105 * i) * u, gy - 8 * u * (i % 2), u, 1));
         drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
         // v128 the arrow flies from the bow to the monster (drawn in code; the sheet's own arrow is part of frame 3)
         if (fx.row === 2 && k > 0.62 && k < 0.78) {
@@ -176,6 +205,8 @@
       const id = mons[(st.day || 0) % mons.length], mp = (now / 1000) % 20, mx = W * (0.72 - 0.06 * Math.sin(mp / 20 * Math.PI * 2));
       drawMon(ctx, id, Math.floor(now / 160) % 4, 0, mx, gy, u);
     }
+    const team = teamOf(st), dir = out ? 1 : -1;
+    team.forEach((sh, i) => drawMate(ctx, sh, moving ? 0 : 2, moving ? (Math.floor(now / 150) + i) % 4 : 0, hx - dir * (125 + 115 * i) * u, gy - 6 * u * (i % 2), u, dir));
     drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
     if (heal) { const q = (now - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, hx, gy - 190 * u, 720 * u); }
     if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + (0.4 * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
