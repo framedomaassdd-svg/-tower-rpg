@@ -170,7 +170,7 @@
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
     st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5, magicPower: 15 };
     st.management=null;
-    st.skills = {}; st.skillQuests = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null; st.mainStory = null;
+    st.skills = {}; st.cardsEarned = {}; st.skillSlots = 6; st.skillQuests = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null; st.mainStory = null;
     Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; st.bagPending=[]; st.bagPendingNext=0; st.inventoryAuto=true; st.inventoryVersion=120; st.conditions={}; st.alchemy=null; st.artisan=null; st.buffs=[]; if (Bag) Bag.add(st, 'ration', 1);
     st.life = { v: 1, origin: origin.id, sex, age, path: origin.suggest, pendingPath: null,

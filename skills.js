@@ -202,7 +202,7 @@
     // Award by raising the minimum proficiency tier, never downgrading someone
     // who trained beyond the NPC's teaching. Do not replace the selected active.
     const previous = st.skills[Q.reward] ? st.skills[Q.reward].tier : 0;
-    if (!previous) train(st,Q.reward,1);
+    if (!previous) train(st,Q.reward,1,true);              // a teacher's reward always goes into the book
     const learned = st.skills[Q.reward];
     if (learned.tier < Q.rewardTier) { learned.tier=Q.rewardTier; learned.xp=0; delete st.trials[Q.reward]; recalc(st); }
     rec.claimed = true;
@@ -374,12 +374,18 @@
     if (!st.equip || typeof st.equip !== 'object') st.equip = {};
     migrateGear(st);
     if (!st.trials || typeof st.trials !== 'object') st.trials = {};
+    // v132 skill book: the skills in st.skills are the cards in the book; every skill learned once is remembered (cardsEarned)
+    if (!st.cardsEarned || typeof st.cardsEarned !== 'object' || Array.isArray(st.cardsEarned)) st.cardsEarned = {};
+    for (const k of Object.keys(st.skills)) st.cardsEarned[k] = true;
+    if (!Number.isInteger(st.skillSlots) || st.skillSlots < BOOK_SLOTS) st.skillSlots = Math.max(BOOK_SLOTS, Object.keys(st.skills).length);
     if (!st.wounds || typeof st.wounds !== 'object') st.wounds = { until: 0 };
     // Migration: older saves never stored a selected active skill.
     if (!st.activeSkill || !SKILLS[st.activeSkill] || SKILLS[st.activeSkill].type !== 'active' || !st.skills[st.activeSkill])
       st.activeSkill = st.skills.sword ? 'sword' : (['fire', 'ice'].find(k => !!st.skills[k]) || null);
     return st;
   }
+  const BOOK_SLOTS = 6, BOOK_MAX = 12;
+  const bagMod = () => (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
   const tierOf = (st, id) => (st.skills && st.skills[id] ? st.skills[id].tier : 0);
   function bonus(st) {
     data(st); const b = { strength: 0, agility: 0, intelligence: 0, magicPower:0 };
@@ -407,10 +413,20 @@
     return st;
   }
   // proficiency: learn on first use; stops at the tier's cap until the trial is passed
-  function train(st, id, xp) {
+  // v132 a skill not in the book: the first time it is learned it goes into the book (or, with the book full, its card
+  // goes into the bag); once learned, training it does nothing until its card is put back. force = teachers' rewards.
+  function train(st, id, xp, force) {
     data(st); const S = SKILLS[id]; if (!S || !(xp > 0)) return null;
     let s = st.skills[id]; const fresh = !s;
-    if (!s) s = st.skills[id] = { tier: 1, xp: 0 };
+    if (!s && !force) {
+      if (st.cardsEarned[id]) return null;
+      if (Object.keys(st.skills).length >= st.skillSlots) {
+        const B = bagMod();
+        if (B && B.addBook(st, CARD_OF(id), 'normal', 'learned')) { st.cardsEarned[id] = true; return 'ได้การ์ดสกิล "' + S.name + '" · สมุดสกิลเต็ม เก็บการ์ดไว้ในกระเป๋า'; }
+        return null;
+      }
+    }
+    if (!s) { s = st.skills[id] = { tier: 1, xp: 0 }; st.cardsEarned[id] = true; }
     const cap = TIERS[s.tier - 1].cap;
     if (cap) s.xp = Math.min(cap, s.xp + xp);
     if (fresh) { if (S.type === 'active' && !st.activeSkill) st.activeSkill = id; recalc(st); return 'ได้สกิลใหม่ "' + S.name + '"'; }
@@ -444,20 +460,47 @@
     st.activeSkill = id; return true;
   }
   const BOOK_SKILL = Object.freeze({ book_fire: 'fire', book_ice: 'ice', book_sense: 'dangerSense', book_fireBody: 'fireBody', book_iceSkin: 'iceSkin', book_lastStand: 'lastStand', book_shadowStep: 'shadowStep' });
+  // v132 cards: every skill has one (the old book_* ids keep their drops/shops); CARD_OF(skill) → item id
+  const CARD_SKILL = Object.freeze(Object.assign({}, BOOK_SKILL, Object.fromEntries(Object.keys(SKILLS).filter(id => !Object.values(BOOK_SKILL).includes(id)).map(id => ['card_' + id, id]))));
+  const CARD_OF = id => Object.keys(CARD_SKILL).find(c => CARD_SKILL[c] === id);
+  const bookUsed = st => Object.keys(data(st).skills).length;
+  // put a card in the book (a second copy of a skill already in the book trains it, like the old books)
   function readBook(st, book, rarity = null) {
     data(st);
-    const id = BOOK_SKILL[book];
-    if (!id) return { ok: false, why: 'ไม่ใช่ตำราที่อ่านได้' };
+    const id = CARD_SKILL[book];
+    if (!id) return { ok: false, why: 'ไม่ใช่การ์ดสกิล' };
+    if (!st.skills[id] && bookUsed(st) >= st.skillSlots) return { ok: false, why: 'สมุดสกิลเต็ม (' + st.skillSlots + ' ช่อง) ถอดการ์ดใบอื่นออกหรือขยายสมุดก่อน' };
     // Additional copies train proficiency; rarity scales the normal 1 XP granted by a book.
     // Skills does not mutate Bag; its Node/browser dependency is injected via the same module loaded by LifeSim.
     const B = (typeof globalThis !== 'undefined' && globalThis.Bag) || (typeof require === 'function' ? require('./bag.js') : null);
-    if (!B || !B.count(st, book)) return { ok: false, why: 'ไม่มีตำราในกระเป๋า' };
+    if (!B || !B.count(st, book)) return { ok: false, why: 'ไม่มีการ์ดในกระเป๋า' };
     const picked = B.list(st).find(s => s.id === book && (rarity === null || (s.rarity || 'normal') === rarity));
-    if (!picked) return { ok: false, why: 'ไม่มีตำราระดับนี้ในกระเป๋า' };
-    const xp = rarityMultiplier(picked.rarity || 'normal');
-    if (!B.takeBook(st, book, rarity)) return { ok: false, why: 'ใช้ตำราไม่สำเร็จ' };
-    const notice = train(st, id, xp);
-    return { ok: true, why: (notice || 'ได้สกิล ' + SKILLS[id].name) + (SKILLS[id].type === 'active' ? ' · เลือกใช้ในแท็บสกิล' : '') };
+    if (!picked) return { ok: false, why: 'ไม่มีการ์ดระดับนี้ในกระเป๋า' };
+    const xp = rarityMultiplier(picked.rarity || 'normal'), had = !!st.skills[id];
+    if (!B.takeBook(st, book, rarity)) return { ok: false, why: 'ใช้การ์ดไม่สำเร็จ' };
+    const notice = train(st, id, xp, true);
+    return { ok: true, why: had ? 'หลอมการ์ดซ้ำ ความชำนาญ ' + SKILLS[id].name + ' +' + xp + (notice ? ' · ' + notice : '')
+      : 'ใส่การ์ด ' + SKILLS[id].name + ' ลงสมุดสกิล' + (SKILLS[id].type === 'active' ? ' · เลือกใช้ในแท็บสกิล' : '') };
+  }
+  // take a card out of the book: it goes back to the bag as a fresh card, the skill's proficiency and tier are gone
+  function removeCard(st, id) {
+    data(st); const S = SKILLS[id];
+    if (!S || !st.skills[id]) return { ok: false, why: 'ไม่มีการ์ดนี้ในสมุด' };
+    const B = bagMod();
+    if (!B || !B.addBook(st, CARD_OF(id), 'normal', 'removed')) return { ok: false, why: 'กระเป๋าเต็ม ถอดการ์ดไม่ได้' };
+    delete st.skills[id]; delete st.trials[id];
+    if (st.activeSkill === id) st.activeSkill = null;
+    data(st); recalc(st);
+    return { ok: true, why: 'ถอดการ์ด ' + S.name + ' ออกจากสมุด · ความชำนาญรีเซ็ตเป็นขั้น 1' };
+  }
+  const expandCost = st => 150 * (data(st).skillSlots - BOOK_SLOTS + 1);
+  function expandBook(st) {
+    data(st);
+    if (st.skillSlots >= BOOK_MAX) return { ok: false, why: 'สมุดสกิลขยายได้สูงสุด ' + BOOK_MAX + ' ช่อง' };
+    const cost = expandCost(st);
+    if ((st.money || 0) < cost) return { ok: false, why: 'ต้องใช้ ' + cost + ' เหรียญ' };
+    st.money -= cost; st.skillSlots++;
+    return { ok: true, why: 'ขยายสมุดสกิลเป็น ' + st.skillSlots + ' ช่อง (−' + cost + ' เหรียญ)' };
   }
 
   // ---- combat: stats + selected active skill + weapon/armor against a monster's power
@@ -547,5 +590,5 @@
     return { money, gear, gearLabels, until: st.wounds.until };
   }
   return { TIERS, SKILLS, SKILL_QUESTS, questChapter, questChapterCount, questState, meetQuestNPC, questProgress, ACTIVE_IMPACT, activeEffect, TITLES, GEAR, SLOTS, RARITIES, RARITY_MULT, RARITY_COLORS, rarityMultiplier, rarityIndex, createGear, gear, effectiveGear, gearLabel, migrateGear, enhance, enhanceChance, enhanceCost, hashGear, STAT_NAME, data, bonus, recalc, train, trialOf, accept, progress, earnTitle, wearTitle, tierOf,
-    power, winChance, fight, triggerMatches, triggeredPassives, rescuePenalty, activeOf, selectActive, readBook, BOOK_SKILL };
+    power, winChance, fight, triggerMatches, triggeredPassives, rescuePenalty, activeOf, selectActive, readBook, BOOK_SKILL, CARD_SKILL, CARD_OF, removeCard, expandBook, expandCost, BOOK_SLOTS, BOOK_MAX };
 });

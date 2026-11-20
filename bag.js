@@ -96,13 +96,35 @@
     crystal:   { name: 'คริสตัลหอคอย',      icon: '💎', kind: 'material', keep: 0, sell: 15 },
     soul_crystal: { name: 'ผลึกวิญญาณ', icon: '🔷', kind: 'material', keep: 0, sell: 0 },
     potion:    { name: 'ยาฟื้นแรง',          icon: '🧪', kind: 'tool', keep: 0, sell: 2, desc: 'ในหอคอย ดื่มเองเมื่อสุขภาพต่ำกว่า 40 (+30)' },
-    book_fire: { name: 'ตำราเพลิงวิญญาณ', icon: '📕', kind: 'book', keep: 0, sell: 40, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ เพลิงวิญญาณ' },
-    book_ice:  { name: 'ตำราไอเยือกแข็ง', icon: '📘', kind: 'book', keep: 0, sell: 48, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ ไอเยือกแข็ง' },
-    book_sense:{ name: 'ตำราญาณระวังภัย', icon: '📗', kind: 'book', keep: 0, sell: 55, desc: 'อ่านเพื่อเรียนสกิลพาสซีฟ ญาณระวังภัย' },
-    book_fireBody: { name: 'ตำรากายาไฟ', icon: '🔥', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟกายาไฟ เรียกจิตวิญญาณไฟเมื่อบาดเจ็บหนัก' },
-    book_iceSkin: { name: 'ตำราผิวน้ำแข็ง', icon: '🧊', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟลดความเสียหาย' },
-    book_lastStand: { name: 'ตำราสู้ตาย', icon: '⚡', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟเฮือกสุดท้าย' },
-    book_shadowStep: { name: 'ตำราก้าวเงา', icon: '🌑', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟหนีรอดเมื่อลำพัง' },
+    book_fire: { name: 'การ์ดสกิลเพลิงวิญญาณ', icon: '📕', kind: 'book', keep: 0, sell: 40, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ เพลิงวิญญาณ' },
+    book_ice:  { name: 'การ์ดสกิลไอเยือกแข็ง', icon: '📘', kind: 'book', keep: 0, sell: 48, desc: 'อ่านเพื่อเรียนสกิลแอ็กทีฟ ไอเยือกแข็ง' },
+    book_sense:{ name: 'การ์ดสกิลญาณระวังภัย', icon: '📗', kind: 'book', keep: 0, sell: 55, desc: 'อ่านเพื่อเรียนสกิลพาสซีฟ ญาณระวังภัย' },
+    book_fireBody: { name: 'การ์ดสกิลกายาไฟ', icon: '🔥', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟกายาไฟ เรียกจิตวิญญาณไฟเมื่อบาดเจ็บหนัก' },
+    book_iceSkin: { name: 'การ์ดสกิลผิวน้ำแข็ง', icon: '🧊', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟลดความเสียหาย' },
+    book_lastStand: { name: 'การ์ดสกิลสู้ตาย', icon: '⚡', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟเฮือกสุดท้าย' },
+    book_shadowStep: { name: 'การ์ดสกิลก้าวเงา', icon: '🌑', kind: 'book', keep: 0, sell: 90, desc: 'พาสซีฟหนีรอดเมื่อลำพัง' },
+    // v132 skill cards (ผู้สร้าง: การ์ดสกิลแทนตำรา · ขายได้ · ถอดออกจากสมุดแล้วความชำนาญรีเซ็ต). kind 'book' = a card;
+    // the seven book_* ids above are the old drop/shop cards, card_<skillId> are the rest (Skills.CARD_OF)
+    card_survivalInstinct: { name: 'การ์ดสกิลสัญชาตญาณเอาชีวิตรอด', icon: '🛡️', kind: 'book', keep: 0, sell: 180, desc: 'ใส่สมุดสกิลเพื่อใช้ สัญชาตญาณเอาชีวิตรอด · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_partyOath: { name: 'การ์ดสกิลสัญญาร่วมรบ', icon: '🤝', kind: 'book', keep: 0, sell: 180, desc: 'ใส่สมุดสกิลเพื่อใช้ สัญญาร่วมรบ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_homeResolve: { name: 'การ์ดสกิลแรงใจจากบ้าน', icon: '🏠', kind: 'book', keep: 0, sell: 180, desc: 'ใส่สมุดสกิลเพื่อใช้ แรงใจจากบ้าน · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_riftStrike: { name: 'การ์ดสกิลรอยแยกพิฆาต', icon: '🌀', kind: 'book', keep: 0, sell: 220, desc: 'ใส่สมุดสกิลเพื่อใช้ รอยแยกพิฆาต · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_limitBreak: { name: 'การ์ดสกิลทะลวงขอบเขต', icon: '💥', kind: 'book', keep: 0, sell: 260, desc: 'ใส่สมุดสกิลเพื่อใช้ ทะลวงขอบเขต · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_brawn: { name: 'การ์ดสกิลแขนแกร่ง', icon: '💪', kind: 'book', keep: 0, sell: 35, desc: 'ใส่สมุดสกิลเพื่อใช้ แขนแกร่ง · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_nimble: { name: 'การ์ดสกิลเท้าไว', icon: '🦶', kind: 'book', keep: 0, sell: 35, desc: 'ใส่สมุดสกิลเพื่อใช้ เท้าไว · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_keen: { name: 'การ์ดสกิลตาไว', icon: '👁️', kind: 'book', keep: 0, sell: 35, desc: 'ใส่สมุดสกิลเพื่อใช้ ตาไว · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_ironBack: { name: 'การ์ดสกิลกระดูกเหล็ก', icon: '🪨', kind: 'book', keep: 0, sell: 60, desc: 'ใส่สมุดสกิลเพื่อใช้ กระดูกเหล็ก · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_trailEye: { name: 'การ์ดสกิลตาพรานทางลึก', icon: '🧭', kind: 'book', keep: 0, sell: 60, desc: 'ใส่สมุดสกิลเพื่อใช้ ตาพรานทางลึก · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_battleStep: { name: 'การ์ดสกิลย่างก้าวนักรบ', icon: '👣', kind: 'book', keep: 0, sell: 60, desc: 'ใส่สมุดสกิลเพื่อใช้ ย่างก้าวนักรบ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_herbalLore: { name: 'การ์ดสกิลความรู้พิษและยา', icon: '🌱', kind: 'book', keep: 0, sell: 60, desc: 'ใส่สมุดสกิลเพื่อใช้ ความรู้พิษและยา · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_sunfall: { name: 'การ์ดสกิลสุริยะพิพากษา', icon: '☀️', kind: 'book', keep: 0, sell: 240, desc: 'ใส่สมุดสกิลเพื่อใช้ สุริยะพิพากษา · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_winterSeal: { name: 'การ์ดสกิลผนึกเหมันต์', icon: '❄️', kind: 'book', keep: 0, sell: 240, desc: 'ใส่สมุดสกิลเพื่อใช้ ผนึกเหมันต์ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_sword: { name: 'การ์ดสกิลวิชาดาบ', icon: '⚔️', kind: 'book', keep: 0, sell: 50, desc: 'ใส่สมุดสกิลเพื่อใช้ วิชาดาบ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_smithing: { name: 'การ์ดสกิลตีเหล็ก', icon: '🔨', kind: 'book', keep: 0, sell: 25, desc: 'ใส่สมุดสกิลเพื่อใช้ ตีเหล็ก · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_cooking: { name: 'การ์ดสกิลทำอาหาร', icon: '🍳', kind: 'book', keep: 0, sell: 25, desc: 'ใส่สมุดสกิลเพื่อใช้ ทำอาหาร · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_mapping: { name: 'การ์ดสกิลทำแผนที่', icon: '🧭', kind: 'book', keep: 0, sell: 30, desc: 'ใส่สมุดสกิลเพื่อใช้ ทำแผนที่ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_haggling: { name: 'การ์ดสกิลต่อรอง', icon: '⚖️', kind: 'book', keep: 0, sell: 30, desc: 'ใส่สมุดสกิลเพื่อใช้ ต่อรอง · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    card_gathering: { name: 'การ์ดสกิลคุ้ยหาของ', icon: '🧺', kind: 'book', keep: 0, sell: 20, desc: 'ใส่สมุดสกิลเพื่อใช้ คุ้ยหาของ · ถอดออกแล้วความชำนาญรีเซ็ต' },
     // v108 gear (Skills.GEAR has the numbers)
     namelessBlade:{name:'ดาบของผู้ไม่มีชื่อ',icon:'⚔️',kind:'goods',keep:0,sell:95,equip:'weapon',desc:'อาวุธเควสลับ พลังพื้นฐาน 18'},
     sword:     { name: 'ดาบเหล็ก',          icon: '⚔️', kind: 'goods', keep: 0, sell: 24, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +11' },
@@ -128,6 +150,7 @@
     rice:1,veg:.3,fish:.55,spice:.08,herb:.12,junk:1.1,scrap:.7,iron:1.8,monster:1.2,
     knife:.7,sickle:1.2,hook:.85,dagger:1.1,meat:.4,ore:2.2,crystal:.5,soul_crystal:.25,potion:.45,
     book_fire:.6,book_ice:.6,book_sense:.6,book_fireBody:.6,book_iceSkin:.6,book_lastStand:.6,book_shadowStep:.6,
+    card_survivalInstinct:.02,card_partyOath:.02,card_homeResolve:.02,card_riftStrike:.02,card_limitBreak:.02,card_brawn:.02,card_nimble:.02,card_keen:.02,card_ironBack:.02,card_trailEye:.02,card_battleStep:.02,card_herbalLore:.02,card_sunfall:.02,card_winterSeal:.02,card_sword:.02,card_smithing:.02,card_cooking:.02,card_mapping:.02,card_haggling:.02,card_gathering:.02,
     sword:3.5,spear:3,bow:1.2,club:2.2,namelessBlade:4.5,leather:4,chain_vest:9,guardianVest:12,oldwheel:7,chain:2,plank:4,
     horse:0,bike:0,scooter:0,charm:.3,
     root_food:0.12,clear_leaf:0.1,bind_grass:0.1,wake_leaf:0.09,moist_moss:0.15,antidote_root:0.13,warm_blossom:0.12,fever_mushroom:0.14,antiseptic_bark:0.25,blood_flower:0.13,vigor_seed:0.12,silver_moss:0.16,shadow_petal:0.06,verdant_heart:0.6,clean_water:.5,tablet_binder:.08,
@@ -230,7 +253,7 @@
     'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore']);
   // v112: multipliers are supplied by the actual safe-floor service, not patched onto Bag elsewhere.
   const safeBuyPrice = (id, floor, multiplier = 1) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13) * multiplier);
-  const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) || (ITEMS[id] && ITEMS[id].equip) ?
+  const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) || (ITEMS[id] && (ITEMS[id].equip || ITEMS[id].kind === 'book')) ?
     Math.max(1, Math.floor((ITEMS[id].sell || 0) * (1.39 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.1) * multiplier)) : 0;
   const skills = () => (typeof globalThis !== 'undefined' && globalThis.Skills) || (typeof require === 'function' ? require('./skills.js') : null);
   function gearSalePrice(st, instanceId, basePrice) {
@@ -278,7 +301,9 @@
     bazaar:     { name: 'ตลาดใหญ่', place: 'bazaar', takes: ['fruit', 'veg', 'fish', 'jerky'] },
     smith:      { name: 'โรงตีเหล็ก', place: 'smith', takes: ['scrap', 'monster', 'ore',
       'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore'] },
-    tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb', 'crystal'] }   // v103 ย่านกิลด์
+    tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb', 'crystal'] },
+    // v132 skill cards are bought by the card dealer in the Tower Merchants' hall (cards in the skill book are not for sale)
+    cards:      { name: 'ร้านรับซื้อการ์ดสกิล (กิลด์พ่อค้าหอคอย)', place: 'tmerchant', takes: ['book_fire','book_ice','book_sense','book_fireBody','book_iceSkin','book_lastStand','book_shadowStep','card_survivalInstinct','card_partyOath','card_homeResolve','card_riftStrike','card_limitBreak','card_brawn','card_nimble','card_keen','card_ironBack','card_trailEye','card_battleStep','card_herbalLore','card_sunfall','card_winterSeal','card_sword','card_smithing','card_cooking','card_mapping','card_haggling','card_gathering'] }   // v103 ย่านกิลด์
   });
   const RECIPES = Object.freeze({
     meal_veg:   { needs: { rice: 1, veg: 1 }, makes: 2 },

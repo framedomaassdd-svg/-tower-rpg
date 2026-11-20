@@ -279,7 +279,7 @@
       enhance: true, services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'stone', 'forage']),
       shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword']),
       price: 1, weight: Object.freeze([20, 30, 35]), forage: Object.freeze([1, 2]) }),
-    city: Object.freeze({ name: 'เมืองกลางหอคอย', desc: 'เมืองใหญ่ที่มีตลาด ที่พัก ผู้รับจ้าง ร้านตำรา และศิลาทั้งสองชนิด',
+    city: Object.freeze({ name: 'เมืองกลางหอคอย', desc: 'เมืองใหญ่ที่มีตลาด ที่พัก ผู้รับจ้าง ร้านการ์ดสกิล และศิลาทั้งสองชนิด',
       enhance: true, services: Object.freeze(['shop', 'sell', 'rest', 'chest', 'hire', 'stone', 'forage']),
       shop: Object.freeze(['bread', 'jerky', 'potion', 'leather', 'sword', 'book_fire', 'book_ice', 'book_sense', 'book_fireBody']),
       price: 0.9, weight: Object.freeze([0, 10, 25]), forage: Object.freeze([1, 1]) })
@@ -446,7 +446,7 @@
       const info = safeInfo(st);
       return { id, slot, scene: 'safe', kind: 'safe', noSpin: true, title: 'เซฟโซน ชั้น ' + x.floor + ' · ' + info.name,
         text: info.desc + ' · ศิลาทางออกและศิลาทางขึ้นพร้อมใช้',
-        choices: [{ label: 'เปิดบริการเซฟโซน', hint: 'ซื้อ ขาย อ่านตำรา ฝากของได้หลายครั้งก่อนปิด', use: 'safe' },
+        choices: [{ label: 'เปิดบริการเซฟโซน', hint: 'ซื้อ ขาย ใส่การ์ดสกิล ฝากของได้หลายครั้งก่อนปิด', use: 'safe' },
           { label: 'ใช้ศิลาทางออก กลับเมือง', hint: 'ออกจากหอคอย', use: 'exit' },
           { label: 'ใช้ศิลาทางขึ้น ไปชั้น ' + (x.floor + 1), hint: 'สู่ชั้นถัดไป', use: 'up' }] };
     }

@@ -40,10 +40,10 @@
     background:rgba(23,20,26,.9);color:#fff;border-radius:12px;padding:9px 14px;font:14px/1.45 system-ui;opacity:0;transition:opacity .35s;pointer-events:none;text-align:center}
   #lgtoast.show{opacity:1}
   .lg-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
+    background:rgba(10,8,12,.62);font:15px/1.6 system-ui;color:var(--lg-text)}
   .lg-notice{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:#0008}
   .lg-notice-card{max-width:420px;text-align:center;border-color:#d7b46a;box-shadow:0 0 0 3px #2a1a0c,0 10px 40px #000a}
   .lg-notice-card h3{margin:0 0 6px;color:#f2c14e}.lg-notice-card p{margin:0 0 12px}
-    background:rgba(10,8,12,.62);font:15px/1.6 system-ui;color:var(--lg-text)}
   .lg-card{background:var(--lg-bg);border:1px solid var(--lg-line);border-radius:18px;padding:22px;max-width:620px;width:100%;max-height:100%;overflow:auto;
     box-shadow:0 18px 50px #000a;-webkit-overflow-scrolling:touch}
   .lg-card h2{margin:0 0 8px;font-size:22px;color:var(--lg-gold)} .lg-card h3{margin:16px 0 6px;font-size:15px;color:var(--lg-gold)}
@@ -584,10 +584,10 @@
       if (section === 'shop') {
         html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ · ราคาตามประเภทชั้น</p><div class="lg-safe-grid">' +
           current.shop.map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor, current.price) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor, current.price) || b.total(state) >= b.CAP)).join('') + '</div>' +
-          (Object.entries(window.Skills && window.Skills.BOOK_SKILL || {}).filter(([book, skill]) => b.count(state, book)).length ?
-            '<h3>อ่านตำราที่มีอยู่</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.BOOK_SKILL).filter(([book]) => b.count(state, book)).flatMap(([book]) => b.list(state).filter(s=>s.id===book).map(s=>smallButton('read', book, '📖 อ่าน ' + esc(b.name(book)) + ' [' + esc(s.rarity||'normal') + ']', 'ได้รับ XP ตามระดับ ×'+Skills.rarityMultiplier(s.rarity||'normal'),false,s.rarity||'normal'))).join('') + '</div>' : '');
+          (Object.entries(window.Skills && window.Skills.CARD_SKILL || {}).filter(([book, skill]) => b.count(state, book)).length ?
+            '<h3>ใส่การ์ดสกิลลงสมุด</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.CARD_SKILL).filter(([book]) => b.count(state, book)).flatMap(([book, sk]) => b.list(state).filter(s=>s.id===book).map(s=>smallButton('read', book, '🃏 ' + (state.skills[sk] ? 'หลอม ' : 'ใส่ ') + esc(b.name(book)) + ' [' + esc(s.rarity||'normal') + ']', state.skills[sk] ? 'ความชำนาญ +' + Skills.rarityMultiplier(s.rarity||'normal') : 'สมุด ' + Object.keys(state.skills).length + '/' + state.skillSlots + ' ช่อง',false,s.rarity||'normal'))).join('') + '</div>' : '');
       } else if (section === 'sell') {
-        const items = Object.keys(b.ITEMS).filter(id => b.SAFE_BUYER.includes(id) && b.count(state, id));
+        const items = Object.keys(b.ITEMS).filter(id => (b.SAFE_BUYER.includes(id) || b.ITEMS[id].kind === 'book') && b.count(state, id));   // v132 skill cards sell here too
         html = '<h3>จุดรับซื้อวัสดุ</h3><p class="lg-muted">ขายทีละชิ้น รับเหรียญทันที (ไม่ขายของสวมใส่อัตโนมัติ)</p>' +
           (items.length ? '<div class="lg-safe-grid">' + items.map(id => smallButton('sell', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), 'มี ' + b.count(state, id) + ' · ได้ ' + b.safeSellPrice(id, floor, 1 / current.price) + ' เหรียญ')).join('') + '</div>' : '<p>ไม่มีวัสดุที่ร้านรับซื้อ</p>') +
           '<h3>ขายอุปกรณ์รายชิ้น</h3><div class="lg-safe-grid">' + b.list(state).filter(s => s.instanceId).map(s => smallButton('sell', s.instanceId, gearText(s.instanceId), 'ได้ ' + b.gearSalePrice(state,s.instanceId,b.safeSellPrice(s.id,floor,1/current.price)) + ' เหรียญ')).join('') + '</div>';
@@ -816,8 +816,17 @@
       return `<div class="lg-zone"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
         ${triggerText ? `<small style="display:block;color:var(--lg-gold)">${esc(triggerText)}${sk.tier < 2 ? ' 🔒' : ' ✓'}</small>` : ''}
         ${D.type === 'active' ? `<button class="lg-btn ${S.activeOf(state) === id ? 'lg-cur' : ''}" data-active="${id}">${S.activeOf(state) === id ? '✓ กำลังใช้สกิลนี้' : 'เลือกเป็นสกิลแอ็กทีฟ'}</button>` : ''}
+        <button class="lg-btn" data-uncard="${id}" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0">🃏 ถอดการ์ดออก<small>ความชำนาญรีเซ็ตเป็นขั้น 1</small></button>
         ${cap ? `<div class="lg-bar" style="margin:6px 0 2px"><i style="width:${Math.max(3, sk.xp / cap * 100)}%"></i></div><small class="lg-muted">ความชำนาญ ${sk.xp}/${cap}${sk.xp >= cap ? ' · เต็มขั้นแล้ว' : ''}</small>` : '<small class="lg-muted">ขั้นสูงสุด</small>'}${tr}</div>`;
-    }).join('') || '<p class="lg-muted">ยังไม่มีสกิล ทำงานหรือฝึกแล้วจะได้สกิลแรก</p>';
+    }).join('') || '<p class="lg-muted">สมุดยังว่าง ทำงานหรือฝึกแล้วจะได้สกิลแรก หรือใส่การ์ดสกิลจากกระเป๋า</p>';
+    // v132 the skill book and the cards in the bag
+    const used = Object.keys(state.skills || {}).length, slots = state.skillSlots || S.BOOK_SLOTS, inTowerNow = X() && X().active(state);
+    const cardRows = Object.entries(S.CARD_SKILL).flatMap(([card, id]) => B().list(state).filter(s => s.id === card).map(s => {
+      const inBook = !!state.skills[id], full = !inBook && used >= slots;
+      return `<button class="lg-btn" data-read="${card}" data-rarity="${esc(s.rarity || 'normal')}" ${full ? 'disabled' : ''}>${esc(S.SKILLS[id].icon)} ${inBook ? 'หลอมการ์ดซ้ำ' : 'ใส่การ์ดลงสมุด'} · ${esc(S.SKILLS[id].name)} ×${s.n}
+        <small>${esc(s.rarity || 'normal')} · ${inBook ? 'ความชำนาญ +' + S.rarityMultiplier(s.rarity || 'normal') : full ? 'สมุดเต็ม' : 'เริ่มที่ขั้น 1'} · ขายได้ ${B().ITEMS[card].sell} เหรียญที่กิลด์พ่อค้าหอคอย</small></button>`; })).join('');
+    const bookHead = `<h3>สมุดสกิล ${used}/${slots} ช่อง</h3><p class="lg-muted">สกิลทำงานเฉพาะการ์ดที่อยู่ในสมุด · ถอดการ์ดออกได้ทุกเมื่อ (ไปขายหรือใส่ทีหลัง) แต่ความชำนาญและขั้นจะรีเซ็ต · ได้สกิลใหม่ตอนสมุดเต็ม การ์ดจะเข้ากระเป๋า</p>
+      ${slots < S.BOOK_MAX ? `<button class="lg-btn" data-expandbook="1" ${state.money < S.expandCost(state) || inTowerNow ? 'disabled' : ''}>📖 ขยายสมุดเป็น ${slots + 1} ช่อง<small>${S.expandCost(state)} เหรียญ${inTowerNow ? ' · ต้องอยู่ในเมือง' : ''} · สูงสุด ${S.BOOK_MAX} ช่อง</small></button>` : ''}`;
     const gear = Object.entries(S.SLOTS).map(([slot, name]) => {
       const on = state.equip[slot], opts = B().list(state).filter(x => x.instanceId && Skills.GEAR[Skills.gear(state,x.instanceId).templateId].slot === slot).map(x => x.instanceId);
       return `<div class="lg-zone"><b>${name}</b> ${on ? iconHtml(Skills.gear(state,on).templateId, 26) + ' ' + gearText(on) + ` <button class="lg-btn" style="display:inline-block;width:auto;padding:4px 10px;margin:0 0 0 6px" data-unequip="${slot}">ถอด</button>` : '<span class="lg-muted">ว่าง</span>'}
@@ -835,8 +844,8 @@
         ${bar('สุขภาพ', state.health, 100, 'ต่ำกว่า 60 จะแวะร้านยาหลังเลิกงาน')}
         ${bar('แรง', state.energy, 100, 'หมดแรงแล้วทำงานได้น้อยลง')}</div>
       <h3>เควสเรียนสกิลจาก NPC</h3><p class="lg-muted">นัดพบผู้สอนหลังเลิกงาน → ทำบททดสอบ → กลับไปรับสกิล แอ็กทีฟขั้นสูงต้องผ่านการต่อสู้ยากมาก และจะใช้ได้เฉพาะเมื่อวงล้อเปิดจังหวะ</p>${questCards}
-      <h3>สกิล</h3><p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
-      ${Object.entries(S.BOOK_SKILL).flatMap(([book,id])=>B().list(state).filter(s=>s.id===book).map(s=>`<button class="lg-btn" data-read="${book}" data-rarity="${esc(s.rarity||'normal')}">📖 อ่าน ${esc(B().name(book))} <small>${esc(s.rarity||'normal')} · ฝึก ${esc(S.SKILLS[id].name)} ×${S.rarityMultiplier(s.rarity||'normal')}</small></button>`)).join('')}
+      ${bookHead}<p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
+      ${cardRows ? '<h3>การ์ดสกิลในกระเป๋า</h3>' + cardRows : ''}
       ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการ · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
       <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}
@@ -1041,7 +1050,10 @@
     on('[data-a=coach]', () => { L.coach = !L.coach; again(); });
     on('[data-a=xprep]', () => { d.remove(); block(null); prepCard(); });
     on('[data-safe]', () => { d.remove(); block(null); safeCard(); });
-    d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read, b.dataset.rarity || null); log(r.why); again(); });
+    d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read, b.dataset.rarity || null); if (r.ok) log(r.why); else notice(r.why, 'สมุดสกิล'); again(); });
+    d.querySelectorAll('[data-uncard]').forEach(b => b.onclick = () => { const id = b.dataset.uncard, n = Skills.SKILLS[id].name;
+      ask('ถอดการ์ด ' + n + ' ออกจากสมุด? ความชำนาญและขั้นของสกิลนี้จะรีเซ็ตเป็นขั้น 1', 'ถอดการ์ด', () => { const r = Skills.removeCard(state, id); if (r.ok) { log(r.why); save(); } else notice(r.why, 'สมุดสกิล'); again(); }, 'ถอดการ์ดสกิล'); });
+    on('[data-expandbook]', () => { const r = Skills.expandBook(state); if (r.ok) { log(r.why); save(); } else notice(r.why, 'สมุดสกิล'); again(); });
     d.querySelectorAll('[data-active]').forEach(b => b.onclick = () => { if (Skills.selectActive(state, b.dataset.active)) log('เลือกสกิลแอ็กทีฟ ' + Skills.SKILLS[b.dataset.active].name); again(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
 
