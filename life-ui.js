@@ -680,7 +680,7 @@
           clearInterval(t);
           // v127 show the fight on the tower scene, then the results
           if (res.fight && window.TowerView) {
-            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor });
+            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor, skill: res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null });
             d.style.visibility = 'hidden';
             setTimeout(() => { d.style.visibility = ''; results(); }, ms + 300);
           } else results();
@@ -1077,7 +1077,7 @@
     d.querySelectorAll('[data-move-down]').forEach(x=>x.onclick=()=>{B().moveSlot(state,x.dataset.moveDown,1);again();});
     d.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{const r=B().claimLoot(state,x.dataset.pick);log(r.why);if(r.ok&&X()&&X().X(state)){const ex=X().X(state);ex.loot[r.id]=(ex.loot[r.id]||0)+r.n;}again();});
     d.querySelectorAll('[data-leave]').forEach(x=>x.onclick=()=>{if(B().leaveLoot(state,x.dataset.leave))log('ปล่อยของที่พบไว้');again();});
-    on('[data-use-potion]',()=>{if(B().take(state,'potion',1)){state.health=Math.min(100,state.health+30);log('ดื่มยาฟื้นแรง สุขภาพ +30');}again();});
+    on('[data-use-potion]',()=>{if(B().take(state,'potion',1)){if(window.TowerView)TowerView.healFx();state.health=Math.min(100,state.health+30);log('ดื่มยาฟื้นแรง สุขภาพ +30');}again();});
     on('[data-a=eatbag]', () => { L.eatBag = !L.eatBag; again(); });
     on('[data-a=nocmd]', () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); again(); });
     on('[data-a=close]', () => closeOverlay(d));

@@ -26,6 +26,18 @@
     ['กวางพิษ', 'deer'], ['เห็ดยักษ์', 'shroom'], ['ค้างคาว', 'bat'], ['หมีหิน', 'bear'], ['หนอนเจาะหิน', 'worm'], ['หนู', 'rat'], ['ผีโคลน', 'mudghost'],
     ['งูบึง', 'snake'], ['ยุง', 'mosquito'], ['วิญญาณจมน้ำ', 'drowned'], ['อัศวินมรณะ', 'boss5'], ['อัศวินผี', 'ghostknight'], ['การ์กอยล์', 'gargoyle'],
     ['โครงกระดูก', 'skeleton'], ['ผู้เฝ้าซาก', 'warden']];
+  // v129 effects: fx/<id>.webp, 6 frames in a row on black → drawn with 'lighter' (no cut-out needed)
+  const FX_IDS = ['sword', 'fire', 'ice', 'sunfall', 'winterseal', 'rift', 'limit', 'claw', 'heal'];
+  const FX = {}; for (const id of FX_IDS) FX[id] = im('fx/fx_' + id + '.webp?v=129');
+  const SKILL_FX = { sword: 'sword', fire: 'fire', ice: 'ice', sunfall: 'sunfall', winterSeal: 'winterseal', riftStrike: 'rift', limitBreak: 'limit' };
+  const FLIES = { fire: 1, ice: 1, limit: 1 };         // these travel from the hero to the monster; the rest burst on the target
+  function drawFx(ctx, id, q, x, y, h, flip) {          // q 0..1 through the effect, (x, y) = centre, h = height in px
+    const img = FX[id]; if (!ok(img) || q < 0 || q >= 1) return;
+    const fw = img.naturalWidth / 6, fh = img.naturalHeight, f = Math.min(5, Math.floor(q * 6)), w = h * fw / fh;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(img, f * fw, 0, fw, fh, -w / 2, -h / 2, w, h); ctx.restore();
+  }
+  let heal = 0;
   const monImg = {};
   const monOf = id => { if (!MON[id]) return null; if (!monImg[id]) monImg[id] = im('monsters/' + id + '.webp?v=127'); return monImg[id]; };
   const idOf = name => { name = String(name || ''); const n = NAMES.find(([k]) => name.includes(k)); return n ? n[1] : null; };
@@ -84,7 +96,7 @@
   function fight(o) {
     const st = o.state;
     const id = o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin';
-    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: o.boss && id !== 'boss5' ? 1.3 : 1 };
+    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: o.boss && id !== 'boss5' ? 1.3 : 1, skill: SKILL_FX[o.skill] || null };
     return FIGHT_MS;
   }
   function show(ctx, cv, t, clock, info, st) {
@@ -101,9 +113,11 @@
     const dusk = Math.max(0, Math.min(1, (clock - (CAMP - 1.6)) / 1.6));
     if (stones.exit) drawProp(ctx, PROPS.exit, W * 0.88, gy, 250 * u);
     if (stones.up) drawProp(ctx, PROPS.up, W * 0.95, gy, 430 * u);
+    const now0 = performance.now();
     if (night) {
       drawProp(ctx, PROPS.camp, W * 0.5, gy + 10 * u, 300 * u);
       if (info.sleep) drawLying(ctx, W * 0.34, gy + 6 * u, u); else drawWalk(ctx, 0, W * 0.36, gy, u, 1, false);
+      if (heal) { const q = (now0 - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, W * 0.36, gy - 190 * u, 720 * u); }
       ctx.fillStyle = 'rgba(8,10,30,0.55)'; ctx.fillRect(0, 0, W, H);
       const g = ctx.createRadialGradient(W * 0.47, gy - 60 * u, 10, W * 0.47, gy - 60 * u, 420 * u);
       g.addColorStop(0, 'rgba(255,170,70,0.38)'); g.addColorStop(1, 'rgba(255,170,70,0)');
@@ -134,9 +148,16 @@
           ctx.fillStyle = '#cfd6dc'; ctx.beginPath(); ctx.moveTo(x1 + 22 * u, ay); ctx.lineTo(x1 - 4 * u, ay - 9 * u); ctx.lineTo(x1 - 4 * u, ay + 9 * u); ctx.fill();
           ctx.fillStyle = '#e9e2d0'; ctx.fillRect(x1 - 112 * u, ay - 8 * u, 20 * u, 16 * u); ctx.restore();
         }
+        // v129 a triggered active skill plays its effect over the strike
+        if (fx.skill) {
+          const q = (k - 0.5) / 0.66, fly = FLIES[fx.skill];
+          drawFx(ctx, fx.skill, q, fly ? (hx + mx) / 2 + 40 * u : mx - 10 * u, fx.skill === 'sunfall' ? gy - 330 * u : fx.skill === 'winterseal' ? gy - 70 * u : gy - 180 * u,
+            (fly ? 900 : fx.skill === 'sunfall' ? 1050 : fx.skill === 'winterseal' ? 760 : 820) * u);
+        }
+        if (!fx.win) drawFx(ctx, 'claw', (k - 1.3) / 0.5, hx + 30 * u, gy - 200 * u, 620 * u, true);   // the monster's blow
         // a burst where the blow lands
         const hitAt = fx.win ? 0.75 : 1.36;
-        if (k > hitAt && k < hitAt + 0.22) {
+        if (k > hitAt && k < hitAt + 0.22 && (fx.win ? !fx.skill : !ok(FX.claw))) {
           const q = (k - hitAt) / 0.22, cx = fx.win ? mx - 20 * u : hx + 40 * u, cy = gy - (fx.win ? 150 : 200) * u, r = (40 + 90 * q) * u;
           ctx.save(); ctx.globalAlpha = 1 - q; ctx.strokeStyle = '#fff4c2'; ctx.lineWidth = Math.max(2, 7 * u * (1 - q));
           for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.3; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.35); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke(); }
@@ -156,9 +177,11 @@
       drawMon(ctx, id, Math.floor(now / 160) % 4, 0, mx, gy, u);
     }
     drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
+    if (heal) { const q = (now - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, hx, gy - 190 * u, 720 * u); }
     if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + (0.4 * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
     return true;
   }
   const images = () => [...SCENES, ...Object.values(PROPS)].filter(Boolean);
-  root.TowerView = { show, fight, images, idOf, MON, FIGHT_MS };
+  const healFx = () => { heal = performance.now(); };       // drinking a potion while the tower is on screen
+  root.TowerView = { show, fight, healFx, images, idOf, MON, FIGHT_MS, FX };
 })(typeof window !== 'undefined' ? window : globalThis);
