@@ -314,7 +314,7 @@ function frame(t) {
   const lie = !!(window.LIFE_INFO && window.LIFE_INFO.lie && !window.LIFE_INFO.shelter);         // fade the sleeper on the garden bench in
   if (lie && !lieSince) lieSince = t; if (!lie) lieSince = 0;
   window.BENCH_SLEEP = lie ? Math.min(1, (t - lieSince) / 600) : 0;
-  const inside = !!(window.LIFE_INFO && Interiors.show(ctx, c, t, clock, window.LIFE_INFO));
+  const inside = !!(window.LIFE_INFO && ((window.TowerView && TowerView.show(ctx, c, t, clock, window.LIFE_INFO, state)) || Interiors.show(ctx, c, t, clock, window.LIFE_INFO)));   // v127 tower scene
   if (!inside) drawTown(t);
   // circle wipe whenever the view switches between the street and an interior
   if (inside !== wasInside) { wasInside = inside; wipeStart = t; }
@@ -347,7 +347,7 @@ addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
 // ---- wait for the art, then start
-const imageSet = [...Object.values(TownPano.art), HeroSprite.load(), ...TownNPCs.load(), ...Interiors.images()];
+const imageSet = [...Object.values(TownPano.art), HeroSprite.load(), ...TownNPCs.load(), ...Interiors.images(), ...(window.TowerView ? TowerView.images() : [])];
 Promise.all(imageSet.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
   img.addEventListener('load', resolve, { once: true }); img.addEventListener('error', resolve, { once: true });
 }))).then(() => {

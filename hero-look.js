@@ -32,5 +32,6 @@
   }
   // true when the current look has its own copy of this file (baked room art is only used for the default hero)
   const own = image => { const e = reg.find(r => r.img === image); return !!e && (cur === 'default' || (!e.fallback && e.img.complete && e.img.naturalWidth > 0)); };
-  root.HeroLook = { img, set, own, current: () => cur, LOOKS, ORIGIN_IDS, isDefault: () => cur === 'default' };
+  const get = file => { const e = reg.find(r => r.file === file); return e ? e.img : null; };
+  root.HeroLook = { img, get, set, own, current: () => cur, LOOKS, ORIGIN_IDS, isDefault: () => cur === 'default' };
 })(typeof window !== 'undefined' ? window : globalThis);

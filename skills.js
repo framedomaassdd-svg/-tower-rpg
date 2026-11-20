@@ -262,7 +262,7 @@
   });
   // equipment: bag items with ITEMS[id].equip = slot; the numbers here
   const GEAR = Object.freeze({
-    dagger: { slot: 'weapon', atk: 5 }, sword: { slot: 'weapon', atk: 11 }, knife: { slot: 'weapon', atk: 2 }, namelessBlade:{slot:'weapon',atk:18},
+    dagger: { slot: 'weapon', atk: 5 }, sword: { slot: 'weapon', atk: 11 }, spear: { slot: 'weapon', atk: 10 }, bow: { slot: 'weapon', atk: 9 }, club: { slot: 'weapon', atk: 6 }, knife: { slot: 'weapon', atk: 2 }, namelessBlade:{slot:'weapon',atk:18},
     leather: { slot: 'armor', def: 5 }, chain_vest: { slot: 'armor', def: 10 }, guardianVest: { slot: 'armor', def: 25 },
     charm: { slot: 'charm', bonus: { agility: 3 } }
   });

@@ -651,8 +651,7 @@
         const reels = actions.querySelectorAll('.lg-reel'); actions.querySelector('[data-spin]').remove();
         const t = setInterval(() => reels.forEach(r => { if (!r.classList.contains('stop')) r.textContent = pool[Math.floor(Math.random() * pool.length)]; }), 70);
         res.reels.forEach((id, i) => setTimeout(() => { reels[i].classList.add('stop'); reels[i].textContent = cat[id].emoji || '・'; }, 700 + i * 450));
-        setTimeout(() => {
-          clearInterval(t);
+        const results = () => {
           const fight = res.fight ? `<p class="lg-muted">พลังฝ่ายเรา ${res.fight.power} · ${esc(enc.monster.name)} ${res.fight.monster} · โอกาสชนะหลังสล็อต ${res.fight.p}%</p>` : '';
           const triggered = res.triggered ? `<div class="lg-drop-special" style="border-color:#f9ae4e;color:#ffcf83"><b>${esc(res.triggered.icon)} ${esc(res.triggered.name)}ตื่น!</b> ${esc(res.triggered.effectName)} · เกิดจังหวะสอง</div>` : '';
           const special = res.reward ? `<div class="lg-drop-special" style="border-color:${Skills.rarityIndex(res.reward.rarity)>=2 ? Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)] : '#ffffff22'};${Skills.rarityIndex(res.reward.rarity)>=2 ? 'box-shadow:0 0 15px #dbaf6755;' : ''}">${res.reward.gained ? '✦ ได้รางวัลพิเศษ' : '⚠️ กระเป๋าเต็ม ของตกหาย'} · <span class="lg-rarity" style="color:${Skills.RARITY_COLORS[Skills.rarityIndex(res.reward.rarity)]}">${esc(B().name(res.reward.templateId))} [${esc(res.reward.rarity)}]</span></div>` : '';
@@ -660,6 +659,15 @@
             ${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">${res.dead ? '...' : 'ตกลง'}</button>`);
           for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
           actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else { d.remove();block(null);if(res.rescued)maybeGuide('rescue');save();update(); } };
+        };
+        setTimeout(() => {
+          clearInterval(t);
+          // v127 show the fight on the tower scene, then the results
+          if (res.fight && window.TowerView) {
+            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor });
+            d.style.visibility = 'hidden';
+            setTimeout(() => { d.style.visibility = ''; results(); }, ms + 300);
+          } else results();
         }, 700 + 3 * 450 + 200);
       };
       actions.querySelector('[data-spin]').onclick = spin;

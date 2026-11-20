@@ -8,16 +8,18 @@ function check(label,fn){try{fn();passed++;console.log('PASS',label);}catch(e){c
 function hero(){const st={day:1,money:600,health:100,energy:100,food:1,events:[]};LifeSim.newLife(st,()=>0.42);st.life.started=true;assert.equal(LifeSim.ensure(st),true);return st;}
 function inTower(){const st=hero();assert.equal(Expedition.plan(st,{party:'guild'}).ok,true);st.day=2;Expedition.enter(st);return st;}
 check('100 floors and ten authored biomes, selected once per ten-floor band',()=>{
- const st=hero(),ids=Array.from({length:10},(_,i)=>Expedition.biomeOf(st,i*10+1).id);
+ const st=hero(),ids=Array.from({length:10},(_,i)=>Expedition.biomeOf(st,i*10+10).id);
  assert.equal(MainStory.TOTAL_FLOORS,100);assert.equal(MainStory.CONTENT_THROUGH,50);
  assert.equal(Expedition.THEMES.length,10);assert.ok(new Set(ids).size>=2);
  for(let i=1;i<ids.length;i++)assert.notEqual(ids[i],ids[i-1]);
- for(let f=1;f<=100;f++)assert.equal(Expedition.biomeOf(st,f).id,ids[Math.floor((f-1)/10)]);
+ for(let f=10;f<=100;f++)assert.equal(Expedition.biomeOf(st,f).id,ids[Math.floor((f-1)/10)]);
+ // v127 floors 1-9 are authored (1-4 one scene each, 5-9 ruins) and the same for every save
+ for(let f=1;f<=9;f++)assert.equal(Expedition.biomeOf(st,f).id,Expedition.FLOOR_THEMES[Math.min(4,f-1)].id);
 });
 check('different histories/seeds get varied deterministic biome permutations, save reload is stable',()=>{
- const st=hero(),first=Array.from({length:10},(_,i)=>Expedition.biomeOf(st,1+i*10).id);
- const loaded=JSON.parse(JSON.stringify(st));assert.deepEqual(Array.from({length:10},(_,i)=>Expedition.biomeOf(loaded,1+i*10).id),first);
- const other=hero();other.life.age++;assert.notDeepEqual(Array.from({length:10},(_,i)=>Expedition.biomeOf(other,1+i*10).id),first);
+ const st=hero(),first=Array.from({length:10},(_,i)=>Expedition.biomeOf(st,10+i*10).id);
+ const loaded=JSON.parse(JSON.stringify(st));assert.deepEqual(Array.from({length:10},(_,i)=>Expedition.biomeOf(loaded,10+i*10).id),first);
+ const other=hero();other.life.age++;assert.notDeepEqual(Array.from({length:10},(_,i)=>Expedition.biomeOf(other,10+i*10).id),first);
 });
 check('one 10-floor theme controls monsters and event scene weights of new floors',()=>{
  const st=hero();for(const f of [1,4,6,9,11,21,31,41,49,50,100]){

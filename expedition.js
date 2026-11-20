@@ -55,8 +55,20 @@
     {id:'ruins',name:'ซากอารยธรรม',source:8},
     {id:'rift',name:'ห้วงมิติผิดปกติ',source:7}
   ].map(t=>Object.freeze({...t,scenes:Object.freeze({explore:1,herb:1,mine:1,travel:1,combat:2,...(t.scenes||TERRAINS[t.source].scenes)}),monsters:t.monsters||TERRAINS[t.source].monsters})));
+  // v127 (ผู้สร้าง) the first floors are authored, each with its own scene and monsters (tower/floorN.webp, monsters/*.webp):
+  // 1 grass · 2 glowing mushroom forest · 3 ore cave · 4 spirit swamp (boss floor) · 5–9 ancient ruins (5 is the safe floor,
+  // 9 the boss floor: the death knight). Floor 10 onward keeps the v118 random 10-floor bands.
+  const FLOOR_THEMES = Object.freeze([
+    {id:'f1_grass',name:'ทุ่งหญ้าเชิงหอคอย',scene:1,scenes:{explore:3,herb:3,travel:2,combat:3},monsters:[['กระต่ายเขาเดียว',10],['หมาป่าเงา',22],['ก๊อบลินถือขวาน',30],['หมูป่าเขี้ยวหัก',27]]},
+    {id:'f2_mushroom',name:'ป่าเห็ดเรืองแสง',scene:2,scenes:{herb:3,explore:2,combat:3,mine:1},monsters:[['ทากกรด',38],['แมงมุมสปอร์',46],['กวางพิษ',44],['เห็ดยักษ์เดินได้',50]]},
+    {id:'f3_cave',name:'ถ้ำสายแร่',scene:3,scenes:{mine:4,explore:2,combat:3},monsters:[['ค้างคาวยักษ์',58],['หมีหิน',68],['หนอนเจาะหิน',76],['หนูถ้ำเขี้ยวยาว',62]]},
+    {id:'f4_swamp',name:'หนองบึงวิญญาณ',scene:4,scenes:{herb:3,explore:2,combat:4},monsters:[['ผีโคลน',125],['งูบึง',139],['ยุงโลหิต',150],['วิญญาณจมน้ำ',159]]},
+    {id:'f5_ruins',name:'ซากเมืองโบราณ',scene:5,scenes:{explore:3,combat:4,mine:1},monsters:[['อัศวินผี',88],['การ์กอยล์',100],['ทหารโครงกระดูก',85],['ผู้เฝ้าซาก',120]]}
+  ].map(t=>Object.freeze({...t,scenes:Object.freeze({explore:1,herb:1,mine:1,travel:1,combat:2,...t.scenes}),monsters:t.monsters})));
+  const fixedTheme = floor => floor <= 4 ? FLOOR_THEMES[floor - 1] : floor <= 9 ? FLOOR_THEMES[4] : null;
   function themeFor(st,floor) {
     floor = Math.max(1,Math.min(100,Math.floor(floor||1)));
+    if (fixedTheme(floor)) return fixedTheme(floor);
     const w=ensureWorld(st),band=Math.floor((floor-1)/10);
     if(!Array.isArray(w.themes) || w.themes.length!==10 || w.themes.some(id=>!THEMES.some(t=>t.id===id))) {
       w.themes=[];
@@ -72,7 +84,7 @@
     return THEMES.find(t=>t.id===w.themes[band]);
   }
   // Without a state, this API is retained for older map previews/tests.
-  const terrainOf=(floor,st)=>st ? themeFor(st,floor) : TERRAINS.find(t=>floor<=t.upto);
+  const terrainOf=(floor,st)=>fixedTheme(Math.max(1,Math.floor(floor||1))) || (st ? themeFor(st,floor) : TERRAINS.find(t=>floor<=t.upto));
   const biomeOf=(st,floor)=>themeFor(st,floor);
 
   // Four independent territories per floor. A -> B -> C -> D -> A is a closed predation ring.
@@ -141,7 +153,7 @@
     if (isBossFloor(+key) && !w.floors[key].boss) {
       const f = w.floors[key], i = Math.floor(hash(seed(st), key, 'boss') * f.species.length), m = f.species[i];
       const power = Math.round(Math.max(m.base, m.champion) * 1.8);
-      f.boss = { name: m.name + ' · ผู้พิทักษ์ชั้น', power, species: m.id,
+      f.boss = { name: +key === 9 && f.biome === 'f5_ruins' ? 'อัศวินมรณะผู้เฝ้าศิลาทางขึ้น' : m.name + ' · ผู้พิทักษ์ชั้น', power, species: m.id,
         rank: RANKS[Math.max(2, rankOf(power))], alive: true, boss: true };
     }
     if (isSafeFloor(+key) && !SAFE_KINDS[w.floors[key].safeKind]) {
@@ -770,6 +782,6 @@
     const L = Object.entries(x.loot).map(([id, k]) => (id === 'coin' ? 'เหรียญ' : Bag ? Bag.name(id) : id) + ' ' + k);
     return 'ออกจากหอคอยทางศิลาทางออก (' + days + ' วัน สูงสุดชั้น ' + x.highest + ' ชนะ ' + x.wins + ' ครั้ง)' + (L.length ? ' ได้ ' + L.join(', ') : '') + (x.why ? ' · ' + x.why : '')+(abandoned?' · ของที่ยังไม่เก็บตกหาย '+abandoned+' รายการ':'');
   }
-  return { TERRAINS, THEMES, themeFor, biomeOf, PARTY, GUARD_FEE, CHOICES, SLOTS_OF_DAY, CAMP_SLEEP, terrainOf, needOf, active, planned, plan, cancel, enter, withTeam, allyPower,
+  return { TERRAINS, THEMES, FLOOR_THEMES, themeFor, biomeOf, PARTY, GUARD_FEE, CHOICES, SLOTS_OF_DAY, CAMP_SLEEP, terrainOf, needOf, active, planned, plan, cancel, enter, withTeam, allyPower,
     encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, DROP_WEAPON, DROP_BOOK, rollDrop, isBossFloor, bossOf, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, eliteOf, recordEliteHunt, hash, seed, isSafeFloor, safeInfo, safeAction, safeTravel };
 });

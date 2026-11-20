@@ -106,6 +106,10 @@
     // v108 gear (Skills.GEAR has the numbers)
     namelessBlade:{name:'ดาบของผู้ไม่มีชื่อ',icon:'⚔️',kind:'goods',keep:0,sell:95,equip:'weapon',desc:'อาวุธเควสลับ พลังพื้นฐาน 18'},
     sword:     { name: 'ดาบเหล็ก',          icon: '⚔️', kind: 'goods', keep: 0, sell: 24, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +11' },
+    // v127 more weapon kinds — each has its own attack animation in the tower (tower-view.js)
+    spear:     { name: 'หอกเหล็ก',          icon: '🔱', kind: 'goods', keep: 0, sell: 20, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +10 · แทงได้ไกล' },
+    bow:       { name: 'ธนูไม้',            icon: '🏹', kind: 'goods', keep: 0, sell: 18, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +9 · ยิงจากระยะไกล' },
+    club:      { name: 'กระบองไม้',          icon: '🏏', kind: 'goods', keep: 0, sell: 7, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +6 · หาง่าย ราคาถูก' },
     leather:   { name: 'เสื้อหนัง',          icon: '🦺', kind: 'goods', keep: 0, sell: 7, equip: 'armor', desc: 'เกราะ ป้องกัน +5' },
     guardianVest: { name:'เกราะผู้พิทักษ์',icon:'🛡️',kind:'goods',keep:0,sell:120,equip:'armor',desc:'แบบแปลนเควสลับ · เกราะพิเศษ ป้องกันพื้นฐาน 25' },
     chain_vest:{ name: 'เสื้อเกราะโซ่',      icon: '🛡️', kind: 'goods', keep: 0, sell: 25, equip: 'armor', desc: 'เกราะ ป้องกัน +10' },
@@ -124,7 +128,7 @@
     rice:1,veg:.3,fish:.55,spice:.08,herb:.12,junk:1.1,scrap:.7,iron:1.8,monster:1.2,
     knife:.7,sickle:1.2,hook:.85,dagger:1.1,meat:.4,ore:2.2,crystal:.5,soul_crystal:.25,potion:.45,
     book_fire:.6,book_ice:.6,book_sense:.6,book_fireBody:.6,book_iceSkin:.6,book_lastStand:.6,book_shadowStep:.6,
-    sword:3.5,namelessBlade:4.5,leather:4,chain_vest:9,guardianVest:12,oldwheel:7,chain:2,plank:4,
+    sword:3.5,spear:3,bow:1.2,club:2.2,namelessBlade:4.5,leather:4,chain_vest:9,guardianVest:12,oldwheel:7,chain:2,plank:4,
     horse:0,bike:0,scooter:0,charm:.3,
     root_food:0.12,clear_leaf:0.1,bind_grass:0.1,wake_leaf:0.09,moist_moss:0.15,antidote_root:0.13,warm_blossom:0.12,fever_mushroom:0.14,antiseptic_bark:0.25,blood_flower:0.13,vigor_seed:0.12,silver_moss:0.16,shadow_petal:0.06,verdant_heart:0.6,clean_water:.5,tablet_binder:.08,
     copper_ore:2.3,tin_ore:2,iron_ore:2.8,silver_ore:2.2,ember_ore:2.5,blood_ore:2.4,
@@ -220,7 +224,7 @@
   });
   const COIN = Object.freeze({ name: 'เหรียญ', icon: '🪙' });
   // v111 tower safe-zone traders: rates are deliberately higher than in the city.
-  const SAFE_SHOP = Object.freeze({ bread: 4, jerky: 6, potion: 10, clean_water: 4, leather: 22, sword: 72,
+  const SAFE_SHOP = Object.freeze({ bread: 4, jerky: 6, potion: 10, clean_water: 4, leather: 22, sword: 72, spear: 62, bow: 56, club: 20,
     book_fire: 800, book_ice: 1000, book_sense: 198, book_fireBody: 400 });
   const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain',
     'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore']);
@@ -262,7 +266,7 @@
   const SHOPS = Object.freeze({
     bazaar: { name: 'ตลาดใหญ่', place: 'bazaar', items: { rice: 1, veg: 1, fish: 2, spice: 3, riceball: 2, jerky: 4 } },
     bakery: { name: 'ร้านขนมปัง', place: 'bakery', items: { bread: 2 } },
-    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5, leather: 14, chain_vest: 48, sword: 45 } },
+    smith:  { name: 'โรงตีเหล็ก', place: 'smith', items: { iron: 5, leather: 14, chain_vest: 48, sword: 45, spear: 38, bow: 34, club: 12 } },
     junk:   { name: 'ร้านรับซื้อของเก่า', place: 'junk', items: { plank: 1, chain: 4, oldwheel: 5 } },
     stable: { name: 'คอกม้าลานเกวียน', place: 'stable', items: { horse: 60 } },
     apothecary: { name: 'ร้านยา', place: 'apothecary', items: { potion: 6, clean_water: 2, tablet_binder: 3, root_food: 3, clear_leaf: 3, bind_grass: 3, wake_leaf: 3, moist_moss: 3 } }
