@@ -135,11 +135,12 @@
   });
   const unitWeight = id => WEIGHTS[id] === undefined ? .5 : WEIGHTS[id];
   const slotKey = row => row.instanceId ? 'gear:' + row.instanceId :
-    (row.rarity ? 'rarity:' + row.id + ':' + row.rarity : 'item:' + row.id);
+    (row.rarity ? 'rarity:' + row.id + ':' + row.rarity : 'item:' + row.id)+(row.quality ? ':quality:'+row.quality : '');
   const slotCount = st => new Set(list(st).filter(s=>s.n>0).map(slotKey)).size;
-  const canFit = (st, id, rarity = null, instanceId = null) => {
+  const canFit = (st, id, rarity = null, instanceId = null, quality = 0) => {
     const key = instanceId ? 'gear:' + instanceId : rarity ? 'rarity:' + id + ':' + rarity : 'item:' + id;
-    return slotCount(st) < CAP || list(st).some(s=>slotKey(s) === key);
+    const effective = key + (quality ? ':quality:'+quality : '');
+    return slotCount(st) < CAP || list(st).some(s=>slotKey(s) === effective);
   };
   const auto = st => st.inventoryAuto !== false;
   function setAuto(st, enabled) { st.inventoryAuto = !!enabled; return st.inventoryAuto; }
@@ -159,7 +160,7 @@
     const grouped = new Map();
     for (const s of list(st)) {
       const key=slotKey(s); let r=grouped.get(key);
-      if (!r) { r={key,id:s.id,n:0,instanceId:s.instanceId||null,rarity:s.rarity||null,exp:0};grouped.set(key,r); }
+      if (!r) { r={key,id:s.id,n:0,instanceId:s.instanceId||null,rarity:s.rarity||null,quality:s.quality||0,exp:0};grouped.set(key,r); }
       r.n+=s.n; if (s.exp && (!r.exp || s.exp<r.exp)) r.exp=s.exp;
     }
     return [...grouped.values()].map(r=>({...r,weight:Math.round(unitWeight(r.id)*r.n*100)/100}));
@@ -304,13 +305,13 @@
   const meals = st => list(st).reduce((n, s) => n + (ITEMS[s.id] && ITEMS[s.id].kind === 'meal' ? s.n : 0), 0);
   const sync = st => { st.food = meals(st); const S=skills(); if (S && st.base) S.recalc(st); return st; };          // older code and the panel read st.food
   const vehicles = st => (st.vehicles && typeof st.vehicles === 'object' ? st.vehicles : (st.vehicles = {}));
-  function add(st, id, n, day) {
+  function add(st, id, n, day, quality = 0) {
     const it = ITEMS[id];
     if (it && it.kind === 'vehicle') {               // one of each, parked rather than carried
       const V = vehicles(st); if (V[id]) return 0;
       V[id] = { since: day || st.day || 1, hungry: 0 }; return 1;
     } n = Math.max(0, Math.floor(n === undefined ? 1 : n));
-    if (!it || !n || !canFit(st,id)) return 0;
+    if (!it || !n || !canFit(st,id,null,null,quality)) return 0;
     if (it.equip) {
       n = Math.min(n,CAP-slotCount(st));if(!n)return 0;
       const S = skills(); if (!S) return 0;
@@ -322,14 +323,14 @@
       sync(st); return n;
     }
     const exp = it.keep ? (day || st.day || 1) + it.keep : 0, L = list(st);
-    const s = L.find(x => x.id === id && x.exp === exp && !x.rarity && !x.instanceId);
-    if (s) s.n += n; else L.push({ id, n, exp });
+    const s = L.find(x => x.id === id && x.exp === exp && !x.rarity && !x.instanceId && (x.quality||0)===quality);
+    if (s) s.n += n; else L.push({ id, n, exp, ...(quality?{quality}:{}) });
     sync(st); return n;
   }
   function take(st, id, n) {                          // oldest first; moving gear does not destroy the instance
     n = n === undefined ? 1 : n;
     if (count(st, id) < n) return false;
-    const L = list(st).filter(s => s.id === id || s.instanceId === id).sort((a, b) => (a.exp || 1e9) - (b.exp || 1e9));
+    const L = list(st).filter(s => s.id === id || s.instanceId === id).sort((a, b) => (a.quality||0)-(b.quality||0) || (a.exp || 1e9) - (b.exp || 1e9));
     for (const s of L) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!n) break; }
     st.bag = list(st).filter(s => s.n > 0); sync(st); return true;
   }
@@ -421,7 +422,7 @@
     let moved=0;const left=[];
     for(const s of stash(st)) {
       if(!canFit(st,s.id,s.rarity||null,s.instanceId||null)){left.push(s);continue;}
-      const row=list(st).find(x=>x.id===s.id && x.exp===s.exp && (x.rarity||null)===(s.rarity||null) && !x.instanceId && !s.instanceId);
+      const row=list(st).find(x=>x.id===s.id && x.exp===s.exp && (x.rarity||null)===(s.rarity||null) && (x.quality||0)===(s.quality||0) && !x.instanceId && !s.instanceId);
       if(row)row.n+=s.n;else list(st).push({...s});moved+=s.n;
     }
     st.stash=left;sync(st);return moved;
@@ -432,7 +433,7 @@
     if(!ITEMS[template]||ITEMS[template].kind==='meal'||!Number.isInteger(n)||n<1||count(st,id)<n)return 0;
     let left=n;
     for(const s of list(st).filter(s=>s.id===id||s.instanceId===id).sort((a,b)=>(a.exp||1e9)-(b.exp||1e9))){
-      const k=Math.min(left,s.n), target=stash(st).find(x=>x.id===s.id&&x.exp===s.exp&&(x.rarity||null)===(s.rarity||null)&&!s.instanceId&&!x.instanceId);
+      const k=Math.min(left,s.n), target=stash(st).find(x=>x.id===s.id&&x.exp===s.exp&&(x.rarity||null)===(s.rarity||null)&&(x.quality||0)===(s.quality||0)&&!s.instanceId&&!x.instanceId);
       if(target)target.n+=k;else stash(st).push({...s,n:k});s.n-=k;left-=k;if(!left)break;
     }
     st.bag=list(st).filter(s=>s.n>0);sync(st);return n;
@@ -443,7 +444,7 @@
     let left=n,moved=0;
     for(const s of stash(st).filter(s=>s.id===id||s.instanceId===id)){
       if(!canFit(st,s.id,s.rarity||null,s.instanceId||null))break;
-      const k=Math.min(left,s.n),target=list(st).find(x=>x.id===s.id&&x.exp===s.exp&&(x.rarity||null)===(s.rarity||null)&&!s.instanceId&&!x.instanceId);
+      const k=Math.min(left,s.n),target=list(st).find(x=>x.id===s.id&&x.exp===s.exp&&(x.rarity||null)===(s.rarity||null)&&(x.quality||0)===(s.quality||0)&&!s.instanceId&&!x.instanceId);
       if(target)target.n+=k;else list(st).push({...s,n:k});s.n-=k;moved+=k;left-=k;if(!left)break;
     }
     st.stash=stash(st).filter(s=>s.n>0);sync(st);return moved;

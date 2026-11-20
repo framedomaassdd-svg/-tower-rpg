@@ -11,16 +11,30 @@
   #hud canvas{width:46px;height:46px;border-radius:10px;background:#3a3040;flex:none}
   #hud .l1{font-weight:600;font-size:14px} #hud .l3{color:#ffe1a0}
   #hud .bars{color:#d8d0e0}
-  #lgmenu{position:fixed;right:12px;bottom:max(14px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;gap:8px}
+  #lgmenu{position:fixed;right:12px;bottom:max(14px,env(safe-area-inset-bottom));z-index:12;display:flex;flex-direction:column;gap:8px;max-height:calc(100dvh - 96px);overflow-y:auto;overscroll-behavior:contain}
   #lgmenu button{width:64px;height:auto;padding:5px 0 4px;border-radius:14px;background:#2a2230e6;border:1px solid #ffffff55;color:#fff;font:600 11px/1.1 system-ui;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:manipulation}
   #lgmenu button:active{background:#5a4430}
   @media(max-width:520px){#lgmenu button{width:54px;font-size:10px}#lgmenu{gap:6px}}
-  .lg-tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-6px 0 10px}
+  .lg-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:-6px 0 10px}
+  .lg-manage-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
   .lg-tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;border:1px solid #ffffff30;background:var(--lg-btn);color:var(--lg-muted);font:600 12px/1.2 system-ui}
   .lg-tabs .on{border-color:var(--lg-gold);color:var(--lg-gold);background:#4a3826}
   .lg-skill{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:14px}
   .lg-bar{height:10px;border-radius:99px;background:#ffffff18;overflow:hidden} .lg-bar i{display:block;height:100%;background:linear-gradient(90deg,#c98a3a,#f2c14e)}
   .lg-zone{margin:10px 0 4px;padding:8px 10px 6px;border-radius:12px;background:#ffffff0b;border:1px solid #ffffff18} .lg-zone.here{border-color:var(--lg-gold)}
+  /* v125: responsive gallery uses actual commissioned art; no permanent world object is faked. */
+  .mg-art{display:block;width:100%;height:auto;max-height:265px;object-fit:contain;margin:5px auto 10px;border-radius:10px;background:#281f1b}
+  .mg-art.mg-interior{aspect-ratio:1672/941;object-fit:cover;max-height:none}
+  .mg-art.mg-sign{width:min(180px,48%);max-height:92px;object-fit:contain;display:inline-block;vertical-align:middle;margin:3px 10px 3px 0}
+  .mg-art.mg-stock{max-height:165px;object-fit:contain}
+  .mg-art.mg-banner{height:150px;width:auto;max-width:100%}
+  .mg-inline-icon{width:28px;height:28px;object-fit:contain;vertical-align:middle;margin-right:7px}
+  .mg-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}
+  .mg-options .lg-btn{margin:0}.mg-options img{height:96px;width:100%;object-fit:contain}
+  .mg-portrait{height:150px;max-width:105px;aspect-ratio:2/3;flex:none;background-size:400% 100%;background-repeat:no-repeat;background-color:#352820;border-radius:10px;border:1px solid #b69c6b}
+  .mg-person{display:flex;align-items:center;gap:12px}
+  @media(max-width:520px){.mg-art{max-height:200px}.mg-portrait{height:110px;max-width:80px}}
+
   .lg-zone svg{display:block;width:100%;height:auto;overflow:visible}
   #lgtoast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:12;max-width:min(560px,calc(100vw - 170px));
     background:rgba(23,20,26,.9);color:#fff;border-radius:12px;padding:9px 14px;font:14px/1.45 system-ui;opacity:0;transition:opacity .35s;pointer-events:none;text-align:center}
@@ -98,6 +112,7 @@
   .lg-reel{width:74px;height:82px;border-radius:14px;background:linear-gradient(#120b07,#2a1c12 50%,#120b07);border:2px solid var(--lg-line);font-size:46px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 14px #000c}
   .lg-reel.stop{border-color:#ffd76a;box-shadow:inset 0 0 14px #000c,0 0 12px #ffd76a66}
   .lg-res{margin:6px 0;padding:0;list-style:none} .lg-res li{margin:3px 0}
+  .lg-guide{max-width:540px}.lg-guide-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.lg-guide-head h2{flex:1}.lg-guide-skip{width:auto;min-width:82px;margin:0;padding:6px 9px;font-size:13px}.lg-guide-text{white-space:pre-line;line-height:1.5;font-size:clamp(13px,3.5vw,16px)}.lg-guide-image{max-width:100%;max-height:24vh;object-fit:contain;border-radius:12px}.lg-guide-body{min-height:75px}
   .lg-bigstars{font-size:44px;color:#ffd76a;letter-spacing:4px} .lg-sword{display:block;width:88%;margin:4px auto 2px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
   `;
   const styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl);
@@ -135,6 +150,23 @@
 
   function el(html, cls) { const d = document.createElement('div'); d.className = 'lg-overlay ' + (cls || ''); d.innerHTML = html; document.body.appendChild(d); return d; }
   function closeOverlay(d) { d.remove(); block(null); try { update(); } catch (e) {} }
+  // v122: a tutorial is its own paused overlay. Only one can run at a time.
+  function showGuide(id, after=null, reread=false) {
+    const T=window.Tutorial,topic=T&&T.TUTORIALS[id]; if(!topic||open)return false;
+    const d=el('<div class="lg-card lg-guide"><div class="lg-guide-head"><h2></h2><button class="lg-btn lg-guide-skip">ข้าม</button></div><div class="lg-guide-body"></div><p class="lg-muted lg-guide-progress"></p><button class="lg-btn lg-primary lg-guide-next">ถัดไป</button></div>');
+    block(d);let page=0;
+    const render=()=>{const P=topic.pages[page],body=d.querySelector('.lg-guide-body');d.querySelector('h2').textContent=topic.icon+' '+(id.startsWith('job_')&&LifeSim.PATHS[id.slice(4)]?LifeSim.PATHS[id.slice(4)].name:topic.title);
+      body.innerHTML='<p class="lg-guide-text"></p>'+(P.image?'<img class="lg-guide-image" alt="">':'');
+      body.querySelector('p').textContent=P.text;if(P.image){const img=body.querySelector('img');img.src=P.image;img.onerror=()=>img.remove();}
+      d.querySelector('.lg-guide-progress').textContent=(page+1)+' / '+topic.pages.length;
+      d.querySelector('.lg-guide-next').textContent=page+1===topic.pages.length?'เข้าใจแล้ว':'ถัดไป';};
+    const finish=()=>{if(!reread){T.done(state,id,clock);save();}d.remove();block(null);if(after)after();try{update();}catch(e){}};
+    d.querySelector('.lg-guide-next').onclick=()=>{if(page+1<topic.pages.length){page++;render();}else finish();};
+    d.querySelector('.lg-guide-skip').onclick=finish;render();return true;
+  }
+  function guidePending(event,extras={}) {return window.Tutorial&&Tutorial.pending(state,{event,clock,...extras});}
+  function maybeGuide(event,after,extras={}) {const id=guidePending(event,extras);return id?showGuide(id,after):false;}
+
 
   // ---------- new life ----------
   function newLife() {
@@ -191,12 +223,12 @@
     return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.78)}px;line-height:${px}px">${it.icon}</i>`;
   }
   // v102 menu icons: ui_icons.webp is 2×2 — 0 bag · 1 skills · 2 map · 3 character
-  const UI_ICON = { bag: [0, '🎒'], skill: [1, '✨'], map: [2, '🗺️'], char: [3, '👤'], story: [4, '📖'], alchemy:[5,'🧪'], artisan:[6,'🔨'] };
+  const UI_ICON = { manage:[7,'🏠'], bag: [0, '🎒'], skill: [1, '✨'], map: [2, '🗺️'], char: [3, '👤'], story: [4, '📖'], alchemy:[5,'🧪'], artisan:[6,'🔨'] };
   let uiOk = false;
   (function () { const im = new Image(); im.onload = () => { uiOk = true; document.querySelectorAll('[data-uiic]').forEach(e => { e.outerHTML = uiIcon(e.dataset.uiic, +e.dataset.px); }); }; im.src = 'ui_icons.webp?v=102'; })();
   function uiIcon(id, px) {
     const [k, emo] = UI_ICON[id];
-    if (id === 'story'||id==='alchemy'||id==='artisan') return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.72)}px;line-height:${px}px">${emo}</i>`;
+    if (id === 'story'||id==='alchemy'||id==='artisan'||id==='manage') return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.72)}px;line-height:${px}px">${emo}</i>`;
     if (uiOk) return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(ui_icons.webp?v=102);background-size:200% 200%;background-position:${k % 2 * 100}% ${Math.floor(k / 2) * 100}%"></i>`;
     return `<i class="lg-ic lg-emo" data-uiic="${id}" data-px="${px}" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.72)}px;line-height:${px}px">${emo}</i>`;
   }
@@ -268,6 +300,7 @@
   }
   // The same persistent card logic is used in the city forge and the tower safe-zone service.
   function enhanceCard() {
+    if(maybeGuide('enhance',()=>enhanceCard()))return;
     if (open) return false;
     if (!isSmith()) return false;
     let selected = enhanceOptions()[0], sacrificed = new Set(), note = '';
@@ -300,7 +333,7 @@
     const bag=b.slotRows(state), shown=automatic?bag.slice().sort((x,y)=>(x.exp||1e9)-(y.exp||1e9)||x.id.localeCompare(y.id)):bag;
     const rows=shown.map((entry,i)=>{
       const it=b.ITEMS[entry.id],left=entry.exp?entry.exp-state.day:Infinity;
-      const label=entry.instanceId?gearText(entry.instanceId):esc(it.name)+(it.tier!==undefined&&it.tier>0?' [T'+it.tier+']':'')+(entry.rarity?' ['+esc(entry.rarity)+']':'');
+      const label=entry.instanceId?gearText(entry.instanceId):esc(it.name)+(it.tier!==undefined&&it.tier>0?' [T'+Math.max(0,it.tier+Math.min(0,entry.quality||0))+']':'')+(entry.quality>0?' ✦ ออกฤทธิ์นานขึ้น':'')+(entry.rarity?' ['+esc(entry.rarity)+']':'');
       const controls=automatic?'':`<div class="lg-item-actions">
         <button class="lg-small" data-drop-one="${esc(entry.key)}">ทิ้ง 1</button>
         <button class="lg-small" data-drop-all="${esc(entry.key)}">ทิ้งทั้งหมด</button>
@@ -427,8 +460,15 @@
   }
 
   // ---------- life panel ----------
-  const TABS = [['bag', 'กระเป๋า'], ['skill', 'สกิล'], ['map', 'แผนที่'], ['story', 'เนื้อเรื่อง'], ['alchemy','ปรุงยา'], ['artisan','ช่างฝีมือ'], ['char', 'ตัวละคร']];
-  let tab = 'char';
+  const TABS = [['bag', 'กระเป๋า'], ['skill', 'สกิล'], ['map', 'แผนที่'], ['story', 'เนื้อเรื่อง'], ['alchemy','ปรุงยา'], ['artisan','ช่างฝีมือ'], ['manage','บริหาร'], ['char', 'ตัวละคร']];
+  let tab = 'char', manageSection='home', manageShop='restaurant', manageNpc='smith';
+  let manageHouseView='exterior', manageGuildRoom='hall', managePartyRoom='meeting';
+  const MG_ASSET = 'life-art/';
+  const mgPic = (filename,alt='',cls='') => `<img class="mg-art ${cls}" src="${MG_ASSET}${filename}.webp?v=125" alt="${esc(alt)}" loading="lazy" decoding="async">`;
+  const mgIcon = (filename) => `<img class="mg-inline-icon" src="${MG_ASSET}${filename}.webp?v=125" alt="" loading="lazy">`;
+  const mgPortrait = (id) => ['property_agent','carpenter','guild_registrar','guild_treasurer','wholesaler','rookie','veteran','neighbor'].includes(id)
+    ? `<div class="mg-portrait" role="img" aria-label="ภาพ ${esc(Management.NPCS[id]?.name||id)}" style="background-image:url('${MG_ASSET}portrait_npc5_${id}.webp?v=125');background-position:0% 0%"></div>` : '';
+
   function charHtml() {
     const L = state.life, o = LifeSim.originOf(state);
     return `<h2>ตัวละคร</h2>
@@ -440,6 +480,7 @@
       <h3>สถานะร่างกาย</h3><p class="lg-muted">${window.Alchemy&&Alchemy.labels(state).length?Alchemy.labels(state).map(s=>s.icon+' '+esc(s.name)+' Lv.'+s.level).join(' · '):'✅ ปกติ'}</p>
       ${gearSummaryHtml()}
       ${guildHtml()}
+      <p class="lg-muted">ความสุข ${window.Management ? Management.ensure(state).happiness.value : 50}/100 · จัดการบ้าน ร้าน กิลด์ ปาร์ตี้ และความสัมพันธ์ในแท็บ 🏠 บริหาร</p>
       <h3>ที่พัก</h3><p class="lg-muted">เลือกห้องที่อยากพักทุกคืน ถ้าเงินไม่พอ ตัวละครจะพักห้องที่ถูกลงเอง จนถึงห้องเช่าในตรอกล่าง ถ้าไม่มีเลยจะนอนม้านั่ง (ศาลเจ้าร้างกับเพิงข้างกองขยะนอนฟรี แต่ต้องเลือกเอง) และถ้าไม่มีเงินกินข้าวจะไปรับซุปฟรีที่โรงทาน</p>
       ${LifeSim.ROOM_ORDER.slice().reverse().map(id => { const r = LifeSim.ROOMS[id], price = LifeSim.roomPrice(state, id);
         return `<button class="lg-btn ${L.roomPref === id ? 'lg-cur' : ''}" data-room="${id}">${esc(r.name)} · ${price ? price + ' เหรียญ/คืน' : 'ฟรี'}${price < r.price ? '<span class="lg-tag">ราคาพนักงาน</span>' : ''}${L.roomPref === id ? '<span class="lg-tag">เลือกอยู่</span>' : ''}<small>${esc(r.desc)}</small></button>`; }).join('')}
@@ -466,10 +507,13 @@
   }
   const PREP_SHOP = [['jerky', 5, 'เก็บได้ 10 วัน'], ['bread', 3, 'เก็บได้ 3 วัน'], ['potion', 7, 'ดื่มเองเมื่อสุขภาพต่ำ']];
   function prepCard(sel) {
+    if(maybeGuide('tower_enter',()=>prepCard(sel)))return;
     const E = X(), L = state.life; sel = sel || { party: null };
     const path = L.path, G = LifeSim.guildOf(state), guildOK = G && G.member && E.PARTY[path];
+    const personal = window.Management&&Management.ensure(state).party;
     const parties = [[null, 'ไปคนเดียว', 'ไม่มีใครช่วยถ้าพลาด อาจตายได้จริง']]
       .concat(guildOK ? [[path, 'ไปกับ' + E.PARTY[path].name, 'พลังทีม +' + E.PARTY[path].power + ' · แพ้หนักแล้วทีมช่วยไว้ (เสียเงิน อุปกรณ์ ครึ่งหนึ่ง)']] : [])
+      .concat(personal&&personal.leader&&personal.members.length ? [['personal','ไปกับปาร์ตี้ที่คุณนำ','สมาชิก '+personal.members.length+' คน · พลังช่วยเหลือ +'+Management.partyPower(state)]]:[])
       .concat([['guard', 'จ้างนักรบคุ้มกัน', E.GUARD_FEE + ' เหรียญ/วัน (มัดจำ 5 วัน ' + E.GUARD_FEE * 5 + ' เหรียญ ที่เหลือจ่ายตอนออก) · พลัง +' + E.PARTY.guard.power + ' · ช่วยชีวิตได้ถ้าไม่หลงกัน']]);
     const meals = B().meals(state), need = 0;
     const d = el(`<div class="lg-card"><h2>เตรียมเข้าหอคอย</h2>
@@ -491,6 +535,7 @@
   }
   // v111 safe zone: one persistent shop-like overlay, not one action per encounter/day.
   function safeCard() {
+    if(maybeGuide('safe_floor',()=>safeCard()))return;
     const E = X(), info = E && E.safeInfo(state);
     if (!info || open) return false;
     const exp = E.X(state);
@@ -577,6 +622,10 @@
 
   // an encounter in the tower: choose → spin the three reels → see what happened
   function encounterCard(enc) {
+    const E0=X(),ci=E0&&E0.X(state),floor=ci?.floor||0;
+    if(enc.scene==='combat'&&floor>0&&(floor+1)%5===0&&maybeGuide('boss_floor',()=>encounterCard(enc)))return;
+    if(maybeGuide('tower_choice',()=>encounterCard(enc)))return;
+    if(enc.scene==='stone'&&maybeGuide('stone',()=>encounterCard(enc)))return;
     const E = X(), Eng = window.TowerSlotEngine;
     const d = el(`<div class="lg-card"><canvas></canvas><div><div class="who">${esc(enc.title)}</div><p class="line">${esc(enc.text)}</p></div><div class="lg-actions"></div></div>`, 'lg-event');
     block(d);
@@ -610,7 +659,7 @@
           actions.insertAdjacentHTML('beforeend', `<h3 style="margin:8px 0 2px">${esc(res.title)}</h3>${triggered}${special}${res.description ? '<p class="lg-muted" style="margin:0">' + esc(res.description) + '</p>' : ''}${fight}<ul class="lg-res">${res.lines.map(l => '<li>' + esc(l) + '</li>').join('')}</ul>
             ${got.length ? '<div class="lg-gain">' + got.map(chipHtml).join('') + '</div>' : ''}<button class="lg-btn lg-primary" data-ok="1">${res.dead ? '...' : 'ตกลง'}</button>`);
           for (const l of res.lines.slice(0, 2)) log(enc.title + ': ' + l);
-          actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else closeOverlay(d); };
+          actions.querySelector('[data-ok]').onclick = () => { if (res.dead) { d.remove(); deathCard(); } else { d.remove();block(null);if(res.rescued)maybeGuide('rescue');save();update(); } };
         }, 700 + 3 * 450 + 200);
       };
       actions.querySelector('[data-spin]').onclick = spin;
@@ -653,10 +702,10 @@
     const recipes=Object.entries(Ar.FORGE_RECIPES).map(([id,r])=>{
       const m=Ar.MINERALS[Object.keys(r.needs).filter(k=>Ar.MINERALS[k]).sort((a,b)=>Ar.MINERALS[b].tier-Ar.MINERALS[a].tier)[0]];
       return `<div class="lg-zone"><b>${esc(r.name)} · T${r.tier}</b>
-        <p class="lg-muted">วัตถุดิบ: ${needsHtml(r.needs)}<br>โอกาสสำเร็จ ${Math.round(Ar.chance(state,id)*100)}% · โอกาสโบนัสค่าสถานะ/คุณสมบัติอิงกับ${esc(m.name)} · วัตถุดิบใช้หมดเมื่อหลอม</p>
+        <p class="lg-muted">วัตถุดิบ: ${needsHtml(r.needs)}<br>โอกาสสำเร็จ ${Math.round(Ar.chance(state,id)*100)}% · โอกาสโบนัสค่าสถานะ/คุณสมบัติอิงกับ${esc(m.name)} · พลาดอาจพังทั้งชิ้นและเสียแร่ทั้งหมด (บางครั้งเก็บแร่คืนได้)</p>
         <button class="lg-btn" data-artisan-forge="${id}" ${inTower||a.tier<r.tier||!B.has(state,r.needs)?'disabled':''}>🔨 นัดไปหลอม${esc(r.name)}<small>${a.tier<r.tier?'ต้องสอบถึง Tier '+r.tier:inTower?'ต้องกลับเมืองก่อน':'เดินทางไปโรงตีเหล็กหลังเลิกงาน'}</small></button></div>`;
     }).join('');
-    const food=Object.entries(Ar.SPECIAL_FOOD).map(([id,r])=>`<div class="lg-zone"><b>${esc(B.name(id))} · T${r.tier}</b><p class="lg-muted">${needsHtml(r.needs)}<br>บัฟ ${r.hours} ชั่วโมงเกม: ${esc(Object.entries(r.buff||{resist:r.resist}).map(([k,v])=>(Skills.STAT_NAME[k]||k)+' '+v).join(', '))}</p>
+    const food=Object.entries(Ar.SPECIAL_FOOD).map(([id,r])=>`<div class="lg-zone"><b>${esc(B.name(id))} · T${r.tier}</b><p class="lg-muted">${needsHtml(r.needs)}<br>บัฟ ${r.hours} ชั่วโมงเกม: ${esc(Object.entries(r.buff||{resist:r.resist}).map(([k,v])=>(Skills.STAT_NAME[k]||k)+' '+v).join(', '))}<br>ทำพลาดอาจไหม้เสียทั้งหมดหรือได้อาหารคุณภาพต่ำ</p>
       <button class="lg-btn" data-artisan-cook="${id}" ${inTower||!B.has(state,r.needs)||Math.max(1,Skills.tierOf(state,'cooking'))<r.tier?'disabled':''}>🍳 นัดทำอาหารพิเศษ</button></div>`).join('');
     const edible=B.slotRows(state).filter(s=>Ar.SPECIAL_FOOD[s.id]).map(s=>`<button class="lg-btn" data-artisan-eat="${s.id}">🍽️ กิน${esc(B.name(s.id))} ×${s.n}<small>บัฟตามเวลาจริงในเกม</small></button>`).join('');
     const buff=Ar.buffs(state).map(s=>`<div class="lg-zone">✨ ${esc(B.name(s.source))} · เหลือ ${Math.max(0,(s.until-Ar.now(state)).toFixed(1))} ชั่วโมงเกม</div>`).join('');
@@ -681,7 +730,7 @@
       const effects=Object.entries(r.remove).map(([i,n])=>esc(A.CONDITIONS[i].name)+' −'+n).join(' · ')+(r.buff?' · บัฟ '+r.hours+' ชั่วโมงเกม: '+esc(Object.entries(r.buff).map(([k,v])=>(Skills.STAT_NAME[k]||k)+' '+v).join(', ')):'');const steps=A.STEPS[r.form].join(' → ');
       const allowed=a.tier>=r.tier,ready=B.has(state,r.needs),chance=Math.round(A.chance(state,id,'apothecary')*100);
       return `<div class="lg-zone"><b>${iconHtml(id,30)} ${esc(B.name(id))}</b> <span class="lg-tag">T${r.tier} · ${r.form==='tablet'?'ยาเม็ด':'ยาน้ำ'}</span>
-        <p class="lg-muted">ผล: ${effects}<br>วัตถุดิบ: ${needs}<br>วิธีทำ: ${steps}<br>เวลา ${r.time} นาที · สำเร็จ ${chance}% · XP สำเร็จ +${4*r.tier}, พลาด +${r.tier}</p>
+        <p class="lg-muted">ผล: ${effects}<br>วัตถุดิบ: ${needs}<br>วิธีทำ: ${steps}<br>เวลา ${r.time} นาที · สำเร็จ ${chance}% · XP สำเร็จ +${4*r.tier}, พลาด +${r.tier}<br>⚠️ ปรุงพลาดอาจเสียยาทั้งชุดและวัตถุดิบทั้งหมด</p>
         <button class="lg-btn" data-alchemy-craft="${id}" ${!allowed||!ready||inTower?'disabled':''}>🧪 ${allowed?'นัดไปปรุงที่ร้านยาหลังเลิกงาน':'🔒 ต้องเลื่อนเป็น Tier '+r.tier}<small>${inTower?'ต้องออกจากหอคอยก่อน':'ใช้วัตถุดิบจริงและมีโอกาสล้มเหลว'}</small></button></div>`;
     }).join('');
     const medicines=medicine.map(s=>{
@@ -829,20 +878,125 @@
       ${visitedPlaces.map(place=>`<button class="lg-btn" data-story-search="${place}" ${inTower?'disabled':''}>🔎 สอบถามผู้คนที่${esc(LifeSim.PLACES[place].name)}</button>`).join('')}
       <h3>เควสที่ค้นพบ</h3>${rumorCards||'<p class="lg-muted">ยังไม่พบเบาะแส ลองไปพบผู้คนและสำรวจหอคอย</p>'}
       <p class="lg-muted">เบาะแสจะพบจากเหตุการณ์สำรวจและการพบ NPC จริง วัตถุดิบต้องเก็บในกระเป๋าก่อนส่ง ผู้สอนเปิดบทใหม่หลังจบบทก่อนเท่านั้น</p>
-      <p class="lg-muted">ชั้น 51–100 ยังไม่เปิดสายเมนเควสใหม่ และไม่มีพรจนกว่าจะพิชิตชั้น 100</p>`;
+      <p class="lg-muted">ชั้น 51–100 ยังไม่เปิดสายเมนเควสใหม่ และไม่มีพรจนกว่าจะพิชิตชั้น 100</p>
+      <h3>📚 คู่มือ</h3><p class="lg-muted">แตะหัวข้อที่เคยอ่านเพื่อเปิดดูอีกครั้ง</p>
+      ${(window.Tutorial&&state.life.tutorials?Object.entries(Tutorial.TUTORIALS).filter(([id])=>state.life.tutorials[id]!==undefined).map(([id,t])=>`<button class="lg-btn" data-guide="${id}">${esc(t.icon+' '+t.title)}</button>`).join(''):'')||'<p class="lg-muted">ยังไม่มีหัวข้อที่อ่านแล้ว</p>'}`;
+  }
+  // v124: management uses the same paused, touch-first panel as existing life menus.
+  function managementHtml() {
+    const MG=window.Management;if(!MG)return '<h2>ระบบบริหารยังไม่พร้อม</h2>';
+    const m=MG.ensure(state), p=m.party, h=MG.homeInfo(state), g=m.guild;
+    const r=MG.relation(state,manageNpc),shop=MG.SHOPS[manageShop],b=m.shops[manageShop];
+    const selectable=[...new Set(B().list(state).filter(x=>x.n>0 && !x.instanceId && shop.items.includes(x.id)).map(x=>x.id))];
+    const shopGear = manageShop==='smith' ? B().list(state).filter(x=>x.instanceId && Skills.gear(state,x.instanceId) && Skills.GEAR[Skills.gear(state,x.instanceId).templateId]?.slot!=='charm') : [];
+    const sect=[['home','🏠 บ้านและความสุข'],['party','⚔️ ปาร์ตี้'],['guild','🏰 กิลด์'],['shops','🏪 ร้านค้า'],['relations','🤝 ความสัมพันธ์']];
+    const sectionIcons={home:'ui_home_deed',party:'ui_party',guild:'ui_guild_crest',shops:'ui_shop_ledger',relations:'ui_relationship'};
+    const nav='<div class="lg-tabs lg-manage-nav">'+sect.map(([id,name])=>`<button data-m-section="${id}" class="${manageSection===id?'on':''}">${mgIcon(sectionIcons[id])}${name}</button>`).join('')+'</div>';
+    const warning=(X()&&X().active(state))?'<p class="lg-muted">กำลังอยู่ในหอคอย ไม่สามารถทำธุรกรรมหรือพบ NPC ในเมืองได้</p>':'';
+    let html='';
+    if(manageSection==='home'){
+      html=`<h3>🏠 บ้านและความสุข</h3>${mgPic('ui_happiness','ความสุข','mg-banner')}<div class="lg-zone"><b>ความสุข ${m.happiness.value}/100</b><div class="lg-bar"><i style="width:${m.happiness.value}%"></i></div><small>ความสุขเปลี่ยนจากสุขภาพ ความเหนื่อย ฐานะ ความสัมพันธ์ และการมีบ้าน · ไม่ใช่เลเวลตัวละคร</small></div>
+      ${h?`<div class="lg-zone"><b>บ้านของคุณ</b><div class="lg-stats"><button class="lg-btn" data-m-houseview="exterior">ภายนอก</button><button class="lg-btn" data-m-houseview="interior">ภายใน</button></div>${mgPic('home_'+m.home+'_'+manageHouseView,h.name,manageHouseView==='interior'?'mg-interior':'')}</div>`:''}
+      <div class="lg-zone"><b>ที่พักที่ถือครอง: ${esc(h?.name||'ยังไม่มีบ้าน')}</b><p class="lg-muted">${h?'ฟื้นแรง '+h.energy+' · สุขภาพ '+(h.health>=0?'+':'')+h.health+' · ค่าดูแล '+h.upkeep+' เหรียญ/วัน':'ตอนนี้ยังอาศัยห้องเช่าหรือที่พักฟรี'}</p>${h?'<button class="lg-btn" data-m-act="stayhome">เลือกนอนที่บ้าน</button>':''}</div>
+      <h3>แบบบ้านที่ซื้อหรืออัปเกรดได้</h3><div class="mg-options">${Object.entries(MG.HOMES).map(([id,H])=>`<button class="lg-btn" data-m-act="${h?'upgrade':'buyhome'}" data-m-type="${id}" ${h&&H.price<=MG.HOMES[m.home].price?'disabled':''}>${mgPic('home_'+id+'_exterior',H.name)}${esc(H.name)} · ${h?Math.max(0,H.price-MG.HOMES[m.home].price):H.price} เหรียญ<small>ค่าดูแล ${H.upkeep}/วัน · ฟื้นสุขภาพ ${H.health>=0?'+':''}${H.health}</small></button>`).join('')}</div>`;
+    } else if(manageSection==='party'){
+      html=`<h3>⚔️ ปาร์ตี้ของคุณ</h3><div class="lg-zone"><div class="lg-stats"><button class="lg-btn" data-m-partyroom="meeting">ห้องประชุม</button><button class="lg-btn" data-m-partyroom="camp">จุดพักแรม</button></div>${mgPic('party_'+managePartyRoom,'สถานที่วางแผนร่วมกับปาร์ตี้','mg-interior')}<small>ฉากประกอบกิจกรรมปาร์ตี้ · การเดินและการต่อสู้ยังทำงานอัตโนมัติ</small></div><div class="lg-zone"><b>${p.leader?'คุณเป็นหัวหน้าปาร์ตี้':'ยังไม่ได้รับเลือกเป็นหัวหน้า'}</b><p class="lg-muted">สมาชิก ${p.members.length}/3 คน (รวมผู้เล่นได้สูงสุด 4) · พลังสนับสนุน ${MG.partyPower(state)}</p><small>NPC ต้องยินยอมเข้าร่วม และเลือกหัวหน้าด้วยการลงคะแนน · ไม่สามารถสั่งเดินหรือกดสกิลแทน NPC</small></div>
+      ${p.members.map(id=>`<div class="lg-zone"><b>${esc(MG.NPCS[id]?.name||id)}</b> · ความไว้วางใจ ${MG.relation(state,id).trust} <button class="lg-btn" data-m-act="leave" data-m-id="${esc(id)}">ให้ออกจากทีม</button></div>`).join('')}
+      <button class="lg-btn lg-primary" data-m-act="leader" ${p.leader||p.members.length<2?'disabled':''}>🗳️ ขอให้ทีมลงคะแนนเลือกหัวหน้า</button>
+      ${Object.entries(MG.STANCES).map(([id,Q])=>`<button class="lg-btn ${p.stance===id?'lg-cur':''}" data-m-act="stance" data-m-type="${id}" ${!p.leader?'disabled':''}>${esc(Q.name)} ${p.stance===id?'✓':''}</button>`).join('')}
+      <p class="lg-muted">ต้องสร้างความสัมพันธ์กับ NPC จากแท็บความสัมพันธ์ก่อน จึงจะชวนเข้าร่วมได้ · เมื่อได้เป็นหัวหน้า จะเลือกปาร์ตี้ของตนเองในหน้าเตรียมเข้าหอคอย</p>`;
+    } else if(manageSection==='guild'){
+      html=`<h3>🏰 จัดการกิลด์</h3>${g?`<div class="lg-zone">${mgPic('guild_player_exterior','อาคารกิลด์ที่คุณก่อตั้ง')}
+      <div class="lg-stats">${['hall','office','bedroom','storage'].map(id=>`<button class="lg-btn" data-m-guildroom="${id}">${({hall:'โถงกิลด์',office:'ห้องหัวหน้า',bedroom:'ห้องสมาชิก',storage:'คลังสินค้า'})[id]}</button>`).join('')}</div>
+      ${mgPic('guild_player_'+manageGuildRoom,'ภายในกิลด์ของคุณ','mg-interior')}
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${mgPic('guild_player_banner','ธงกิลด์','mg-banner')}${mgPic('guild_player_board','กระดานภารกิจกิลด์','mg-banner')}</div><small>ภาพธงและกระดานเป็นฉากตกแต่ง ชื่อกิลด์จริงยังเก็บในข้อมูลเกม</small></div>``<div class="lg-zone"><b>${esc(g.name)}</b><p>เงินกองกลาง ${g.treasury} · สมาชิก ${g.members.length}/8 · ขวัญกำลังใจ ${g.morale}/100</p><small>สมาชิกทำภารกิจและรับค่าใช้จ่ายรายวัน หากเงินไม่พอหรือขวัญตก อาจออกจากกิลด์</small></div>
+      <div class="lg-stats"><button class="lg-btn" data-m-act="guildin">ฝาก 50 เหรียญ</button><button class="lg-btn" data-m-act="guildout">ถอน 50 เหรียญ</button></div>
+      <h3>มอบหมายภารกิจกิลด์</h3>${Object.entries(MG.MISSIONS).map(([id,o])=>`<button class="lg-btn ${g.mission===id?'lg-cur':''}" data-m-act="mission" data-m-type="${id}">${esc(o.name)}${g.mission===id?' ✓':''}<small>รายได้ขึ้นกับสมาชิกและความเสี่ยง · ไม่ได้การันตีสำเร็จ</small></button>`).join('')}
+      ${g.members.map(id=>`<p class="lg-muted">• ${esc(MG.NPCS[id]?.name||id)}</p>`).join('')}`:
+      `<p class="lg-muted">แบบอาคารสำหรับกิลด์ของคุณ</p>${mgPic('guild_player_exterior','อาคารกิลด์ที่สร้างได้')}<p class="lg-muted">ต้องมีชื่อเสียงอย่างน้อย 5 และเงิน 800 เหรียญเพื่อจดทะเบียน ตั้งกิลด์ของตัวเองโดยไม่ลบกิลด์เดิมของเมือง</p><input id="mg-guild-name" maxlength="24" placeholder="ชื่อกิลด์ของคุณ" style="width:100%;padding:12px;border-radius:9px;font:inherit;background:#2d2722;color:white;border:1px solid #bfa26d"><button class="lg-btn lg-primary" data-m-act="foundguild">ก่อตั้งกิลด์ · 800 เหรียญ</button>`}
+      <p class="lg-muted">สมาชิกกิลด์ใหม่ต้องยอมเข้าร่วมจากความสัมพันธ์ ส่วนกิลด์เดิมยังดำเนินงานเอง</p>`;
+    } else if(manageSection==='shops'){
+      html=`<h3>🏪 จัดการกิจการ</h3><div class="lg-manage-choices">${Object.entries(MG.SHOPS).map(([id,S])=>`<button class="lg-btn ${manageShop===id?'lg-cur':''}" data-m-shop="${id}">${S.icon} ${esc(S.name)} ${m.shops[id]?'✓':''}</button>`).join('')}</div>
+      <h3>${shop.icon} ${esc(shop.name)}</h3>${mgPic(({general:'shop_general_interior',restaurant:'shop_stock_food',smith:'shop_stock_weapons',apothecary:'shop_stock_potions'})[manageShop],shop.name,manageShop==='general'?'mg-interior':'mg-stock')}
+      ${mgPic('shop_sign_'+manageShop,'ป้าย'+shop.name,'mg-sign')}
+      ${mgPic(({restaurant:'shop_stock_food',smith:'shop_stock_weapons',general:'shop_stock_goods',apothecary:'shop_stock_potions'})[manageShop],'สินค้าของ'+shop.name,'mg-stock')}${b?`<div class="lg-zone"><b>กิจการของคุณ</b><p>เงินร้าน ${b.cash} · พนักงาน ${esc(b.staff?MG.NPCS[b.staff]?.name||b.staff:'ยังไม่มี')} · ราคาขาย ${b.price}%</p><p class="lg-muted">ขายสะสม ${b.revenue} เหรียญ · ค่าใช้จ่าย ${b.expense} เหรียญ · ของในสต็อก ${Object.values(b.stock).reduce((n,x)=>n+x,0)} ชิ้น</p></div>
+      <div class="lg-stats"><button class="lg-btn" data-m-act="shopin">ฝากเข้าร้าน 50 เหรียญ</button><button class="lg-btn" data-m-act="shopout">ถอนจากร้าน 50 เหรียญ</button></div>
+      <h3>ตั้งราคาขาย</h3><div class="lg-stats">${[80,100,120,140].map(x=>`<button class="lg-btn ${b.price===x?'lg-cur':''}" data-m-act="price" data-m-type="${x}">${x}%</button>`).join('')}</div>
+      <h3>สต็อกร้าน</h3>${Object.entries(b.stock).filter(([,n])=>n>0).map(([id,n])=>`<p class="lg-muted">${esc(B().name(id))} ×${n}</p>`).join('')||'<p class="lg-muted">ยังไม่มีสินค้า</p>'}
+      ${selectable.length?`<select id="mg-stock" style="width:100%;padding:10px;background:#29251f;color:white;border-radius:9px">${selectable.map(id=>`<option value="${id}">${esc(B().name(id))} (ในกระเป๋า ${B().count(state,id)})</option>`).join('')}</select><div class="lg-stats"><button class="lg-btn" data-m-act="stock" data-m-qty="1">ส่งเข้า 1</button><button class="lg-btn" data-m-act="stock" data-m-qty="5">ส่งเข้า 5</button></div>`:'<p class="lg-muted">ไม่มีสินค้าประเภทที่ร้านนี้รับในกระเป๋า</p>'}
+      ${manageShop==='smith'?`<h3>ขายอาวุธและเกราะรายชิ้น</h3><p class="lg-muted">อุปกรณ์ที่ฝากขายยังเก็บระดับและค่า + จริง ไม่สร้างชิ้นใหม่</p>
+      ${shopGear.map(x=>`<button class="lg-btn" data-m-act="stockgear" data-m-id="${esc(x.instanceId)}">ฝากขาย ${esc(Skills.gearLabel(state,x.instanceId))}</button>`).join('')||'<p class="lg-muted">ไม่มีอาวุธหรือเกราะที่ฝากขายได้ในกระเป๋า</p>'}
+      ${(b.gearStock||[]).map(id=>`<button class="lg-btn" data-m-act="reclaimgear" data-m-id="${esc(id)}">ถอน ${esc(Skills.gearLabel(state,id))}</button>`).join('')}`:''}
+      <h3>พนักงาน</h3>${b.staff?`<button class="lg-btn" data-m-act="fire">เลิกจ้าง ${esc(MG.NPCS[b.staff]?.name||b.staff)}</button>`:shop.staff.filter(id=>MG.NPCS[id]).map(id=>`<button class="lg-btn" data-m-act="hire" data-m-id="${id}">ชวน ${esc(MG.NPCS[id].name)} มาเป็นพนักงาน<small>ต้องมีความไว้วางใจ ≥40 · ค่าแรง ${shop.wage}/วัน · ต้องมีเงินทุนร้าน</small></button>`).join('')}
+      <p class="lg-muted">ไม่มีพนักงานหรือเงินจ่ายต้นทุน ร้านจะไม่ขายของเอง · สินค้าถูกหักจริงเมื่อขาย</p>`:
+      `<p class="lg-muted">เปิดกิจการใหม่หรือซื้อกิจการที่มีอยู่ในเมือง ไม่รวมการซื้ออาคารร้านจริงซึ่งยังต้องทำภาพในภายหลัง</p><button class="lg-btn" data-m-act="openshop" data-m-mode="open">เปิดร้านใหม่ ${shop.open} เหรียญ</button><button class="lg-btn" data-m-act="openshop" data-m-mode="buy">ซื้อกิจการ ${shop.buy} เหรียญ</button>`}`;
+    } else {
+      html=`<h3>🤝 ความสัมพันธ์กับ NPC</h3><p class="lg-muted">ตัวละครใช้ชีวิตตามตารางเดิม คุณพบ NPC ได้ในเมืองหนึ่งครั้งต่อวันต่อคน ความไว้วางใจช่วยเปิดทางให้เข้าปาร์ตี้ กิลด์ และจ้างงาน แต่ NPC สามารถปฏิเสธได้</p>
+      <select id="mg-npc" style="width:100%;padding:10px;background:#29251f;color:white;border-radius:9px">${MG.PEOPLE.map(q=>`<option value="${q.id}" ${q.id===manageNpc?'selected':''}>${esc(q.name)} (${q.id})</option>`).join('')}</select>
+      <div class="lg-zone mg-person">${mgPortrait(manageNpc)}<div><b>${esc(MG.NPCS[manageNpc]?.name||manageNpc)}</b><p>ความไว้วางใจ ${r?.trust||0}/100 · มิตรภาพ ${r?.friendship||0}/100</p><small>พบล่าสุดวันที่ ${r?.lastTalk||'ยังไม่เคย'} · สร้างความสัมพันธ์ได้ระยะยาว</small></div></div>
+      <button class="lg-btn" data-m-act="talk">💬 พูดคุย</button><button class="lg-btn" data-m-act="help">🧹 ช่วยงาน (ใช้แรง 12)</button>
+      ${B().list(state).some(x=>x.n>0&&!x.instanceId&&B().ITEMS[x.id])?`<select id="mg-gift" style="width:100%;padding:10px;background:#29251f;color:white;border-radius:9px">${[...new Set(B().list(state).filter(x=>x.n>0&&!x.instanceId&&B().ITEMS[x.id]).map(x=>x.id))].map(id=>`<option value="${id}">${esc(B().name(id))}</option>`).join('')}</select><button class="lg-btn" data-m-act="gift">🎁 มอบของขวัญ 1 ชิ้น</button>`:''}
+      <button class="lg-btn" data-m-act="joinparty">⚔️ ชวนเข้าปาร์ตี้ (ไว้วางใจ 55 / มิตรภาพ 45)</button>
+      ${g?'<button class="lg-btn" data-m-act="joinguild">🏰 ชวนเข้ากิลด์ (ไว้วางใจ 50)</button>':''}
+      <h3>คนที่รู้จัก</h3>${MG.relationships(state).filter(q=>q.trust>20||q.friendship>20).sort((a,b)=>b.trust-a.trust).slice(0,14).map(q=>`<div class="lg-zone"><b>${esc(q.name)}</b> · ไว้วางใจ ${q.trust} · มิตรภาพ ${q.friendship}<button class="lg-small" data-m-npc="${q.id}">ดูข้อมูล</button></div>`).join('')||'<p class="lg-muted">ยังไม่มีคนรู้จักสนิท</p>'}`;
+    }
+    return `<h2>🏠 บริหารชีวิตและกิจการ</h2><p class="lg-muted">เงินส่วนตัว ${state.money} เหรียญ · ความสุข ${m.happiness.value}/100 · ปาร์ตี้ ${p.members.length+1} คน · ร้าน ${Object.keys(m.shops).length} กิจการ</p>${nav}${warning}${html}<h3>บันทึกการบริหารล่าสุด</h3><div class="lg-log">${esc(m.logs.slice(0,6).join('\n')||'ยังไม่มีการบริหาร')}</div>`;
   }
   function panel(which) {
     if (open) return;
+    if ((which==='alchemy'||which==='artisan') && maybeGuide(which,()=>panel(which))) return;
     if (typeof which === 'string' && UI_ICON[which]) tab = which;
     const L = state.life;
-    const body = tab === 'bag' ? bagHtml() : tab === 'alchemy' ? alchemyHtml() : tab === 'artisan' ? artisanHtml() : tab === 'skill' ? skillHtml() : tab === 'map' ? mapHtml() : tab === 'story' ? storyHtml() : charHtml();
+    const body = tab === 'bag' ? bagHtml() : tab === 'alchemy' ? alchemyHtml() : tab === 'artisan' ? artisanHtml() : tab === 'skill' ? skillHtml() : tab === 'map' ? mapHtml() : tab === 'story' ? storyHtml() : tab === 'manage' ? managementHtml() : charHtml();
     const d = el(`<div class="lg-card"><div class="lg-tabs">${TABS.map(([id, n]) => `<button data-tab="${id}" class="${id === tab ? 'on' : ''}">${uiIcon(id, 34)}${n}</button>`).join('')}</div>
       ${body}
       <button class="lg-btn lg-primary" data-a="close">ปิด</button></div>`);
     block(d);
     const again = () => { d.remove(); block(null); save(); panel(); };
     const on = (sel, fn) => { const x = d.querySelector(sel); if (x) x.onclick = fn; };
-    d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; d.remove(); block(null); panel(); });
+    d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; d.remove(); block(null); panel(tab); });
+    d.querySelectorAll('[data-m-section]').forEach(b=>b.onclick=()=>{manageSection=b.dataset.mSection;again();});
+    d.querySelectorAll('[data-m-houseview]').forEach(b=>b.onclick=()=>{manageHouseView=b.dataset.mHouseview;again();});
+    d.querySelectorAll('[data-m-guildroom]').forEach(b=>b.onclick=()=>{manageGuildRoom=b.dataset.mGuildroom;again();});
+    d.querySelectorAll('[data-m-partyroom]').forEach(b=>b.onclick=()=>{managePartyRoom=b.dataset.mPartyroom;again();});
+    d.querySelectorAll('[data-m-shop]').forEach(b=>b.onclick=()=>{manageShop=b.dataset.mShop;again();});
+    d.querySelectorAll('[data-m-npc]').forEach(b=>b.onclick=()=>{manageNpc=b.dataset.mNpc;again();});
+    const npcSelect=d.querySelector('#mg-npc');if(npcSelect)npcSelect.onchange=()=>{manageNpc=npcSelect.value;again();};
+    d.querySelectorAll('[data-m-act]').forEach(b=>b.onclick=()=>{
+      const M=window.Management;if(!M)return;const act=b.dataset.mAct,kind=b.dataset.mType,id=b.dataset.mId||manageNpc;
+      if(X()&&X().active(state)){alert('ต้องกลับเมืองก่อนจัดการชีวิตและกิจการ');return;}
+      if(['talk','help','gift','joinparty','joinguild'].includes(act)){
+        const appointment={kind:'managementMeet',npc:id,activity:act,repeat:false};
+        if(act==='gift')appointment.item=d.querySelector('#mg-gift')?.value;
+        if(!Management.meetPlace(id)) {alert('ไม่พบ NPC นี้');return;}
+        const day=LifeSim.setOrder(state,appointment,clock);
+        log('นัดพบ'+Management.NPCS[id].name+' เพื่อ'+act+' วันที่ '+day);
+        again();return;
+      }
+      let res={ok:false,why:'ไม่รู้จักคำสั่ง'};
+      if(act==='stayhome'){res=LifeSim.setRoomPref(state,'owned')?{ok:true,why:'ตั้งให้กลับไปนอนบ้านตัวเอง'}:res;}
+      else if(act==='buyhome')res=M.buyHome(state,kind);
+      else if(act==='upgrade')res=M.upgradeHome(state,kind);
+      else if(act==='talk'||act==='help'||act==='gift')res=M.interact(state,id,act,act==='gift'?d.querySelector('#mg-gift')?.value:null);
+      else if(act==='joinparty')res=M.askJoin(state,id);
+      else if(act==='leave')res=M.leaveParty(state,id);
+      else if(act==='leader')res=M.requestLeader(state);
+      else if(act==='stance')res=M.setStance(state,kind);
+      else if(act==='foundguild')res=M.formGuild(state,d.querySelector('#mg-guild-name')?.value);
+      else if(act==='joinguild')res=M.guildMember(state,id);
+      else if(act==='guildin'||act==='guildout')res=M.guildCash(state,act==='guildin'?'in':'out',50);
+      else if(act==='mission')res=M.setMission(state,kind);
+      else if(act==='openshop')res=M.openShop(state,manageShop,b.dataset.mMode);
+      else if(act==='shopin'||act==='shopout')res=M.storeCash(state,manageShop,act==='shopin'?'in':'out',50);
+      else if(act==='stock')res=M.stock(state,manageShop,d.querySelector('#mg-stock')?.value,Number(b.dataset.mQty));
+      else if(act==='stockgear')res=M.stockGear(state,manageShop,id);
+      else if(act==='reclaimgear')res=M.reclaimGear(state,manageShop,id);
+      else if(act==='hire')res=M.hire(state,manageShop,id);
+      else if(act==='fire')res=M.fire(state,manageShop);
+      else if(act==='price')res=M.price(state,manageShop,kind);
+      if(res.why)log(res.why);again();
+    });
+    d.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{const id=b.dataset.guide;d.remove();block(null);showGuide(id,()=>panel('story'),true);});
     d.querySelectorAll('[data-story-search]').forEach(b=>b.onclick=()=>{
       const place=b.dataset.storySearch;if(X()&&X().active(state))return;
       const day=LifeSim.setOrder(state,{kind:'rumor',place,repeat:false},clock);
@@ -939,20 +1093,52 @@
     showLine();
   }
 
+  // ---------- v122 scheduled crafting: pause before resolving the actual errand ----------
+  function scheduledCraft(k,order) {
+    if(!order||!['alchemy','alchemyClinic','artisanForge','artisanCook'].includes(order.kind))return false;
+    const craftKind=order.kind==='alchemy'||order.kind==='alchemyClinic'?'alchemy':order.kind==='artisanForge'?'smith':'cook';
+    const guideId='minigame_'+(craftKind==='smith'?'smith':craftKind);
+    if(maybeGuide(guideId,()=>scheduledCraft(k,order)))return true;
+    const session=CraftGame.begin(state,craftKind,order); save();
+    const finish=(score)=>{
+      const rec=CraftGame.commit(state,session.key,score.stars,score.skipped);
+      order.minigame={stars:rec.stars,skipped:rec.skipped};save();
+      state.life.done[k]=state.day;LifeSim.applyErrand(state,k);block(null);save();update();
+    };
+    if(session.recovered){finish({stars:4,skipped:true});return true;}
+    const r=craftKind==='alchemy'?Alchemy.RECIPES[order.recipe]:craftKind==='smith'?Artisan.FORGE_RECIPES[order.recipe]:Artisan.SPECIAL_FOOD[order.recipe];
+    const tier=r?.tier||1,skillTier=craftKind==='alchemy'?Alchemy.data(state).tier:craftKind==='smith'?Artisan.data(state).tier:Skills.tierOf(state,'cooking');
+    const ingredients=Object.keys(r?.needs||{}),first=ingredients.find(id=>B().ITEMS[id]);
+    const tol=CraftGame.tolerance(skillTier||1,tier,craftKind==='smith'?LifeSim.tolerance(state):LifeSim.kitchenTolerance(state));
+    const asset=craftKind==='smith'?{barImage:'craft_ore_'+order.recipe+'.webp',productImage:'craft_workpiece_'+order.recipe+'.webp'}:{};
+    block(true);
+    CraftGame.open(craftKind,{...asset,tolerance:tol,recipe:r,recipeId:order.recipe,recipeTier:tier,
+      day:state.day,items:B().ITEMS,ingredient:first,ingredientName:B().name(first||'veg'),
+      ingredientImage:'cook_ingredient_'+(first||'veg')+'.webp',hammerCount:3+tier,
+      onDone:finish});return true;
+  }
   // ---------- minigame ----------
   function smith() {
-    const img = (sceneObjects.find(o => o.src === 'buildings__blacksmith_v51.webp') || {}).image;
-    block(true);
-    SmithGame.open({ image: img, tolerance: LifeSim.tolerance(state), onDone(total) {
-      state.life.done.work = state.day; LifeSim.finishSmith(state, total, CityCore); block(null); update();
-    } });
+    if(maybeGuide('minigame_smith',smith))return;
+    const session=CraftGame.begin(state,'smith',{kind:'work'});save();
+    const finish=({stars,skipped})=>{
+      const record=CraftGame.commit(state,session.key,stars,skipped);save();
+      state.life.done.work=state.day;LifeSim.finishSmith(state,record.stars,CityCore);block(null);save();update();
+    };
+    if(session.recovered){finish({stars:4,skipped:true});return;}
+    const img=(sceneObjects.find(o=>o.src==='buildings__blacksmith_v51.webp')||{}).image;
+    block(true);CraftGame.open('smith',{image:img,tolerance:LifeSim.tolerance(state),onDone:finish});
   }
-
   function kitchen() {
-    block(true);
-    CarrotGame.open({ tolerance: LifeSim.kitchenTolerance(state), onDone(stars, skipped) {
-      state.life.done.work = state.day; LifeSim.finishKitchen(state, stars, CityCore, skipped); block(null); update();
-    } });
+    if(maybeGuide('minigame_cook',kitchen))return;
+    const session=CraftGame.begin(state,'kitchen',{kind:'work'});save();
+    const finish=({stars,skipped})=>{
+      const record=CraftGame.commit(state,session.key,stars,skipped);save();
+      state.life.done.work=state.day;LifeSim.finishKitchen(state,record.stars,CityCore,record.skipped);block(null);save();update();
+    };
+    if(session.recovered){finish({stars:4,skipped:true});return;}
+    block(true);CraftGame.open('kitchen',{tolerance:LifeSim.kitchenTolerance(state),day:state.day,
+      recipeId:'work:'+state.life.path,ingredient:'veg',ingredientName:'ผัก',ingredientImage:'cook_ingredient_veg.webp',onDone:finish});
   }
 
   // ---------- per-frame driver ----------
@@ -961,8 +1147,11 @@
     if (L.dead) { deathCard(); return; }
     if (L.exp && L.exp.pending) { encounterCard(L.exp.pending); return; }
     if (L.exp && L.exp.safePending && X().safeInfo(state)) { safeCard(); return; }
+    if(maybeGuide('world',null))return;
     if (L.pendingEvent && LifeSim.EVENTS[L.pendingEvent]) { event(L.pendingEvent); return; }
     for (const k of LifeSim.due(state, clock)) {
+      if(k==='work'&&maybeGuide('job',null,{path:L.path}))return;
+      if(k==='errand'&&scheduledCraft(k,LifeSim.orderToday(state)))return;
       if (k === 'work' && L.path === 'smith') { smith(); return; }
       if (k === 'work' && (L.path === 'kitchen' || L.path === 'gchef') && window.CarrotGame) { kitchen(); return; }
       if (k === 'gtalk') { L.done[k] = state.day; const ev = L.talk && L.talk.ev; L.talk = null; save(); if (ev && LifeSim.EVENTS[ev]) { event(ev); return; } continue; }

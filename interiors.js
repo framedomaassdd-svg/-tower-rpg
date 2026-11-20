@@ -38,6 +38,24 @@
     tenement:   { file: 'int_tenement',   name: 'ห้องเช่าตรอก', k: 1.15, bed: { head: 490, y: 540, headLeft: true, clip: [380, 330, 225, 260], zz: [470, 420] },
                   stand: { x: 800, look: 'front' } }
   };
+  // v125: owned homes, shown when the hero returns to their home at night.
+  // The paintings themselves include furniture; no artificial character/bed overlay is added.
+  SCENES.home_slum = { file:'life-art/home_slum_interior', name:'บ้านหลังเล็กในตรอก', k:1,
+    bed:{ head:315,y:585,nohero:true }, stand:{x:790,look:'front'} };
+  SCENES.home_town = { file:'life-art/home_town_interior', name:'บ้านในย่านตลาด', k:1,
+    bed:{ head:325,y:565,nohero:true }, stand:{x:790,look:'front'} };
+  SCENES.home_manor = { file:'life-art/home_manor_interior', name:'คฤหาสน์ของคุณ', k:1,
+    bed:{ head:390,y:565,nohero:true }, stand:{x:790,look:'front'} };
+  // The other private rooms are discoverable through the owner's management interface.
+  for (const [key,filename,label] of [
+    ['player_guild_hall','guild_player_hall','โถงกิลด์ของคุณ'],
+    ['player_guild_office','guild_player_office','ห้องทำงานกิลด์'],
+    ['player_guild_bedroom','guild_player_bedroom','ห้องนอนสมาชิกกิลด์'],
+    ['player_guild_storage','guild_player_storage','คลังอุปกรณ์กิลด์'],
+    ['player_shop_general','shop_general_interior','ร้านค้าของคุณ'],
+    ['player_party_camp','party_camp','จุดพักแรมปาร์ตี้'],
+    ['player_party_meeting','party_meeting','ห้องประชุมปาร์ตี้']
+  ]) SCENES[key] = {file:'life-art/'+filename,name:label,k:1,stand:{x:790,look:'front'}};
   // v105 guild rooms (gi_<guild>_<room>.webp). Per guild: master's office, hall (quest board), dining hall, kitchen,
   // members' bedroom, storeroom. The merchants' guild has no paintings yet and borrows the Iron Shield's rooms.
   const GUILD_ROOMS = {

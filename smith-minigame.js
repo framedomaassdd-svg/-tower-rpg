@@ -15,7 +15,7 @@
   function loadArt() {
     if (art || typeof Image === 'undefined') return art || {};
     art = {};
-    for (const [k, f] of Object.entries(ART_FILES)) { const im = new Image(); im.decoding = 'async'; im.src = f + '.webp?v=64'; art[k] = im; }
+    for (const [k, f] of Object.entries(ART_FILES)) { const im = new Image(); im.decoding = 'async'; im.src = f + '.webp?v=124'; art[k] = im; }
     return art;
   }
   const colds = new WeakMap();
@@ -34,13 +34,14 @@
   if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', () => setTimeout(loadArt, 2500));
 
   function open(opts) {
-    const tol = clamp(opts.tolerance || 1, 0.6, 2.2);
+    const tol = clamp(opts.tolerance || 1, 0.55, 2.2);
+    const hammerCount=clamp(Math.round(opts.hammerCount||4),4,8);
     const bg = opts.image;
     const root = document.createElement('div');
     root.className = 'lg-overlay lg-smith';
     root.innerHTML = '<div class="lg-smith-top"><div><b class="lg-step"></b> <span class="lg-hint"></span></div><div class="lg-stars"></div></div>' +
       '<canvas class="lg-smith-canvas"></canvas>' +
-      '<div class="lg-smith-bar"><button class="lg-btn lg-skip">ให้ทำเอง (ได้ 1 ดาวต่อขั้น)</button></div>';
+      '<div class="lg-smith-bar"><button class="lg-btn lg-skip">ข้าม (ทำแบบปกติ) · 4 ดาว</button></div>';
     document.body.appendChild(root);
     const cv = root.querySelector('canvas'), g = cv.getContext('2d');
     const elStep = root.querySelector('.lg-step'), elHint = root.querySelector('.lg-hint'), elStars = root.querySelector('.lg-stars');
@@ -54,7 +55,7 @@
     size(); window.addEventListener('resize', size);
     function header() {
       elStep.textContent = (step + 1) + '/3 ' + STEPS[step].title;
-      elHint.textContent = STEPS[step].hint;
+      elHint.textContent = step===1 ? 'แตะวงแหวนตรงจังหวะทอง ('+hammerCount+' ครั้ง)' : STEPS[step].hint;
       elStars.textContent = scores.map(starText).join('  ');
     }
     function startStep(i) {
@@ -102,12 +103,13 @@
     function nextBeat(s) {
       beats.push(s); beatIndex++; if (s > 0) swingAt = now();
       if (s >= 1) for (let i = 0; i < (s >= 2 ? 22 : 8); i++) sparks.push({ x: 0, y: 0, vx: (Math.random() - .5) * 2, vy: -Math.random() * 1.6, life: 1 });
-      if (beatIndex >= 4) { const avg = Math.round(beats.reduce((a, b) => a + b, 0) / 4); score(avg, LABELS[avg]); }
+      if (beatIndex >= hammerCount) { const avg = Math.round(beats.reduce((a, b) => a + b, 0) / hammerCount); score(avg, LABELS[avg]); }
       else beatStart = now() + 0.3;
     }
 
     // ---- drawing (v64: painted art; falls back to simple shapes until images load)
     const A = loadArt();
+    if(opts.barImage||opts.productImage){for(const [key,url]of [['barHot',opts.barImage],['swordDone',opts.productImage]])if(url&&typeof Image!=='undefined'){const im=new Image();im.src=url+(url.includes('?')?'&':'?')+'art=124';A[key]=im;}}
     const ok = im => im && im.complete && im.naturalWidth > 0;
     let swingAt = -9;
     function drawBackdrop(W, H) {
@@ -284,4 +286,5 @@
     return { root, _debug: { get step() { return step; }, get scores() { return scores.slice(); }, now, needle: () => needle(now()), beatTarget: () => beatStart + BEAT_TARGET, steam: () => steam, down, up } };
   }
   root.SmithGame = { open, STEPS };
+  if (typeof module === 'object' && module.exports) module.exports = root.SmithGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

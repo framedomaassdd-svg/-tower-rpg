@@ -82,8 +82,9 @@ function resistance(st,key){let p=0;for(const x of buffs(st))if(x.effect.resist=
  return clamp(p,0,.85);
 }
 function consumeFood(st,id){const r=SPECIAL_FOOD[id],bag=B();if(!r||!bag?.count(st,id))return {ok:false,why:'ไม่มีอาหารพิเศษ'};
+ const quality=(st.bag||[]).filter(x=>x.id===id).sort((a,b)=>(a.quality||0)-(b.quality||0))[0]?.quality||0;
  if(!bag.take(st,id,1))return {ok:false,why:'ใช้ไม่ได้'};
- const effect={...r.buff,...(r.resist?{resist:r.resist,potency:.35}:{})};applyBuff(st,id,effect,r.hours,'food');
+ const effect={...r.buff,...(r.resist?{resist:r.resist,potency:.35}:{})};applyBuff(st,id,effect,r.hours*(quality<0?.75:quality>0?1.25:1),'food');
  const a=(typeof globalThis!=='undefined'&&globalThis.Alchemy)||(typeof require==='function'?require('./alchemy.js'):null);
  if(a)a.treat(st,{hungry:1});
  return {ok:true,why:'รับประทาน'+bag.name(id)+' · บัฟ '+r.hours+' ชั่วโมงเกม'};
@@ -106,36 +107,62 @@ function chance(st,id){const r=FORGE_RECIPES[id],a=data(st);if(!r)return 0;
  return clamp([.8,.68,.53,.39,.25][r.tier-1]+skillBonus+intelBonus,.05,.95);
 }
 function affinity(recipe){const mineral=Object.keys(recipe.needs).filter(k=>MINERALS[k]).sort((a,b)=>MINERALS[b].tier-MINERALS[a].tier)[0];return mineral?MINERALS[mineral]:null;}
-function forge(st,id){const r=FORGE_RECIPES[id],a=data(st),bag=B(),sk=S();if(!r)return {ok:false,why:'ไม่มีแบบแปลน'};
+function forge(st,id,score=null){const r=FORGE_RECIPES[id],a=data(st),bag=B(),sk=S();if(!r)return {ok:false,why:'ไม่มีแบบแปลน'};
  if(st.life?.dead)return {ok:false,why:'ตัวละครเสียชีวิตแล้ว'};
  if(st.life?.exp&&!st.life.exp.over)return {ok:false,why:'ต้องกลับเมืองก่อน'};
  if(a.tier<r.tier)return {ok:false,why:'ต้องผ่านเควสช่างตีเหล็กขึ้น Tier '+r.tier};
  if(!bag?.has(st,r.needs))return {ok:false,why:'วัตถุดิบไม่ครบ'};
  if(bag.slotCount(st)>=bag.CAP&&!Object.entries(r.needs).some(([k,n])=>bag.count(st,k)===n))return {ok:false,why:'กระเป๋าเต็ม 20 ช่อง'};
- const attempt=a.attempts++,p=chance(st,id),ok=hash(seed(st),'forge-v121',id,attempt)<p;
+ const CM=(typeof globalThis!=='undefined'&&globalThis.CraftGame)||(typeof require==='function'?require('./craft-game.js'):null);
+ const mod=score&&CM?CM.modifiers(score.stars,score.skipped):null;
+ const attempt=a.attempts++,p=clamp(chance(st,id)+(mod?.chance||0),.05,.95),ok=hash(seed(st),'forge-v121',id,attempt)<p;
  for(const [k,n] of Object.entries(r.needs))bag.take(st,k,n);
  st.energy=Math.max(0,(st.energy||0)-Math.max(8,5*r.tier));a.xp+=ok?r.tier*8:r.tier*2;
- if(!ok)return {ok:true,success:false,chance:p,why:'หลอม'+r.name+'ล้มเหลว วัตถุดิบสูญหาย'};
+ if(!ok){
+  const breakChance=CM?.catastrophicRate?.(r.tier,mod?.stars??4,mod?.skipped)||.25;
+  const catastrophic=hash(seed(st),'forge-break-v123',id,attempt)<breakChance;
+  if(catastrophic)return {ok:true,success:false,chance:p,failure:'destroyed',catastrophic:true,breakChance,salvaged:{},why:'💥 หลอม'+r.name+'พังทั้งชิ้น! แร่และวัตถุดิบที่ใช้สูญหายทั้งหมด'};
+  // Partial failure: no equipment produced; recover a small portion of ore only.
+  const salvaged={};for(const [k,n] of Object.entries(r.needs))if(MINERALS[k]&&n>=2){const got=bag.add(st,k,Math.max(1,Math.floor(n/3)),st.day);if(got>0)salvaged[k]=got;}
+  const names=Object.entries(salvaged).map(([k,n])=>bag.name(k)+' ×'+n).join(', ');
+  return {ok:true,success:false,chance:p,failure:'damaged',catastrophic:false,breakChance,salvaged,why:'หลอม'+r.name+'ล้มเหลว ชิ้นงานใช้ไม่ได้'+(names?' · เก็บแร่ที่ยังใช้ได้คืน: '+names:' · วัตถุดิบเสียหาย')};
+ }
  const rarity=['normal','soldier','captain','general','king'][r.tier-1];
  const item=bag.addGear(st,r.template,rarity,{from:'artisan',recipe:id,day:st.day,materials:Object.keys(r.needs)},0);
  if(!item)return {ok:true,success:false,chance:p,why:'หลอมสำเร็จ แต่ไม่มีช่องเก็บ อุปกรณ์ตกหายที่โรงตีเหล็ก'};
  const min=affinity(r),affix=AFFIX[min.affix],kind=sk.GEAR[r.template].slot;
  const mainOre=Object.keys(r.needs).filter(k=>MINERALS[k]).sort((x,y)=>MINERALS[y].tier-MINERALS[x].tier)[0];
  const affixOdds=clamp(.10+.09*r.tier+.035*(a.tier-1)+.025*Math.min(4,r.needs[mainOre]||0),.05,.82);
- const statOdds=clamp(.18+.07*r.tier+.03*(a.tier-1),.05,.75);
+ const statOdds=clamp(.18+.07*r.tier+.03*(a.tier-1)+(mod?.affix||0),.05,.95);
  if(hash(seed(st),'forge-stat',id,attempt)<statOdds){item.affixStats={[min.stat]:Math.max(1,Math.round(r.tier*(1+hash(seed(st),'forge-stat-value',id,attempt)*1.5)))};}
- if(hash(seed(st),'forge-special',id,attempt)<affixOdds&&['either',kind].includes(affix.type))item.special={id:min.affix,potency:Math.min(.55,.12+.06*r.tier),name:affix.name};
+ if(hash(seed(st),'forge-special',id,attempt)<Math.min(.95,affixOdds+(mod?.affix||0))&&['either',kind].includes(affix.type))item.special={id:min.affix,potency:Math.min(.55,.12+.06*r.tier),name:affix.name};
  a.successes++;a.recipes[id]=(a.recipes[id]||0)+1;sk.recalc(st);
  return {ok:true,success:true,chance:p,instanceId:item.instanceId,statOdds,affixOdds,stats:item.affixStats||{},special:item.special||null,why:'หลอม'+r.name+' สำเร็จ ['+rarity+']'+(item.special?' · '+item.special.name:'')+(item.affixStats?' · โบนัสค่าสถานะ':'')};
 }
-function cook(st,id){const r=SPECIAL_FOOD[id],a=data(st),bag=B();if(!r)return {ok:false,why:'ไม่มีสูตรอาหารนี้'};
+function cook(st,id,score=null){const r=SPECIAL_FOOD[id],a=data(st),bag=B();if(!r)return {ok:false,why:'ไม่มีสูตรอาหารนี้'};
  const cookingTier=S()?.tierOf(st,'cooking')||1;if(r.tier>Math.max(1,cookingTier))return {ok:false,why:'ต้องฝึกสกิลทำอาหารจนถึงขั้น '+r.tier};
  if(st.life?.exp&&!st.life.exp.over)return {ok:false,why:'ต้องกลับเมืองก่อนจึงทำอาหาร'};
  if(!bag?.has(st,r.needs))return {ok:false,why:'วัตถุดิบไม่ครบ'};
  if(!bag.canFit(st,id)&&!Object.entries(r.needs).some(([k,n])=>bag.count(st,k)===n))return {ok:false,why:'กระเป๋าเต็ม'};
+ const CM=(typeof globalThis!=='undefined'&&globalThis.CraftGame)||(typeof require==='function'?require('./craft-game.js'):null);
+ const mod=score&&CM?CM.modifiers(score.stars,score.skipped):null;
+ const p=clamp([.88,.76,.64,.52,.40][r.tier-1]+.04*(cookingTier-1)+(mod?.chance||0),.05,.95);
+ const attempt=a.cookAttempts||0;
+ if(score)a.cookAttempts=attempt+1;
  for(const [k,n] of Object.entries(r.needs))bag.take(st,k,n);
- const gained=bag.add(st,id,r.makes,st.day);S()?.train(st,'cooking',r.tier*3);
- return {ok:true,n:gained,why:'ทำ'+bag.name(id)+' สำเร็จ ×'+gained+' · ให้บัฟ '+r.hours+' ชั่วโมงเกม'};
+ if(score&&hash(seed(st),'cook-v122',id,attempt)>=p){
+  const breakChance=CM?.catastrophicRate?.(r.tier,mod?.stars??4,mod?.skipped)||.25;
+  const catastrophic=hash(seed(st),'cook-break-v123',id,attempt)<breakChance;
+  S()?.train(st,'cooking',r.tier);
+  if(catastrophic)return {ok:true,success:false,chance:p,n:0,failure:'destroyed',catastrophic:true,breakChance,why:'💥 ทำ'+r.name+'ไหม้เสียทั้งชุด! วัตถุดิบสูญหาย ไม่ได้รับอาหาร'};
+  // Missed the intended recipe, but one poor-quality serving can still be eaten.
+  const gained=bag.add(st,id,1,st.day,-1);
+  return {ok:true,success:false,chance:p,n:gained,failure:'poor',catastrophic:false,breakChance,why:'ทำ'+r.name+'ไม่สำเร็จตามสูตร'+(gained?' · เหลืออาหารคุณภาพต่ำ 1 ที่':' · ไม่มีที่เก็บ อาหารเสียไป')};
+ }
+
+ const gained=bag.add(st,id,r.makes,st.day,mod?.duration===1.25?1:(mod?.quality||0));
+ S()?.train(st,'cooking',r.tier*3);
+ return {ok:true,success:true,chance:p,n:gained,why:'ทำ'+bag.name(id)+' สำเร็จ ×'+gained+' · ให้บัฟ '+r.hours+' ชั่วโมงเกม'};
 }
 function mentorStatus(st){const a=data(st),spec=PROMOTIONS[a.tier-1];if(!spec)return {status:'max'};
  const p=a.promotion;if(!p||p.to!==spec.to)return {status:a.xp>=spec.xp&&a.successes>=spec.success&&Object.keys(a.recipes).length>=spec.variety?'available':'training',spec};

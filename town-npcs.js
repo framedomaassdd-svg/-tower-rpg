@@ -34,7 +34,10 @@
     warrior: { ...B, src: 345 }, archer: { ...B, src: 345 }, mage: { ...B, src: 345 }, ironboss: { ...B, src: 345 },
     explorer: { ...B, src: 345 }, scout: { ...B, src: 345 }, compassboss: { ...B, src: 345 },
     porterA: { ...B, src: 323 }, porterB: { ...B, src: 284 }, porterboss: { ...B, src: 345 },
-    appraiser: { ...B, src: 345 }, merchboss: { ...B, src: 345 }
+    appraiser: { ...B, src: 345 }, merchboss: { ...B, src: 345 },
+    // v125: new resident sprites are genuine 4x3 sheets (440x384 frames).
+    property_agent: { ...B, src: 345 }, carpenter: { ...B, src: 345 }, guild_registrar: { ...B, src: 345 }, guild_treasurer: { ...B, src: 345 },
+    wholesaler: { ...B, src: 345 }, rookie: { ...B, src: 345 }, veteran: { ...B, src: 345 }, neighbor: { ...B, src: 345 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -45,7 +48,7 @@
   const sheets = {};
   function load() {
     if (!hasImage) return [];
-    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = 'npc5_' + id + '.webp?v=103'; sheets[id] = i; }
+    for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = (['property_agent','carpenter','guild_registrar','guild_treasurer','wholesaler','rookie','veteran','neighbor'].includes(id) ? 'life-art/' : '') + 'npc5_' + id + '.webp?v=125'; sheets[id] = i; }
     return Object.values(sheets);
   }
   const ok = i => !!i && i.complete && i.naturalWidth > 0;
@@ -329,7 +332,27 @@
   for (const p of CARTS_YARD) p.zone = 'carts';
   for (const p of MARKET) p.zone = 'market';
   for (const p of SHRINE) p.zone = 'carts';
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE, GUILD);
+  // v125: independent schedules; they do not remain at two places simultaneously.
+  // Existing town coordinates are used so no new, unbuilt street geometry is assumed.
+  const LIFE_MANAGEMENT_PEOPLE = [
+    { id:'property_agent', name:'นายหน้าขายบ้าน', sheet:'property_agent', height:HERO*.96, speed:1220, zone:'town', stops:[
+      {x:5828,y:DOOR,until:H(7.3),hidden:true},{x:6050,y:828,until:H(17.8),loop:'offer',face:-1},{x:5828,y:DOOR,until:20,hidden:true}] },
+    { id:'carpenter', name:'ช่างก่อสร้าง', sheet:'carpenter', height:HERO*.96, speed:1320, zone:'town', stops:[
+      {x:3521,y:DOOR,until:H(6.8),hidden:true},{x:3900,y:820,until:H(17.6),loop:'hammer',face:1},{x:3521,y:DOOR,until:20,hidden:true}] },
+    { id:'guild_registrar', name:'เจ้าหน้าที่ทะเบียนกิลด์', sheet:'guild_registrar', height:HERO*.92, speed:1030, zone:'guild', stops:[
+      {x:21258,y:DOOR,until:H(8),hidden:true},{x:21600,y:824,until:H(17.5),loop:'write',face:1},{x:21258,y:DOOR,until:20,hidden:true}] },
+    { id:'guild_treasurer', name:'เหรัญญิกกิลด์', sheet:'guild_treasurer', height:HERO*.93, speed:1180, zone:'guild', stops:[
+      {x:21941,y:DOOR,until:H(7.5),hidden:true},{x:22180,y:826,until:H(18),loop:'write',face:-1},{x:21941,y:DOOR,until:20,hidden:true}] },
+    { id:'wholesaler', name:'พ่อค้าขายส่ง', sheet:'wholesaler', height:HERO, speed:1150, zone:'market', stops:[
+      {x:15986,y:DOOR,until:H(7),hidden:true},{x:17400,y:836,until:H(16.5),loop:'offer',face:1},{x:15986,y:DOOR,until:20,hidden:true}] },
+    { id:'rookie', name:'นักผจญภัยหน้าใหม่', sheet:'rookie', height:HERO*.93, speed:1450, zone:'guild', stops:[
+      {x:21258,y:DOOR,until:H(6.8),hidden:true},{x:21470,y:842,until:H(17.5),loop:'swing',face:1},{x:21258,y:DOOR,until:20,hidden:true}] },
+    { id:'veteran', name:'นักผจญภัยเกษียณ', sheet:'veteran', height:HERO*.99, speed:870, zone:'guild', stops:[
+      {x:21941,y:DOOR,until:H(9),hidden:true},{x:22400,y:838,until:H(17),loop:'write',face:-1},{x:21941,y:DOOR,until:20,hidden:true}] },
+    { id:'neighbor', name:'เพื่อนบ้าน', sheet:'neighbor', height:HERO*.93, speed:1120, zone:'town', stops:[
+      {x:1864,y:DOOR,until:H(7),hidden:true},{x:4095,y:828,until:H(17),loop:'offer',face:1},{x:1864,y:DOOR,until:20,hidden:true}] }
+  ];
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE, GUILD, LIFE_MANAGEMENT_PEOPLE);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;

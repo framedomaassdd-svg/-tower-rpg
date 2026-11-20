@@ -42,6 +42,7 @@ function nextDay() {
   if (taxPeriods) log('ถึงรอบภาษีเมือง ยอดค้าง ' + state.taxDue + ' เหรียญ');
   if (LifeSim.night) for (const m of LifeSim.night(state)) log(m);              // v93: spoilage + supper from the bag
   else if (state.food > 0) state.food--; else { state.health = Math.max(1, state.health - 5); log('ไม่มีอาหาร สุขภาพลดลง 5'); }
+  if (typeof Management !== 'undefined' && state.life) for (const m of Management.tick(state)) log(m);
   const roll = Math.random();
   if (roll < .27) { state.danger = Math.min(5, state.danger + 1); log('มอนสเตอร์เพิ่มจำนวนรอบเมือง ระดับอันตรายสูงขึ้น'); }
   else if (roll < .5) { state.danger = Math.max(1, state.danger - 1); log('หน่วยลาดตระเวนกำจัดมอนสเตอร์ใกล้เมือง'); }
@@ -236,7 +237,10 @@ function drawTown(t) {
   TownPano.draw(ctx, camera, w, h, t, zone);
   drawBirds(camera, w, t);
   const actors = [];
-  for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible && (n.zone || 'town') === zone) actors.push({ y: n.y, draw: () => drawNpc(n) });
+  const ex=state.life&&state.life.exp;
+  const away=ex&&ex.party==='personal'&&state.day>=ex.start&&!ex.over&&ex.exitDay!==state.day
+    ? new Set(Management.ensure(state).party.members) : null;
+  for (const n of TownNPCs.snapshots(clock, [{ x: player, y: playerY }])) if (n.visible && (!away||!away.has(n.id)) && (n.zone || 'town') === zone) actors.push({ y: n.y, draw: () => drawNpc(n) });
   for (const p of TownNPCs.props()) if ((p.zone || 'town') === zone) actors.push({ y: p.z, draw: () => TownNPCs.drawProp(ctx, p.id, p.x, p.foot, p.h, t, p.fire) });
   if (!window.LIFE_HIDDEN) actors.push({ y: playerY, draw: () => drawPlayer(info) });
   // v95 the hero's horse waits tied at the cart-yard stable whenever he isn't riding it

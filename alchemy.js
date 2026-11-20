@@ -102,49 +102,54 @@ function chance(st,id,station='basic'){
  const intelligence=clamp(((st.intelligence||15)-15)*.0006,0,.05);
  return clamp(Math.min(.95,BASE_CHANCE[r.tier-1]+.06*(a.tier-1)+qualityBonus+stationBonus+intelligence)-illness,.05,.95);
 }
-function craft(st,id,station='apothecary'){
+function craft(st,id,station='apothecary',score=null){
  const r=RECIPES[id],B=bag(),a=data(st);if(!r)return {ok:false,why:'ไม่รู้จักตำรับยา'};
  if(a.tier<r.tier)return {ok:false,why:'ต้องผ่านเควสเลื่อนขั้นปรุงยา Tier '+r.tier};
  if(st.life&&st.life.dead)return {ok:false,why:'ตัวละครเสียชีวิตแล้ว'};
  if(st.life?.exp&&!st.life.exp.over&&st.day>=st.life.exp.start)return {ok:false,why:'ต้องกลับเมืองก่อนจึงปรุงยาที่ร้านหมอยาได้'};
  if(!B?.has(st,r.needs))return {ok:false,why:'วัตถุดิบไม่ครบ'};
  if(!B.canFit(st,id)&&!Object.entries(r.needs).some(([k,n])=>B.count(st,k)===n&&B.slotRows(st).some(s=>s.id===k)))return {ok:false,why:'กระเป๋าเต็ม 20 ช่อง'};
- const p=chance(st,id,station),attempt=a.attempts++; // consume once, fixed by save seed/counter
+ const CM=(typeof globalThis!=='undefined'&&globalThis.CraftGame)||(typeof require==='function'?require('./craft-game.js'):null);
+ const mod=score&&CM?CM.modifiers(score.stars,score.skipped):null;
+ const p=clamp(chance(st,id,station)+(mod?.chance||0),.05,.95),attempt=a.attempts++; // consume once, fixed by save seed/counter
  for(const [key,n] of Object.entries(r.needs))B.take(st,key,n);
  st.energy=Math.max(0,(st.energy||0)-Math.max(3,Math.ceil(r.time/30)));
  const success=hash(worldSeed(st),'alchemy',id,attempt)<p;
  a.xp+=success?4*r.tier:Math.max(1,r.tier);a.count++;
- if(success){a.successes++;a.recipes[id]=(a.recipes[id]||0)+1;const count=B.add(st,id,1,st.day);
+ if(success){a.successes++;a.recipes[id]=(a.recipes[id]||0)+1;const count=B.add(st,id,1,st.day,mod?.duration===1.25&&r.buff?1:(mod?.quality||0));
   if(!count)return {ok:true,success:false,chance:p,why:'ปรุงสำเร็จแต่ช่องกระเป๋าเต็ม ยาตกหายที่โต๊ะปรุง'};
-  return {ok:true,success:true,chance:p,why:'ปรุง'+B.name(id)+' สำเร็จ ('+Math.round(p*100)+'%) · ความชำนาญ +'+4*r.tier};
+  return {ok:true,success:true,chance:p,quality:mod?.quality||0,why:'ปรุง'+B.name(id)+' สำเร็จ ('+Math.round(p*100)+'%) · ความชำนาญ +'+4*r.tier};
  }
  const r2=hash(worldSeed(st),'alchemy-failure',id,attempt);
- const failure=r2<.65?'destroyed':r2<.9?'diluted':'tainted';
- if(failure!=='destroyed'&&!B.add(st,failure==='diluted'?'failed_weak_medicine':'failed_tainted_medicine',1,st.day))return {ok:true,success:false,chance:p,failure:'destroyed',why:'ปรุงล้มเหลวและไม่มีช่องรับของเสีย วัตถุดิบสูญหาย'};
- return {ok:true,success:false,chance:p,failure,why:failure==='destroyed'?'ปรุงล้มเหลว วัตถุดิบเสียหาย':failure==='diluted'?'ปรุงพลาด ได้ยาคุณภาพต่ำ': 'ปรุงพลาด ได้ยาปนเปื้อน ต้องระวัง'};
+ const brokenChance=CM?.catastrophicRate?.(r.tier,mod?.stars??4,mod?.skipped)||.25;
+ const failure=r2<brokenChance?'destroyed':(r2-brokenChance)/(1-brokenChance)<.70?'diluted':'tainted';
+ if(failure==='destroyed')return {ok:true,success:false,chance:p,failure,catastrophic:true,breakChance:brokenChance,why:'💥 ปรุงยาพังทั้งชุด! วัตถุดิบทั้งหมดเสียไป ไม่ได้รับยา'};
+ if(!B.add(st,failure==='diluted'?'failed_weak_medicine':'failed_tainted_medicine',1,st.day))return {ok:true,success:false,chance:p,failure:'destroyed',catastrophic:true,breakChance:brokenChance,why:'ปรุงยาพลาดและไม่มีช่องเก็บของที่เสีย ยาทั้งชุดสูญหาย'};
+ return {ok:true,success:false,chance:p,failure,catastrophic:false,breakChance:brokenChance,why:failure==='diluted'?'ปรุงพลาด ได้ยาคุณภาพต่ำแทนตำรับที่ตั้งใจ':'ปรุงพลาด ได้ยาปนเปื้อน ต้องระวัง'};
 }
 function use(st,id,clock=0){const B=bag(),a=data(st),r=RECIPES[id];
  if(!r&&id!=='failed_weak_medicine'&&id!=='failed_tainted_medicine'&&id!=='clean_water')return {ok:false,why:'ไม่ใช่ยาที่ใช้ได้'};
  if(!B?.count(st,id))return {ok:false,why:'ไม่มีของในกระเป๋า'};
  if(st.life?.dead)return {ok:false,why:'ตัวละครเสียชีวิตแล้ว'};
+ const quality=(st.bag||[]).filter(x=>x.id===id).sort((a,b)=>(a.quality||0)-(b.quality||0))[0]?.quality||0;
  if(!B.take(st,id,1))return {ok:false,why:'ไม่สามารถใช้ไอเทมนี้'};
  if(id==='clean_water'){a.drinkDay=st.day;const changed=treat(st,{thirst:1});return {ok:true,why:'ดื่มน้ำสะอาด'+(changed.thirst?' · ขาดน้ำ −1':'')};}
  if(id==='failed_tainted_medicine'){addStatus(st,'nausea',1);return {ok:true,why:'ยาปนเปื้อนทำให้คลื่นไส้ +1'};}
  if(id==='failed_weak_medicine'){treat(st,{fatigue:1});return {ok:true,why:'ยาคุณภาพต่ำ ลดเหนื่อยได้เล็กน้อย'};}
  if(r.form==='tablet'){
   let day=st.day,when=clock+.25;if(when>=20){day++;when-=20;}
-  a.pending.push({id,day,clock:when});return {ok:true,pending:true,why:'กิน'+B.name(id)+' · ยาเม็ดจะออกฤทธิ์ในประมาณ 20 นาทีของเวลาเกม'};
+  a.pending.push({id,day,clock:when,quality});return {ok:true,pending:true,why:'กิน'+B.name(id)+' · ยาเม็ดจะออกฤทธิ์ในประมาณ 20 นาทีของเวลาเกม'};
  }
- return applyMedicine(st,id);
+ return applyMedicine(st,id,quality);
 }
-function applyMedicine(st,id){const a=data(st),r=RECIPES[id];if(!r)return {ok:false,why:'ไม่มีสูตรยา'};
- const changed=treat(st,r.remove||{});if(r.protect)a.protect[r.protect]={until:(st.day||1)+1};
- if(r.buff){const Ar=(typeof globalThis!=='undefined'&&globalThis.Artisan)||(typeof require==='function'?require('./artisan.js'):null);if(Ar)Ar.applyBuff(st,id,r.buff,r.hours||6,'medicine');}
+function applyMedicine(st,id,quality=0){const a=data(st),r=RECIPES[id];if(!r)return {ok:false,why:'ไม่มีสูตรยา'};
+ const changes=Object.fromEntries(Object.entries(r.remove||{}).map(([k,n])=>[k,Math.max(1,n+Math.min(0,quality))]));const changed=treat(st,changes);if(r.protect)a.protect[r.protect]={until:(st.day||1)+1};
+ if(r.buff){const Ar=(typeof globalThis!=='undefined'&&globalThis.Artisan)||(typeof require==='function'?require('./artisan.js'):null);if(Ar)Ar.applyBuff(st,id,r.buff,Math.max(1,(r.hours||6)*(quality<0?.75:quality>0?1.25:1)),'medicine');}
  const display=Object.entries(r.remove).map(([k,n])=>CONDITIONS[k].name+' −'+n).join(' · ');
  return {ok:true,changed,why:'ใช้'+bag().name(id)+' · '+display+(r.protect?' · ป้องกันพิษชั่วคราว':'')+(r.buff?' · รับบัฟ '+r.hours+' ชั่วโมงเกม':'')};
 }
 function flush(st,clock=0){const a=data(st),out=[],pending=[];
- for(const q of a.pending){if(st.day>q.day||st.day===q.day&&clock>=q.clock)out.push(applyMedicine(st,q.id).why);else pending.push(q);}
+ for(const q of a.pending){if(st.day>q.day||st.day===q.day&&clock>=q.clock)out.push(applyMedicine(st,q.id,q.quality||0).why);else pending.push(q);}
  a.pending=pending;return out;
 }
 function daily(st,ctx={}){const a=data(st);if(a.lastDay===st.day)return [];

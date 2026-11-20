@@ -20,6 +20,7 @@
   const Alchemy = (typeof globalThis !== 'undefined' && globalThis.Alchemy) || (typeof require === 'function' ? require('./alchemy.js') : null);
   const Artisan = (typeof globalThis !== 'undefined' && globalThis.Artisan) || (typeof require === 'function' ? require('./artisan.js') : null);
   const MainStory = (typeof globalThis !== 'undefined' && globalThis.MainStory) || (typeof require === 'function' ? require('./main-story.js') : null);
+  const Management = (typeof globalThis !== 'undefined' && globalThis.Management) || (typeof require === 'function' ? require('./management.js') : null);
   const PX = PANO ? PANO.PLACES : { tavern: 897, guild: 21258, compass: 21941, porter: 22646, tmerchant: 23358, tower: 24198, market: 16733, smith: 4847, inn: 5828, bench: 4171, tenement: 7440, soup: 8052, scrap: 10300, slumyard: 10014, cargo: 14050, stable: 13283, shrine: 11000, shack: 19666, bazaar: 17274, field: 11270, campfire: 11715, streetstall: 19029 };
   const PLACES = Object.freeze({
     inn:    { x: PX.inn, y: 792, name: 'โรงแรม' },
@@ -80,7 +81,8 @@
   });
     // v105 a bed in your own guild (members only, chosen by hand); the place is your guild's hall
   ROOMS.gbed = Object.freeze({ name: 'ห้องพักกิลด์', price: 1, energy: 100, health: 4, room: null, place: 'guildbed', guild: true, desc: 'เตียงในกิลด์ของคุณ 1 เหรียญ ใกล้ประตูหอคอย ตื่นมาแรง 100 สุขภาพ +4 (เฉพาะสมาชิก)' });
-  const ROOM_ORDER = ['luxe', 'mid', 'gbed', 'cheap', 'slum', 'shrine', 'shack'];
+  ROOMS.owned = Object.freeze({ name:'บ้านของตัวเอง',price:0,energy:100,health:7,room:null,place:'inn',desc:'เป็นเจ้าของบ้าน · ไม่มีค่าเช่ารายคืน แต่มีค่าดูแล' });
+  const ROOM_ORDER = ['owned', 'luxe', 'mid', 'gbed', 'cheap', 'slum', 'shrine', 'shack'];
   const SHELTER = { shrine: 1, shack: 1 };
   // v105 guilds: which guild the current path belongs to, and whether the hero counts as a member there
   const GUILD_KEY = { guild: 'iron', compass: 'compass', porter: 'porter', tmerchant: 'merch' };
@@ -104,7 +106,7 @@
   });
   const questOf = st => QUESTS[st.life && st.life.quest] || QUESTS.normal;
   let PLAN_ST = null;                                     // the state dayPlan is planning (roomPlace needs the guild)
-  const roomPlace = (id, st) => { const r = ROOMS[id]; if (!r) return 'inn'; if (r.guild) { const g = guildOf(st || PLAN_ST || {}); return g ? g.place : 'inn'; } return r.place || 'inn'; };
+  const roomPlace = (id, st) => { const r = ROOMS[id]; if (!r) return 'inn'; if (id === 'owned') return (Management && Management.homeInfo(st || PLAN_ST || {}) || {place:'inn'}).place; if (r.guild) { const g = guildOf(st || PLAN_ST || {}); return g ? g.place : 'inn'; } return r.place || 'inn'; };
   const RENT = ROOMS.mid.price;
 
   const ORIGINS = Object.freeze([
@@ -151,6 +153,7 @@
     st.profession = origin.name;
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
     st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5, magicPower: 15 };
+    st.management=null;
     st.skills = {}; st.skillQuests = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null; st.mainStory = null;
     Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; st.bagPending=[]; st.bagPendingNext=0; st.inventoryAuto=true; st.inventoryVersion=120; st.conditions={}; st.alchemy=null; st.artisan=null; st.buffs=[]; if (Bag) Bag.add(st, 'ration', 1);
@@ -176,6 +179,7 @@
     if (Skills) Skills.recalc(st);
     if (Exp) { Exp.ensureWorld(st); if (L.exp && !L.exp.over && Exp.isSafeFloor(L.exp.floor)) Exp.safeInfo(st); }
     if (MainStory) MainStory.ensure(st);
+    if (Management) Management.ensure(st);
     if (L.eatBag === undefined) L.eatBag = true;
     return true;
   }
@@ -378,8 +382,12 @@
     }
     segs.push(dinner);
     const home = L.homeTonight, tonight = ROOMS[L.roomTonight] || ROOMS.mid;
-    const back = end(route(dinner.t1, from, home, home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : SHELTER[home] ? 'เดินไปนอนที่' + PLACES[home].name : placeKey(home) ? 'เดินกลับห้องพักกิลด์' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
-    if (home === 'inn') {
+    const back = end(route(dinner.t1, from, home, L.roomTonight === 'owned' ? 'เดินกลับบ้านของตัวเอง' : home === 'inn' ? 'เดินกลับโรงแรม' : home === 'tenement' ? 'เดินกลับห้องเช่าในตรอก' : SHELTER[home] ? 'เดินไปนอนที่' + PLACES[home].name : placeKey(home) ? 'เดินกลับห้องพักกิลด์' : 'ไม่มีค่าห้อง เดินไปหาม้านั่ง').map(x => (segs.push(x), x)));
+    if (L.roomTonight === 'owned' && Management && Management.homeInfo(st)) {
+      // Owned homes reuse the existing travel and daily-rest rules, but show the player's real home interior.
+      segs.push(stay(back.t1, 20, home, 'พักผ่อนที่บ้านของตัวเอง', { hidden:true, sleep:true,
+        room:'home_' + st.management.home, milestone:'home' }));
+    } else if (home === 'inn') {
       const desk = stay(back.t1, back.t1 + CHECKIN, 'inn', 'รับกุญแจที่ล็อบบี้', { milestone: 'home', room: 'lobby', hidden: true });
       segs.push(desk, stay(desk.t1, 20, 'inn', asleep('inn'), inBed('inn', tonight)));
     } else if (home === 'tenement') segs.push(stay(back.t1, 20, 'tenement', asleep('tenement'), { hidden: true, sleep: true, room: 'tenement', milestone: 'home' }));
@@ -455,7 +463,8 @@
     }
     if (L.pendingPath && PATHS[L.pendingPath]) { L.path = L.pendingPath; L.pendingPath = null; say(st, 'เริ่มแนวทางใหม่: ' + PATHS[L.path].name); }
     if (L.sleptAt === 'inn' || L.sleptAt === 'tenement' || SHELTER[L.sleptAt] || placeKey(L.sleptAt)) {
-      const room = ROOMS[L.roomSlept] || ROOMS.mid;
+      const home = Management && Management.homeInfo(st);
+      const room = L.roomSlept === 'owned' && home ? { ...ROOMS.owned, energy:home.energy, health:home.health } : ROOMS[L.roomSlept] || ROOMS.mid;
       st.energy = Math.max(st.energy, room.energy); st.health = clamp(st.health + room.health, 1, 100);
       if (room.focus) L.focusDay = st.day;
     } else st.energy = Math.max(st.energy, o.id === 'jobless' ? 80 : 50);
@@ -521,6 +530,12 @@
   // the stops an order adds after work; cooked = dinner is what got cooked
   function orderStops(st, O) {
     const stops = [];
+    if (O.kind === 'managementMeet') {
+      const place=Management&&Management.meetPlace(O.npc);
+      if(!place||!PLACES[place])return null;
+      stops.push({place,dur:0.45,act:'พบ'+Management.NPCS[O.npc].name+' เพื่อ'+({talk:'พูดคุย',help:'ช่วยงาน',gift:'มอบของขวัญ',joinparty:'ชวนเข้าปาร์ตี้',joinguild:'ชวนเข้ากิลด์'}[O.activity]||'เจรจา'),task:'meet'});
+      return {stops};
+    }
     if (O.kind === 'rumor') {
       if (!MainStory || !PLACES[O.place]) return null;
       stops.push({place:O.place,dur:0.45,act:'ถามข่าวและสืบเบาะแสใน'+PLACES[O.place].name,task:'rumor'});
@@ -590,6 +605,15 @@
   function applyOrder(st, k) {
     const L = st.life, O = orderToday(st); if (!O) return null;
     if (['alchemy','alchemyMentor','alchemyClinic','artisanForge','artisanMentor','artisanCook'].includes(O.kind)&&O.doneDay===st.day&&!O.repeat)return null;
+    if(O.kind==='managementMeet') {
+      if(O.doneDay===st.day && !O.repeat)return null;
+      orderDone(st);if(!Management)return null;
+      let r;
+      if(['talk','help','gift'].includes(O.activity))r=Management.interact(st,O.npc,O.activity,O.item);
+      else if(O.activity==='joinparty')r=Management.askJoin(st,O.npc);
+      else if(O.activity==='joinguild')r=Management.guildMember(st,O.npc);
+      return say(st,r?.why||'ไม่สามารถพบ NPC ได้');
+    }
     if (O.kind === 'rumor') {
       orderDone(st);const r=MainStory.searchTown(st,O.place);return say(st,r.why);
     }
@@ -597,11 +621,11 @@
       orderDone(st);const r=MainStory.meet(st,O.questId,Bag,Skills);return say(st,r.why);
     }
     if(['artisanForge','artisanMentor','artisanCook'].includes(O.kind)){
-      orderDone(st);const r=O.kind==='artisanForge'?Artisan.forge(st,O.recipe):O.kind==='artisanMentor'?Artisan.meetMentor(st):Artisan.cook(st,O.recipe);
+      orderDone(st);const r=O.kind==='artisanForge'?Artisan.forge(st,O.recipe,O.minigame||null):O.kind==='artisanMentor'?Artisan.meetMentor(st):Artisan.cook(st,O.recipe,O.minigame||null);
       return say(st,r.why);
     }
     if (O.kind === 'alchemy' || O.kind === 'alchemyMentor' || O.kind === 'alchemyClinic') {
-      orderDone(st);const r=O.kind==='alchemy'?Alchemy.craft(st,O.recipe,'apothecary'):O.kind==='alchemyClinic'?Alchemy.treatPatient(st,O.recipe):Alchemy.meetMentor(st);return say(st,r.why);
+      orderDone(st);const r=O.kind==='alchemy'?Alchemy.craft(st,O.recipe,'apothecary',O.minigame||null):O.kind==='alchemyClinic'?Alchemy.treatPatient(st,O.recipe):Alchemy.meetMentor(st);return say(st,r.why);
     }
     if (O.kind === 'skillquest') {
       orderDone(st); const r = Skills.meetQuestNPC(st, O.questId);
@@ -887,6 +911,7 @@
     const from = Math.max(0, ROOM_ORDER.indexOf(st.life.roomPref));
     for (const id of ROOM_ORDER.slice(from)) {
       const R = ROOMS[id];
+      if (id === 'owned' && !(Management && Management.homeInfo(st))) continue;
       if (R.guild && !(id === st.life.roomPref && guildOf(st) && guildOf(st).member)) continue;
       if ((!R.free || id === st.life.roomPref) && st.money >= roomPrice(st, id)) return id;
     }
@@ -936,7 +961,7 @@
     return say(st, 'นอนพักทั้งวัน สุขภาพ +25' + meal);
   }
   function nightReset(st) { if (st.life) st.life.homeTonight = 'inn'; }
-  function setRoomPref(st, id) { if (!ROOMS[id]) return false; st.life.roomPref = id; return true; }
+  function setRoomPref(st, id) { if (!ROOMS[id] || (id === 'owned' && !(Management && Management.homeInfo(st)))) return false; st.life.roomPref = id; return true; }
 
   // ---- events: choices move the odds, never guarantee the result ----------
   const pct = p => Math.round(clamp(p, 0, 1) * 100) + '%';
@@ -1173,7 +1198,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { Exp, Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { Management, Exp, Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

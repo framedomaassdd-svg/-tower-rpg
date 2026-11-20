@@ -6,7 +6,7 @@
   'use strict';
   const WIDTH = 800, HEIGHT = 500, CARROT = { x: 170, y: 204, width: 500 };
   const CUTS = [0, 180, 360, 540, 720, 990];
-  const PIECES = 5, MAX_MISS = 3, V = '?v=71';
+  const PIECES = 5, MAX_MISS = 3, V = '?v=124';
   const clamp01 = v => Math.max(0, Math.min(1, v));
   const ease = v => 1 - Math.pow(1 - clamp01(v), 3);
   const mix = (a, b, t) => a + (b - a) * t;
@@ -16,8 +16,8 @@
   function loadArt() {
     if (art) return art;
     art = { images: {}, ready: null };
-    art.ready = Promise.all(['board', 'knife', 'carrot', 'coin', 'flat'].map(k => new Promise((res, rej) => {
-      const im = new Image(); im.onload = () => res([k, im]); im.onerror = () => rej(new Error(k)); im.src = 'carrot_' + k + '.webp' + V;
+    art.ready = Promise.all(['board', 'knife', 'carrot', 'coin', 'flat'].map(k => new Promise((res) => {
+      const im = new Image(); im.onload = () => res([k, im]); im.onerror = () => { const c=document.createElement('canvas');c.width=k==='carrot'?1000:420;c.height=k==='carrot'?200:260;const x=c.getContext('2d');x.fillStyle={board:'#ac8056',knife:'#a8b8c8',carrot:'#e3852b',coin:'#e6bd65',flat:'#ed9c43'}[k];if(k==='carrot'){x.beginPath();x.ellipse(500,100,475,90,0,0,Math.PI*2);x.fill();}else x.fillRect(0,0,c.width,c.height);res([k,c]);}; im.src = 'carrot_' + k + '.webp' + V;
     }))).then(list => { for (const [k, im] of list) art.images[k] = im; art.prepared = prepare(art.images); return art; });
     art.ready.catch(() => {});
     return art;
@@ -105,19 +105,30 @@
   function open(opts) {
     opts = opts || {};
     const Z = zones(opts.tolerance), A = loadArt();
+    // Wait for both base art and the requested ingredient, so preloading cannot
+    // overwrite the correct ingredient image before the first slice.
+    let ingredientReady = Promise.resolve(null);
+    if (opts.ingredientImage && typeof Image !== 'undefined') {
+      ingredientReady = new Promise(resolve => {
+        const custom = new Image();
+        custom.onload = () => resolve(custom);
+        custom.onerror = () => resolve(null); // retain the default carrot if missing
+        custom.src = opts.ingredientImage + (opts.ingredientImage.includes('?') ? '&' : '?') + 'art=124';
+      });
+    }
     const motion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
     const root = document.createElement('div');
     root.className = 'lg-overlay lg-carrot';
     const grad = `linear-gradient(to right,#c65a54 0%,#c65a54 ${Z.o0}%,#e7a347 ${Z.o0}%,#e7a347 ${Z.g0}%,#4aaf64 ${Z.g0}%,#4aaf64 ${Z.g1}%,#e7a347 ${Z.g1}%,#e7a347 ${Z.o1}%,#c65a54 ${Z.o1}%,#c65a54 100%)`;
     root.innerHTML =
-      '<div class="lc-top"><div><b class="lc-title">หั่นแครอท</b> <span class="lc-sub">ห้องครัว · ร้านอาหาร</span></div><div class="lc-pill">0 / 5 ชิ้น</div></div>' +
+      '<div class="lc-top"><div><b class="lc-title">หั่น' + String(opts.ingredientName||'แครอท').replace(/[&<>"]/g,'') + '</b> <span class="lc-sub">ห้องครัว · ร้านอาหาร</span></div><div class="lc-pill">0 / 5 ชิ้น</div></div>' +
       '<div class="lc-stage"><canvas class="lc-canvas" aria-label="เขียงและแครอท"></canvas></div>' +
       '<div class="lc-feedback" role="status" aria-live="polite">กำลังเตรียมเขียง…</div>' +
       '<div class="lc-panel">' +
         `<div class="lc-track" style="background:${grad}"><div class="lc-pointer"></div></div>` +
         '<button class="lc-cut" disabled>🔪 หั่น!</button>' +
         '<div class="lc-stats"><span>ดีมาก <b class="lc-p">0</b></span><span>พอใช้ <b class="lc-o">0</b></span><span>พลาด <b class="lc-m">0</b>/' + MAX_MISS + '</span></div>' +
-        '<button class="lg-btn lc-skip">ให้ทำเอง (ได้ 3 ดาว)</button>' +
+        '<button class="lg-btn lc-skip">ข้าม (ทำแบบปกติ) · 4 ดาว</button>' +
       '</div>';
     document.body.appendChild(root);
     const $ = s => root.querySelector(s);
@@ -207,11 +218,17 @@
     $('.lc-skip').onclick = () => close(3, true);
     window.addEventListener('keydown', key); window.addEventListener('resize', size);
     size(); stats();
-    A.ready.then(() => { if (closed) return; ready = true; size(); setTimeout(start, 350); })
+    Promise.all([A.ready, ingredientReady]).then(([, custom]) => {
+      if (closed) return;
+      if (custom) A.prepared = prepare({...A.images, carrot:custom});
+      else A.prepared = prepare(A.images);
+      ready = true; size(); setTimeout(start, 350);
+    })
       .catch(() => { say('โหลดภาพไม่สำเร็จ · กด "ให้ทำเอง" เพื่อทำงานต่อ', 'miss'); });
     raf = requestAnimationFrame(frame);
     return { root, _debug: { get pos() { return pos; }, get active() { return active; }, get cuts() { return cuts; }, get missed() { return missed; }, zones: Z, cut } };
   }
   if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', () => setTimeout(loadArt, 3000));
   root.CarrotGame = { open, toStars, zones, PIECES, MAX_MISS };
+  if (typeof module === 'object' && module.exports) module.exports = root.CarrotGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

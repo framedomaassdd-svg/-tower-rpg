@@ -280,8 +280,9 @@
     return names[names.length - 1];
   }
   // who comes along: a guild party (by path) or a hired guard; their power fights beside yours, and they can save your life
+  const Management = (typeof globalThis !== 'undefined' && globalThis.Management) || (typeof require === 'function' ? require('./management.js') : null);
   const PARTY = { guild: { name: 'ทีมนักรบโล่เหล็ก', power: 55 }, compass: { name: 'ทีมสำรวจเข็มทิศเงิน', power: 30 }, porter: { name: 'ขบวนคนแบกกับทีมนักรบ', power: 45 },
-    guard: { name: 'นักรบรับจ้าง', power: 25 } };
+    guard: { name: 'นักรบรับจ้าง', power: 25 }, personal: { name:'ปาร์ตี้ของคุณ', power:0 } };
   const GUARD_FEE = 10;                                  // per day, paid up front
   const SLOTS_OF_DAY = [['x1', 7.0], ['x2', 10.0], ['x3', 13.0], ['xcamp', 15.6]];
   const CAMP_SLEEP = 50 / 3;                             // 20:00
@@ -325,6 +326,7 @@
   // set off tomorrow morning; you always enter at floor 1
   function plan(st, opts) {
     const L = st.life, party = opts.party && PARTY[opts.party] ? opts.party : null;
+    if (party === 'personal' && !(Management && Management.ensure(st)?.party.leader && Management.ensure(st).party.members.length)) return {ok:false,why:'ต้องได้รับเลือกเป็นหัวหน้าและมีสมาชิกในปาร์ตี้ก่อน'};
     if (party === 'guard') { if (st.money < GUARD_FEE * 5) return { ok: false, why: 'เงินไม่พอจ้างนักรบ (มัดจำ ' + GUARD_FEE * 5 + ' เหรียญ)' }; st.money -= GUARD_FEE * 5; }
     L.exp = { start: st.day + 1, party, separated: false, floor: 1, highest: 1, search: 0, stones: {}, exitDay: 0, exitT: 0,
       over: false, pending: null, done: {}, hunted: false, log: [], wins: 0, loot: {}, guardPaid: 5, ally: null, path: L.path, safePending: false, safeRestDay: 0 };
@@ -333,7 +335,7 @@
   }
   function cancel(st) { const x = X(st); if (x && !active(st)) { if (x.party === 'guard') st.money += GUARD_FEE * 5; st.life.exp = null; return true; } return false; }
   const withTeam = st => { const x = X(st); return !!(x && x.party && !x.separated); };
-  const allyPower = st => { const x = X(st); return (withTeam(st) ? PARTY[x.party].power + Math.round((x.floor - 1) * 1.5) + Skills.tierOf(st, 'partyOath')*12 : 0) + (x && x.ally ? x.ally.power : 0); };
+  const allyPower = st => { const x = X(st); return (withTeam(st) ? (x.party === 'personal' && Management ? Management.partyPower(st) : PARTY[x.party].power + Math.round((x.floor - 1) * 1.5)) + Skills.tierOf(st, 'partyOath')*12 : 0) + (x && x.ally ? x.ally.power : 0); };
   function safeInfo(st) {
     const x = X(st); if (!active(st) || x.exitDay === st.day || !isSafeFloor(x.floor)) return null;
     const fw = floorWorld(st, x.floor); fw.visited = true;
