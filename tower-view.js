@@ -59,9 +59,26 @@
     if (x.ally) t.push('summoned');
     return t.filter(Boolean).slice(0, 4);
   }
+  const sizeOf = sheet => (root.TownNPCs && root.TownNPCs.ADVENTURER_SIZE && root.TownNPCs.ADVENTURER_SIZE[sheet]) || 1;
   function drawMate(ctx, sheet, row, col, x, gy, u, face) {
     const N = root.TownNPCs; if (!N || !N.blit) return;
-    N.blit(ctx, sheet, row, col, face < 0, 330 * u, x, gy - 8 * u);
+    N.blit(ctx, sheet, row, col, face < 0, 330 * u * sizeOf(sheet), x, gy - 8 * u);
+  }
+  // v131 soldiers/adventurers have their own fight sheet: npc_combat/<id>.webp 4×4 cells 620×420, anchor (290, 410), person 330 tall
+  // rows: attack · special · hit/dodge/down/up · camp (sit, sleep, keep watch, victory)
+  const NPC_COMBAT = ['captain', 'recruit', 'oldknight', 'sentry', 'priest', 'pyro', 'rogue', 'ranger', 'wolfkin', 'shieldmaiden', 'nomad', 'nurse'];
+  const npcCombat = {};
+  function combatOf(sheet) {
+    if (!NPC_COMBAT.includes(sheet)) return null;
+    if (!npcCombat[sheet]) npcCombat[sheet] = im('npc_combat/' + sheet + '.webp?v=131');
+    return ok(npcCombat[sheet]) ? npcCombat[sheet] : null;
+  }
+  function drawMateFight(ctx, sheet, row, col, x, gy, u, face) {
+    const img = combatOf(sheet); if (!img) return false;
+    const k = u * sizeOf(sheet);
+    ctx.save(); ctx.translate(x, gy); ctx.scale(face < 0 ? -1 : 1, 1);
+    ctx.drawImage(img, col * 620, row * 420, 620, 420, -290 * k, -410 * k, 620 * k, 420 * k);
+    ctx.restore(); return true;
   }
   const monImg = {};
   const monOf = id => { if (!MON[id]) return null; if (!monImg[id]) monImg[id] = im('monsters/' + id + '.webp?v=127'); return monImg[id]; };
@@ -141,7 +158,11 @@
     const now0 = performance.now();
     if (night) {
       const team = teamOf(st), spots = [0.62, 0.22, 0.72, 0.14];
-      team.forEach((sh, i) => { if (info.sleep && i > 0) return; drawMate(ctx, sh, 2, 0, W * spots[i], gy - 4 * u, u, i % 2 ? 1 : -1); });
+      team.forEach((sh, i) => {
+        const face = i % 2 ? 1 : -1, x = W * spots[i];
+        // with a camp sheet: sit by the fire, sleep, and one keeps watch at night; town sprites just stand (only the watch at night)
+        if (combatOf(sh)) { drawMateFight(ctx, sh, 3, info.sleep ? (i === 0 ? 2 : 1) : 0, x, gy - 4 * u, u, face); return; }
+        if (info.sleep && i > 0) return; drawMate(ctx, sh, 2, 0, x, gy - 4 * u, u, face); });
       drawProp(ctx, PROPS.camp, W * 0.5, gy + 10 * u, 300 * u);
       if (info.sleep) drawLying(ctx, W * 0.34, gy + 6 * u, u); else drawWalk(ctx, 0, W * 0.36, gy, u, 1, false);
       if (heal) { const q = (now0 - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, W * 0.36, gy - 190 * u, 720 * u); }
@@ -168,7 +189,16 @@
         else if (!fx.win && k >= 1.36) { hrow = 4; hcol = k < 1.8 ? 0 : 2; }
         else if (k >= 1.1) hcol = 3;
         const team = teamOf(st), busy = k > 0.3 && k < 1.2;
-        team.forEach((sh, i) => drawMate(ctx, sh, busy ? 1 : 2, busy ? Math.floor(k * 7 + i) % 4 : 0, hx - (130 + 105 * i) * u, gy - 8 * u * (i % 2), u, 1));
+        team.forEach((sh, i) => {
+          const x = hx - (150 + 120 * i) * u, y = gy - 8 * u * (i % 2);
+          if (combatOf(sh)) {                       // attack (or a special every other mate), then cheer or take the hit
+            const atk = Math.min(3, Math.max(0, Math.floor((k - 0.3 - 0.08 * i) / 0.2)));
+            if (k < 0.3) drawMateFight(ctx, sh, 0, 0, x, y, u, 1);
+            else if (k < 1.2) drawMateFight(ctx, sh, i % 2, atk, x, y, u, 1);
+            else if (fx.win) drawMateFight(ctx, sh, 3, 3, x, y, u, 1);
+            else drawMateFight(ctx, sh, 2, k < 1.7 ? 0 : 1, x, y, u, 1);
+          } else drawMate(ctx, sh, busy ? 1 : 2, busy ? Math.floor(k * 7 + i) % 4 : 0, x, y, u, 1);
+        });
         drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
         // v128 the arrow flies from the bow to the monster (drawn in code; the sheet's own arrow is part of frame 3)
         if (fx.row === 2 && k > 0.62 && k < 0.78) {

@@ -482,7 +482,9 @@
   const MG_ASSET = 'life-art/';
   const mgPic = (filename,alt='',cls='') => `<img class="mg-art ${cls}" src="${MG_ASSET}${filename}.webp?v=125" alt="${esc(alt)}" loading="lazy" decoding="async">`;
   const mgIcon = (filename) => `<img class="mg-inline-icon" src="${MG_ASSET}${filename}.webp?v=125" alt="" loading="lazy">`;
-  const mgPortrait = (id) => ['property_agent','carpenter','guild_registrar','guild_treasurer','wholesaler','rookie','veteran','neighbor'].includes(id)
+  const ADV_FACE = ['captain','recruit','oldknight','sentry','priest','pyro','rogue','ranger','wolfkin','shieldmaiden','nomad','nurse'];   // v131 face_<id>.webp
+  const mgPortrait = (id) => ADV_FACE.includes(id) ? `<div class="mg-portrait" role="img" aria-label="ภาพ ${esc(Management.NPCS[id]?.name||id)}" style="background-image:url('face_${id}.webp?v=131');background-position:0% 0%"></div>`
+    : ['property_agent','carpenter','guild_registrar','guild_treasurer','wholesaler','rookie','veteran','neighbor'].includes(id)
     ? `<div class="mg-portrait" role="img" aria-label="ภาพ ${esc(Management.NPCS[id]?.name||id)}" style="background-image:url('${MG_ASSET}portrait_npc5_${id}.webp?v=125');background-position:0% 0%"></div>` : '';
 
   function charHtml() {

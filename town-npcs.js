@@ -37,7 +37,11 @@
     appraiser: { ...B, src: 345 }, merchboss: { ...B, src: 345 },
     // v125: new resident sprites are genuine 4x3 sheets (440x384 frames).
     property_agent: { ...B, src: 345 }, carpenter: { ...B, src: 345 }, guild_registrar: { ...B, src: 345 }, guild_treasurer: { ...B, src: 345 },
-    wholesaler: { ...B, src: 345 }, rookie: { ...B, src: 345 }, veteran: { ...B, src: 345 }, neighbor: { ...B, src: 345 }
+    wholesaler: { ...B, src: 345 }, rookie: { ...B, src: 345 }, veteran: { ...B, src: 345 }, neighbor: { ...B, src: 345 },
+    // v131 soldiers and adventurers (ผู้สร้าง: ออกแบบใหม่ หลากหลาย อยู่ในเมืองและร่วมทีมเข้าหอคอยได้)
+    captain: { ...B, src: 345 }, recruit: { ...B, src: 345 }, oldknight: { ...B, src: 345 }, sentry: { ...B, src: 345 },
+    priest: { ...B, src: 345 }, pyro: { ...B, src: 345 }, rogue: { ...B, src: 345 }, ranger: { ...B, src: 345 },
+    wolfkin: { ...B, src: 345 }, shieldmaiden: { ...B, src: 345 }, nomad: { ...B, src: 345 }, nurse: { ...B, src: 345 }
   });
   const HERO = 124;                                                 // the hero's visible height in world px
   const S = 1080 / 724, wx = x => Math.round(x * S);                // painting x → world x (same as TownPano)
@@ -354,7 +358,51 @@
     { id:'neighbor', name:'เพื่อนบ้าน', sheet:'neighbor', height:HERO*.93, speed:1120, zone:'town', stops:[
       {x:1864,y:DOOR,until:H(7),hidden:true},{x:4095,y:828,until:H(17),loop:'offer',face:1},{x:1864,y:DOOR,until:20,hidden:true}] }
   ];
-  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE, GUILD, LIFE_MANAGEMENT_PEOPLE);
+  // v131 soldiers and adventurers: each keeps to one part of town (ADVENTURER_SIZE = height vs the hero, also used in the tower)
+  const ADVENTURER_SIZE = Object.freeze({ captain: 1.02, recruit: 1.04, oldknight: 1.02, sentry: 0.96, priest: 0.95, pyro: 0.8,
+    rogue: 0.97, ranger: 1.03, wolfkin: 1.12, shieldmaiden: 1.12, nomad: 1.0, nurse: 0.94 });
+  const adv = (id, name, job, zone, speed, stops) => ({ id, name, job, sheet: id, height: HERO * ADVENTURER_SIZE[id], speed, zone, stops });
+  const ADVENTURERS = [
+    adv('captain', 'ร้อยเอกการิน', 'หัวหน้ายามประตูเมือง', 'town', 1200, [
+      { x: 328, y: DOOR, until: H(6), hidden: true }, { x: 540, y: 836, until: H(17.5), loop: 'guard', face: 1 },
+      { x: 897, y: DOOR, until: H(20.5), hidden: true }, { x: 328, y: DOOR, until: 20, hidden: true }]),
+    adv('sentry', 'สิบตรีนิล', 'ทหารพลหน้าไม้', 'town', 1250, [
+      { x: 328, y: DOOR, until: H(5.6), hidden: true }, { x: 210, y: 824, until: H(17), loop: 'grind', face: 1 },
+      { x: 328, y: DOOR, until: 20, hidden: true }]),
+    adv('oldknight', 'เซอร์โบรัน', 'อัศวินเกษียณ', 'town', 700, [
+      { x: 5828, y: DOOR, until: H(8.2), hidden: true }, { x: 1040, y: 834, until: H(12), loop: 'order', face: -1 },
+      { x: 4280, y: 838, until: H(17.2), loop: 'order', face: -1 }, { x: 5828, y: DOOR, until: 20, hidden: true }]),
+    adv('pyro', 'ยายมาฮา', 'จอมเวทไฟชรา', 'town', 650, [
+      { x: 5088, y: DOOR, until: H(8.5), hidden: true }, { x: 4960, y: 830, until: H(18), loop: 'stir', face: 1 },
+      { x: 5088, y: DOOR, until: 20, hidden: true }]),
+    adv('nurse', 'คุณมิกะ', 'ผู้ถูกอัญเชิญ อดีตพยาบาล', 'town', 1300, [
+      { x: 5828, y: DOOR, until: H(7.4), hidden: true }, { x: 5360, y: 830, until: H(17.4), loop: 'write', face: -1 },
+      { x: 5828, y: DOOR, until: 20, hidden: true }]),
+    adv('priest', 'แม่ชีเซเรน', 'นักบวชรักษา', 'slum', 1000, [
+      { x: 8052, y: DOOR, until: H(6.4), hidden: true }, { x: 7930, y: 836, until: H(13), loop: 'pray', face: 1 },
+      { x: 8052, y: DOOR, until: H(15), hidden: true }, { x: 7930, y: 836, until: H(19), loop: 'pray', face: 1 },
+      { x: 8052, y: DOOR, until: 20, hidden: true }]),
+    adv('wolfkin', 'กราฟ', 'นักสู้เผ่าหมาป่า', 'carts', 1500, [
+      { x: 11330, y: DOOR, until: H(6), hidden: true }, { x: 13560, y: 840, until: H(17), loop: 'guard', face: -1 },
+      { x: 11330, y: DOOR, until: 20, hidden: true }]),
+    adv('nomad', 'ซาฮีร์', 'ทหารรับจ้างจากทะเลทราย', 'carts', 1150, [
+      { x: 11330, y: DOOR, until: H(7), hidden: true }, { x: 11600, y: 836, until: H(21), loop: 'grind', face: 1 },
+      { x: 11330, y: DOOR, until: 20, hidden: true }]),
+    adv('rogue', 'โจ๊ก "นิ้วไว"', 'นักล่าสมบัติ', 'market', 1600, [
+      { x: 15986, y: DOOR, until: H(7.6), hidden: true }, { x: 17820, y: 838, until: H(18.5), loop: 'juggle', face: -1 },
+      { x: 15986, y: DOOR, until: 20, hidden: true }]),
+    adv('ranger', 'ลิอาร่า', 'พรานป่าครึ่งเอลฟ์', 'market', 1500, [
+      { x: 15986, y: DOOR, until: H(9), hidden: true }, { x: 18480, y: 836, until: H(17), loop: 'grind', face: 1 },
+      { x: 15986, y: DOOR, until: 20, hidden: true }]),
+    adv('recruit', 'พลทหารโต้ง', 'ทหารเกณฑ์ใหม่', 'guild', 1450, [
+      { x: 21258, y: DOOR, until: H(6.5), hidden: true }, { x: 21380, y: 840, until: H(12), loop: 'swing', face: 1 },
+      { x: 21258, y: DOOR, until: H(13), hidden: true }, { x: 21380, y: 840, until: H(17), loop: 'swing', face: 1 },
+      { x: 21258, y: DOOR, until: 20, hidden: true }]),
+    adv('shieldmaiden', 'บรุนฮิลด์', 'นักรบโล่ใหญ่', 'guild', 1100, [
+      { x: 22646, y: DOOR, until: H(7), hidden: true }, { x: 22860, y: 842, until: H(17.5), loop: 'scrub', face: -1 },
+      { x: 22646, y: DOOR, until: 20, hidden: true }])
+  ];
+  const ALL_PEOPLE = PEOPLE.concat(MORE, SLUM, CARTS, CARTS_YARD, MARKET, SHRINE, GUILD, LIFE_MANAGEMENT_PEOPLE, ADVENTURERS);
   function scheduled(p, clock) {
     const t = finiteClock(clock), base = { id: p.id, name: p.name, sheet: p.sheet, height: p.height, visible: true, zone: p.zone || 'town', vrow: p.vrow };
     let prev = p.stops[0], start = 0, walked = 0;
@@ -609,6 +657,6 @@
   }
   function props() { return PROPS; }
 
-  return { blit, PEOPLE: ALL_PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
+  return { blit, ADVENTURER_SIZE, PEOPLE: ALL_PEOPLE, PATROLS, RESIDENT_LOOK, SHEETS, SHEET: SHEETS.teen, LOOPS, HERO_POSE,
     load, snapshots, frameOf, draw, drawHero, heroReady, heroShuttle, props, drawProp, propReady };
 });
