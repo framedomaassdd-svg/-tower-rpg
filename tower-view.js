@@ -94,7 +94,7 @@
     ctx.fillStyle = '#1b1410'; ctx.fillRect(0, 0, W, H);
     const s = Math.max(W / 1672, H / 941), ox = (W - 1672 * s) / 2, oy = (H - 941 * s) / 2;
     if (ok(bg)) ctx.drawImage(bg, ox, oy, 1672 * s, 941 * s);
-    const gy = oy + 941 * s * 0.85, u = 941 * s * 0.30 / 345;      // a person is 30% of the scene's height
+    const gy = oy + 941 * s * 0.85, u = Math.min(941 * s * 0.30 / 345, W / 1150);   // a person is 30% of the scene's height (narrower on portrait screens)
     const x = X(st), stones = x && x.stones && x.stones[x.floor] || {};
     const CAMP = root.Expedition && root.Expedition.SLOTS_OF_DAY ? (root.Expedition.SLOTS_OF_DAY.find(s => s[0] === 'xcamp') || [0, 15.6])[1] : 15.6;
     const night = (info.sleep || clock >= CAMP) && !fx;                 // camp from the evening slot, asleep after 20:00
@@ -128,6 +128,7 @@
         else if (k >= 1.1) hcol = 3;
         drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
         if (k > 0.75 && k < 0.9 && fx.win || !fx.win && k > 1.36 && k < 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, 0, W, H); }
+        if (info.sleep || clock >= CAMP) { ctx.fillStyle = 'rgba(8,10,30,0.45)'; ctx.fillRect(0, 0, W, H); }
         return true;
       }
     }

@@ -1209,7 +1209,8 @@
       lastToast = msg; toastEl.textContent = msg.replace(/^วันที่ \d+ · /, ''); toastEl.classList.add('show');
       clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3800);
     }
-    if (!hudEl._drawn) { hudEl._drawn = true; drawFace(hudEl.querySelector('canvas'), 'hero', 0); }
+    const look = window.HeroLook ? HeroLook.current() : 'default';      // v127 redraw when the hero's look changes (a new life)
+    if (hudEl._drawn !== look) { hudEl._drawn = look; drawFace(hudEl.querySelector('canvas'), 'hero', 0); }
     if (!hudEl._drawn && sprite.complete && sprite.naturalWidth) { hudEl._drawn = true; portrait(hudEl.querySelector('canvas'), sprite, 400, 680, PLAYER_BOX); }
   }
   function init() {

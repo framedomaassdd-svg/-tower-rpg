@@ -9,6 +9,9 @@
   const LOOKS = ORIGIN_IDS.flatMap(o => [o + '_m', o + '_f']);
   const reg = [];                       // {img, file, ver}
   let cur = 'default';
+  // v127 start on the saved hero's look, so art created while scripts load is not fetched twice
+  try { const L = typeof localStorage !== 'undefined' && JSON.parse(localStorage.getItem('towerLife') || '{}').life;
+    if (L && L.sex && LOOKS.includes(L.origin + '_' + L.sex)) cur = L.origin + '_' + L.sex; } catch (e) {}
   const src = (file, ver, look) => (look && look !== 'default' ? 'hero/' + look + '/' : '') + file + (ver ? '?v=' + ver : '');
   function point(e) {
     const want = src(e.file, e.ver, cur);

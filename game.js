@@ -347,6 +347,7 @@ addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
 // ---- wait for the art, then start
+if (window.HeroLook) HeroLook.set(LifeSim.lookOf(state));   // v127 pick the look before the hero's art starts loading (no double download)
 const imageSet = [...Object.values(TownPano.art), HeroSprite.load(), ...TownNPCs.load(), ...Interiors.images(), ...(window.TowerView ? TowerView.images() : [])];
 Promise.all(imageSet.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
   img.addEventListener('load', resolve, { once: true }); img.addEventListener('error', resolve, { once: true });
