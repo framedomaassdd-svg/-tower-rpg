@@ -87,7 +87,7 @@
   const sleepImg = {}; let eatImg = null;
   if (hasImage) {
     for (const k in SLEEP) { const i = new Image(); i.src = 'sleep_' + k + '.webp?v=81'; sleepImg[k] = i; }
-    eatImg = new Image(); eatImg.src = 'npc5_heroEat.webp?v=81';
+    if (root.HeroLook) eatImg = root.HeroLook.img('npc5_heroEat.webp', 81); else { eatImg = new Image(); eatImg.src = 'npc5_heroEat.webp?v=81'; }
   }
   // v83: dinner painted into the room — A = the whole room with the hero eating (spoon in the bowl), B = spoon at his mouth
   const DINE = { soup: { id: 'soup', B: [1116, 285], bowl: [1240, 512] }, restaurant: { id: 'rest', B: [633, 403], bowl: [728, 556] } };
@@ -217,7 +217,8 @@
     const camX = Math.max(0, Math.min(IW - vw, (act ? act.focus : IW / 2) - vw / 2));
     const camY = Math.max(0, Math.min(IH - vh, 560 - vh / 2));
     ctx.setTransform(scale, 0, 0, scale, -camX * scale, -camY * scale);
-    const dine = info.eating && DINE[info.room] && ok(dineImg[info.room + 'A']) && ok(dineImg[info.room + 'B']) ? DINE[info.room] : null;
+    const baked = !root.HeroLook || root.HeroLook.isDefault();     // v126 rooms painted with the default hero
+    const dine = baked && info.eating && DINE[info.room] && ok(dineImg[info.room + 'A']) && ok(dineImg[info.room + 'B']) ? DINE[info.room] : null;
     ctx.drawImage(dine ? dineImg[info.room + 'A'] : im, 0, 0, IW, IH);
     if (dine) {
       const sec = (t - enteredAt) / 1000 % 2.6;                    // spoon down 1.6 s, spoon at the mouth 1 s
@@ -230,7 +231,7 @@
       for (const p of sc.props) if (!!p.front === front) N.drawProp(ctx, p.id, p.x, p.foot, p.w * HERO_H * 648 / 680 * K, t, p.fire); };
     prop(false);
     people(ctx, sc, t);
-    const patch = SLEEP[info.room] && sleepImg[info.room], asleep = !!(act && act.sleep);
+    const patch = baked && SLEEP[info.room] && sleepImg[info.room], asleep = !!(act && act.sleep);
     if (asleep && !wasAsleep) sleepSince = t; wasAsleep = asleep;
     if (act && act.sleep && sc.bed) {
       if (ok(patch)) { ctx.save(); ctx.globalAlpha = Math.min(1, (t - Math.max(enteredAt, sleepSince)) / 600); ctx.drawImage(patch, SLEEP[info.room][0], SLEEP[info.room][1]); ctx.restore(); }

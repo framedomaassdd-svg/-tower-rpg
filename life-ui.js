@@ -133,7 +133,7 @@
   const PLAYER_BOX = [0.22, 0.02, 0.56, 0.33];
   // Visual-novel busts: face_<who>.webp holds 4 expressions side by side — 0 neutral · 1 smile · 2 surprised · 3 worried.
   const FACE_OF = { merchant: 'mali', worker: 'thana' }, faces = {};
-  function faceImage(who) { who = FACE_OF[who] || who; if (!faces[who]) { faces[who] = new Image(); faces[who].src = 'face_' + who + '.webp?v=87'; } return faces[who]; }
+  function faceImage(who) { who = FACE_OF[who] || who; if (!faces[who]) { if (who === 'hero' && window.HeroLook) faces[who] = HeroLook.img('face_hero.webp', 87); else { faces[who] = new Image(); faces[who].src = 'face_' + who + '.webp?v=87'; } } return faces[who]; }
   // Draws expression `n` to fill the canvas: crops the sides of wide busts, or the bottom of tall ones.
   function drawFace(cv, who, n) {
     const im = faceImage(who);
@@ -183,7 +183,7 @@
       <p>แสงสีขาวกลืนทุกอย่างรอบตัว เมื่อลืมตาอีกครั้ง คุณยืนอยู่หน้าหอคอยที่สูงทะลุเมฆ</p>
       <p>เจ้าหน้าที่กิลด์บอกว่าที่นี่ต้องการคนจากต่างโลก เพื่อช่วยกันไม่ให้มอนสเตอร์ในหอคอย <b>ทะลักออกมา</b></p>
       <h3>ในโลกเดิม คุณคือ</h3>
-      <p style="font-size:20px"><b>${esc(origin.name)}</b> อายุ ${L.age} ปี</p>
+      <p style="font-size:20px"><b>${esc(LifeSim.originName(origin, L.sex))}</b> ${L.sex === 'f' ? 'หญิง' : L.sex === 'm' ? 'ชาย' : ''} อายุ ${L.age} ปี</p>
       <div class="lg-stats"><span>กำลัง ${state.strength}</span><span>คล่องตัว ${state.agility}</span><span>ปัญญา ${state.intelligence}</span><span>เงินติดตัว ${state.money}</span></div>
       <p class="lg-muted">${esc(origin.perk)}</p>
       <button class="lg-btn lg-primary">ต่อไป</button></div>`);
@@ -472,7 +472,7 @@
   function charHtml() {
     const L = state.life, o = LifeSim.originOf(state);
     return `<h2>ตัวละคร</h2>
-      <p>ตัวตนในโลกเดิม: <b>${esc(o.name)}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
+      <p>ตัวตนในโลกเดิม: <b>${esc(LifeSim.originName(o, L.sex))}</b> อายุ ${L.age} ปี · ใช้ชีวิตในต่างโลกมา ${state.day} วัน</p>
       <p class="lg-muted">${esc(o.perk)}</p>
       <h3>แนวทาง</h3><p>${esc(LifeSim.PATHS[L.path].name)}${L.pendingPath ? ' → พรุ่งนี้: ' + esc(LifeSim.PATHS[L.pendingPath].name) : ''}${[state.guild && 'สมาชิกโล่เหล็ก', state.compassMember && 'สมาชิกเข็มทิศเงิน', state.merchMember && 'นักตีราคากิลด์พ่อค้า'].filter(Boolean).map(t => ' · ' + t).join('')}</p>
       <button class="lg-btn" data-a="path">เปลี่ยนแนวทางชีวิต<small>มีผลตั้งแต่เช้าวันพรุ่งนี้</small></button>

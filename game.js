@@ -296,6 +296,7 @@ function drawLids(c01, label) {
 }
 function frame(t) {
   requestAnimationFrame(frame);
+  if (window.HeroLook) HeroLook.set(LifeSim.lookOf(state));   // v126 hero art follows origin + sex
   if (!sceneReady) { last = t; return; }
   const elapsed = Math.min((t - last) / 1000 || 0, .2); last = t;
   if (!document.hidden) {

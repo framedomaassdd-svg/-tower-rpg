@@ -46,8 +46,10 @@
   const DOOR = 790;                                                 // y where a passage meets the street
   const hasImage = typeof Image !== 'undefined';
   const sheets = {};
+  const HERO_SHEETS = ['heroA', 'heroB', 'heroC', 'heroHorse', 'heroBike', 'heroScooter', 'coach'];   // v126 follow HeroLook
   function load() {
     if (!hasImage) return [];
+    for (const id in SHEETS) if (!sheets[id] && HERO_SHEETS.includes(id) && root.HeroLook) sheets[id] = root.HeroLook.img('npc5_' + id + '.webp', 125);
     for (const id in SHEETS) if (!sheets[id]) { const i = new Image(); i.src = (['property_agent','carpenter','guild_registrar','guild_treasurer','wholesaler','rookie','veteran','neighbor'].includes(id) ? 'life-art/' : '') + 'npc5_' + id + '.webp?v=125'; sheets[id] = i; }
     return Object.values(sheets);
   }

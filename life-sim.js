@@ -112,12 +112,21 @@
   const ORIGINS = Object.freeze([
     { id: 'office',  name: 'พนักงานบริษัท', stats: { strength: 2, agility: 3, intelligence: 6 }, money: 20, suggest: 'compass',
       perk: 'หัวไว: ปัญญาสูง ช่วยให้จังหวะมินิเกมกว้างขึ้นและอ่านสถานการณ์ในเหตุการณ์ได้ดีกว่า' },
-    { id: 'chef',    name: 'พ่อครัว',       stats: { strength: 3, agility: 4, intelligence: 3 }, money: 15, suggest: 'kitchen',
+    { id: 'chef',    name: 'พ่อครัว', nameF: 'แม่ครัว',       stats: { strength: 3, agility: 4, intelligence: 3 }, money: 15, suggest: 'kitchen',
       perk: 'ทำกับข้าวเป็น: ค่าอาหารเย็นถูกลง 1 เหรียญ ค่าแรงในครัว +3 และจังหวะหั่นผักกว้างกว่าคนอื่น' },
     { id: 'craft',   name: 'ช่างฝีมือ',      stats: { strength: 4, agility: 3, intelligence: 3 }, money: 15, suggest: 'smith',
       perk: 'มือช่าง: จังหวะในมินิเกมตีเหล็กกว้างกว่าคนอื่นมาก' },
     { id: 'jobless', name: 'คนว่างงาน',      stats: { strength: 3, agility: 3, intelligence: 3 }, money: 8,  suggest: 'market',
-      perk: 'ทนลำบาก: ถ้าต้องนอนข้างนอก ก็ยังฟื้นแรงได้มากกว่าคนอื่น' }
+      perk: 'ทนลำบาก: ถ้าต้องนอนข้างนอก ก็ยังฟื้นแรงได้มากกว่าคนอื่น' },
+    // v126 more origins (each has a male and a female look, see hero-look.js)
+    { id: 'police',  name: 'ตำรวจ',        stats: { strength: 4, agility: 4, intelligence: 3 }, money: 18, suggest: 'compass',
+      perk: 'สายตาตำรวจ: ร่างกายฟิตและช่างสังเกต ค่าสถานะสมดุลทั้งกำลังและความคล่องตัว' },
+    { id: 'soldier', name: 'ทหาร',         stats: { strength: 5, agility: 4, intelligence: 2 }, money: 15, suggest: 'guild',
+      perk: 'ผ่านการฝึกมาแล้ว: กำลังสูงตั้งแต่เริ่ม เหมาะกับกิลด์นักรบและการต่อสู้ในหอคอย' },
+    { id: 'thief',   name: 'โจร',          stats: { strength: 2, agility: 6, intelligence: 3 }, money: 12, suggest: 'scrap',
+      perk: 'มือไว: ความคล่องตัวสูงที่สุดในบรรดาผู้ถูกอัญเชิญ หลบหนีและเอาตัวรอดเก่ง' },
+    { id: 'boxer',   name: 'นักมวย',       stats: { strength: 6, agility: 3, intelligence: 2 }, money: 10, suggest: 'cargo',
+      perk: 'หมัดหนัก: กำลังสูงที่สุดตั้งแต่เริ่ม เหมาะกับงานแบกและการต่อสู้' }
   ]);
   const PATHS = Object.freeze({
     smith:  { name: 'ช่างตีเหล็กฝึกหัด', place: 'smith',  energy: 30, minigame: true, room: 'forge', act: 'ตีเหล็กในโรงตีเหล็ก',
@@ -145,19 +154,26 @@
               desc: 'คัดของเก่าและเข็นของที่ลานท้ายตรอกล่าง ไม่ต้องสอบเข้า ค่าแรง 6 เหรียญ ทุก 4 วันจะเจอของดีขายให้ร้านรับซื้อได้อีก 5 เหรียญ' }
   });
 
-  function originOf(st) { return ORIGINS.find(o => o.name === st.profession) || ORIGINS[3]; }
+  function originOf(st) { const id = st.life && st.life.origin; return ORIGINS.find(o => o.id === id) || ORIGINS.find(o => o.name === st.profession || o.nameF === st.profession) || ORIGINS[3]; }
+  const originName = (o, sex) => sex === 'f' && o.nameF || o.name;
+  // v126 the hero's look = origin + sex; lives made before v126 keep the default hero
+  const lookOf = st => { const L = st && st.life; return L && L.sex ? L.origin + '_' + L.sex : 'default'; };
 
   function newLife(st, rng) {
     const r = typeof rng === 'function' ? rng : Math.random;
-    const origin = ORIGINS[Math.floor(r() * ORIGINS.length)];
-    st.profession = origin.name;
+    // v126 draw order kept from v125 (origin among the first four, then age) so seeded lives stay the same;
+    // two extra draws afterwards: half the time one of the four new origins instead, and the sex
+    let origin = ORIGINS[Math.floor(r() * 4)];
+    const age = 18 + Math.floor(r() * 28), alt = r(), sex = r() < 0.5 ? 'm' : 'f';
+    if (alt >= 0.5) origin = ORIGINS[4 + Math.min(3, Math.floor((alt - 0.5) * 8))];
+    st.profession = originName(origin, sex);
     // v108 stats are the character's own (base, ×5 scale); skills, gear and titles add on top (Skills.recalc)
     st.base = { strength: origin.stats.strength * 5, agility: origin.stats.agility * 5, intelligence: origin.stats.intelligence * 5, magicPower: 15 };
     st.management=null;
     st.skills = {}; st.skillQuests = {}; st.titles = ['summoned']; st.title = 'summoned'; st.equip = {}; st.gear = {}; st.gearNextId = 0; st.gearVersion = 113; st.trials = {}; st.wounds = { until: 0 }; st.activeSkill = null; st.tower = null; st.mainStory = null;
     Skills.recalc(st);
     st.money = origin.money; st.energy = 100; st.health = 100; st.food = 1; st.bag = []; st.bagPending=[]; st.bagPendingNext=0; st.inventoryAuto=true; st.inventoryVersion=120; st.conditions={}; st.alchemy=null; st.artisan=null; st.buffs=[]; if (Bag) Bag.add(st, 'ration', 1);
-    st.life = { v: 1, origin: origin.id, age: 18 + Math.floor(r() * 28), path: origin.suggest, pendingPath: null,
+    st.life = { v: 1, origin: origin.id, sex, age, path: origin.suggest, pendingPath: null,
       started: false, done: {}, sleptAt: 'inn', homeTonight: 'inn', roomPref: 'mid', roomSlept: 'mid', roomTonight: 'mid', focusDay: 0,
       restDay: 0, todayStars: null, workedDay: 0,
       seen: [], lastEventDay: 0, history: [] };
@@ -1198,7 +1214,7 @@
     return say(st, ev.title + ': ' + c.resolve(st, typeof rng === 'function' ? rng : Math.random));
   }
 
-  return { Management, Exp, Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
+  return { lookOf, originName, Management, Exp, Skills, MONSTERS, GUILD_EXAM, COMPASS_EXAM, guildOf, gscene, QUESTS, requestStash, GUILD_MEAL, applyCoach, COACH, COACH_FARE, applyErrand, applyOrder, orderToday, setOrder, stovePlace, night, Bag, ERRANDS, LANE, zoneOf, PLACES, PATHS, ORIGINS, EVENTS, ROOMS, ROOM_ORDER, SPEED, WAKE, WORK_END, RENT, roomPrice, pickRoom, setRoomPref, originOf, newLife, ensure, dayPlan, milestones, due, sample,
     tolerance, kitchenTolerance, applyWake, applyWork, finishSmith, finishKitchen, applyDinner, applyHome, applyRest, nightReset, pickEvent, choicesFor, resolveChoice,
     defendOdds, weaponOdds };
 });

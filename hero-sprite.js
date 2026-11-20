@@ -7,7 +7,7 @@
   const ORDER = [0, 1, 2, 3];   // sheet already in stride order: near foot forward → slides back → lifts behind → knee swings forward
   const WIDTH = HEIGHT * FW / FH;
   let img = null;
-  function load(url) { if (img) return img; img = new Image(); img.src = url || 'hero_sprite.webp?v=68'; return img; }
+  function load(url) { if (img) return img; if (!url && root.HeroLook) return (img = root.HeroLook.img('hero_sprite.webp', 68)); img = new Image(); img.src = url || 'hero_sprite.webp?v=68'; return img; }
   const ready = () => !!img && img.complete && img.naturalWidth > 0;
   // o: {anim (seconds×fps counter), moving, run, vdir (-1 up, 1 down, 0 none), face, scale}
   function pick(o) {
