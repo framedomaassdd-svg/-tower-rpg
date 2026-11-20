@@ -300,7 +300,8 @@ function frame(t) {
   if (!sceneReady) { last = t; return; }
   const elapsed = Math.min((t - last) / 1000 || 0, .2); last = t;
   if (!document.hidden) {
-    if (!state.paused && !window.LIFE_BLOCK && !sleepFx) {
+    const upright = window.matchMedia && matchMedia('(orientation:portrait) and (max-width:900px)').matches;   // v128 paused while the phone is held upright
+    if (!state.paused && !window.LIFE_BLOCK && !sleepFx && !upright) {
       clock += CityLighting.clockDelta(elapsed, state.timeSpeed);
       if (clock >= 20) { const overflow = clock - 20; nextDay(); clock = overflow; }
     }

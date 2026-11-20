@@ -19,6 +19,13 @@ button:active{background:#88613c}
 #assetWarning{top:174px}
 #loading[hidden],#saveWarning[hidden],#assetWarning[hidden]{display:none}
 </style>
+<style>
+/* v128 the game is played in landscape: on a phone held upright, ask to turn it (Safari cannot lock the orientation) */
+#rotate{display:none;position:fixed;inset:0;z-index:100;background:#140e0a;color:#f3e6cc;align-items:center;justify-content:center;flex-direction:column;text-align:center;font:18px/1.5 system-ui,sans-serif;padding:24px}
+#rotate .ph{font-size:64px;animation:rot 2.2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (orientation:portrait) and (max-width:900px){#rotate{display:flex}}
+</style>
 </head>
 <body>
 <div id="loading" role="status">กำลังโหลดเมือง…</div>
@@ -30,17 +37,18 @@ button:active{background:#88613c}
 <script src="ambient.js?v=90"></script>
 <script src="town-pano.js?v=104"></script>
 <script src="city-core.js?v=108"></script>
-<script src="hero-look.js?v=126&tower=127&fix=127b"></script><script src="tower-view.js?v=127&fix=127b"></script><script src="town-residents.js?v=90"></script><script src="town-npcs.js?v=125&look=126"></script>
+<script src="hero-look.js?v=126&tower=127&fix=128"></script><script src="tower-view.js?v=127&fix=128"></script><script src="town-residents.js?v=90"></script><script src="town-npcs.js?v=125&look=126"></script>
 <script src="city-lighting.js?v=70" onerror="document.getElementById('loading').textContent='โหลดไฟล์เกมไม่ครบ ลองโหลดหน้าใหม่อีกครั้ง'"></script>
 <script src="artisan.js?v=121&addon=122"></script><script src="alchemy.js?v=120&addon=122"></script><script src="bag.js?v=119&addon=122&tower=127"></script><script src="skills.js?v=119&addon=121&tower=127"></script><script src="tower-slot-engine.js?v=109"></script><script src="main-story.js?v=118"></script><script src="expedition.js?v=119&addon=121&management=124&tower=127"></script>
 <script src="management.js?v=124&art=125"></script>
-<script src="life-sim.js?v=119&addon=122&management=124&art=125&look=126&tower=127"></script>
+<script src="life-sim.js?v=119&addon=122&management=124&art=125&look=126&tower=127&fix=128"></script>
 <script src="tutorial.js?v=122"></script><script src="craft-game.js?v=122"></script>
 <script src="alchemy-minigame.js?v=122&art=124"></script><script src="cook-minigame.js?v=122&art=124"></script>
 <script src="smith-minigame.js?v=64&addon=122&art=124"></script><script src="carrot-minigame.js?v=71&addon=122&art=124"></script>
 <script src="hero-sprite.js?v=68&look=126"></script>
 <script src="interiors.js?v=125&look=126"></script>
-<script src="life-ui.js?v=119&addon=122&management=124&art=125&look=126&tower=127&fix=127b"></script>
-<script src="game.js?v=106&gear=113&management=124&look=126&tower=127&fix=127b"></script>
+<script src="life-ui.js?v=119&addon=122&management=124&art=125&look=126&tower=127&fix=128"></script>
+<script src="game.js?v=106&gear=113&management=124&look=126&tower=127&fix=128"></script>
+<div id="rotate"><div class="ph">📱</div><p><b>หมุนโทรศัพท์เป็นแนวนอน</b><br>เกมนี้เล่นในแนวนอน</p></div>
 </body>
 </html>

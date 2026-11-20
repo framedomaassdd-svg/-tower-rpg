@@ -127,6 +127,21 @@
         else if (!fx.win && k >= 1.36) { hrow = 4; hcol = k < 1.8 ? 0 : 2; }
         else if (k >= 1.1) hcol = 3;
         drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
+        // v128 the arrow flies from the bow to the monster (drawn in code; the sheet's own arrow is part of frame 3)
+        if (fx.row === 2 && k > 0.62 && k < 0.78) {
+          const q = (k - 0.62) / 0.16, ax0 = hx + 150 * u, ay = gy - 215 * u, ax1 = mx - 40 * u, x1 = ax0 + (ax1 - ax0) * q;
+          ctx.save(); ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = Math.max(2, 5 * u); ctx.beginPath(); ctx.moveTo(x1 - 110 * u, ay); ctx.lineTo(x1, ay); ctx.stroke();
+          ctx.fillStyle = '#cfd6dc'; ctx.beginPath(); ctx.moveTo(x1 + 22 * u, ay); ctx.lineTo(x1 - 4 * u, ay - 9 * u); ctx.lineTo(x1 - 4 * u, ay + 9 * u); ctx.fill();
+          ctx.fillStyle = '#e9e2d0'; ctx.fillRect(x1 - 112 * u, ay - 8 * u, 20 * u, 16 * u); ctx.restore();
+        }
+        // a burst where the blow lands
+        const hitAt = fx.win ? 0.75 : 1.36;
+        if (k > hitAt && k < hitAt + 0.22) {
+          const q = (k - hitAt) / 0.22, cx = fx.win ? mx - 20 * u : hx + 40 * u, cy = gy - (fx.win ? 150 : 200) * u, r = (40 + 90 * q) * u;
+          ctx.save(); ctx.globalAlpha = 1 - q; ctx.strokeStyle = '#fff4c2'; ctx.lineWidth = Math.max(2, 7 * u * (1 - q));
+          for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.3; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.35); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke(); }
+          ctx.restore();
+        }
         if (k > 0.75 && k < 0.9 && fx.win || !fx.win && k > 1.36 && k < 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, 0, W, H); }
         if (info.sleep || clock >= CAMP) { ctx.fillStyle = 'rgba(8,10,30,0.45)'; ctx.fillRect(0, 0, W, H); }
         return true;

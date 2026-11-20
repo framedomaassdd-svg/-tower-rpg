@@ -183,6 +183,9 @@
     const L = st.life;
     if (!L || typeof L !== 'object') return false;
     if (!PATHS[L.path]) L.path = 'smith';
+    // v128 lives from before v126 had no sex: they keep their origin and become its male look (the old hero was a man),
+    // so they get their own art everywhere, fights included
+    if (L.sex !== 'm' && L.sex !== 'f') { if (!ORIGINS.some(o => o.id === L.origin)) L.origin = originOf(st).id; L.sex = 'm'; }
     if (!L.done || typeof L.done !== 'object') L.done = {};
     if (!Array.isArray(L.seen)) L.seen = [];
     if (!Array.isArray(L.history)) L.history = [];

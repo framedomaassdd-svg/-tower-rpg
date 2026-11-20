@@ -40,6 +40,9 @@
     background:rgba(23,20,26,.9);color:#fff;border-radius:12px;padding:9px 14px;font:14px/1.45 system-ui;opacity:0;transition:opacity .35s;pointer-events:none;text-align:center}
   #lgtoast.show{opacity:1}
   .lg-overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
+  .lg-notice{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:#0008}
+  .lg-notice-card{max-width:420px;text-align:center;border-color:#d7b46a;box-shadow:0 0 0 3px #2a1a0c,0 10px 40px #000a}
+  .lg-notice-card h3{margin:0 0 6px;color:#f2c14e}.lg-notice-card p{margin:0 0 12px}
     background:rgba(10,8,12,.62);font:15px/1.6 system-ui;color:var(--lg-text)}
   .lg-card{background:var(--lg-bg);border:1px solid var(--lg-line);border-radius:18px;padding:22px;max-width:620px;width:100%;max-height:100%;overflow:auto;
     box-shadow:0 18px 50px #000a;-webkit-overflow-scrolling:touch}
@@ -150,6 +153,19 @@
 
   function el(html, cls) { const d = document.createElement('div'); d.className = 'lg-overlay ' + (cls || ''); d.innerHTML = html; document.body.appendChild(d); return d; }
   function closeOverlay(d) { d.remove(); block(null); try { update(); } catch (e) {} }
+  // v128 game-styled replacements for alert()/confirm(): a small scroll card on top of whatever is open
+  function notice(msg, title) {
+    const d = document.createElement('div'); d.className = 'lg-notice';
+    d.innerHTML = `<div class="lg-card lg-notice-card"><h3>📜 ${esc(title || 'แจ้งเตือน')}</h3><p>${esc(msg)}</p><button class="lg-btn lg-primary">รับทราบ</button></div>`;
+    document.body.appendChild(d); d.querySelector('button').onclick = () => d.remove();
+  }
+  function ask(msg, yes, onYes, title) {
+    const d = document.createElement('div'); d.className = 'lg-notice';
+    d.innerHTML = `<div class="lg-card lg-notice-card"><h3>⚖️ ${esc(title || 'ยืนยัน')}</h3><p>${esc(msg)}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px"><button class="lg-btn lg-primary" data-y="1">${esc(yes || 'ตกลง')}</button><button class="lg-btn" data-n="1">ยกเลิก</button></div></div>`;
+    document.body.appendChild(d);
+    d.querySelector('[data-y]').onclick = () => { d.remove(); onYes(); };
+    d.querySelector('[data-n]').onclick = () => d.remove();
+  }
   // v122: a tutorial is its own paused overlay. Only one can run at a time.
   function showGuide(id, after=null, reread=false) {
     const T=window.Tutorial,topic=T&&T.TUTORIALS[id]; if(!topic||open)return false;
@@ -529,7 +545,7 @@
     d.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const [id, p] = PREP_SHOP.find(q => q[0] === b.dataset.buy);
       if (state.money >= p && B().add(state, id, 1, state.day)) state.money -= p; save(); redo(); });
     d.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
-      if (b.dataset.go) { const r = E.plan(state, { party: sel.party }); if (!r.ok) { alert(r.why); return; }
+      if (b.dataset.go) { const r = E.plan(state, { party: sel.party }); if (!r.ok) { notice(r.why, 'ยังเข้าหอคอยไม่ได้'); return; }
         log('เตรียมเข้าหอคอยเช้าวันที่ ' + r.start + (sel.party ? ' กับ' + E.PARTY[sel.party].name : ' คนเดียว')); save(); }
       d.remove(); block(null); panel('char'); });
   }
@@ -972,11 +988,11 @@
     const npcSelect=d.querySelector('#mg-npc');if(npcSelect)npcSelect.onchange=()=>{manageNpc=npcSelect.value;again();};
     d.querySelectorAll('[data-m-act]').forEach(b=>b.onclick=()=>{
       const M=window.Management;if(!M)return;const act=b.dataset.mAct,kind=b.dataset.mType,id=b.dataset.mId||manageNpc;
-      if(X()&&X().active(state)){alert('ต้องกลับเมืองก่อนจัดการชีวิตและกิจการ');return;}
+      if(X()&&X().active(state)){notice('ต้องกลับเมืองก่อนจัดการชีวิตและกิจการ');return;}
       if(['talk','help','gift','joinparty','joinguild'].includes(act)){
         const appointment={kind:'managementMeet',npc:id,activity:act,repeat:false};
         if(act==='gift')appointment.item=d.querySelector('#mg-gift')?.value;
-        if(!Management.meetPlace(id)) {alert('ไม่พบ NPC นี้');return;}
+        if(!Management.meetPlace(id)) {notice('ไม่พบ NPC นี้');return;}
         const day=LifeSim.setOrder(state,appointment,clock);
         log('นัดพบ'+Management.NPCS[id].name+' เพื่อ'+act+' วันที่ '+day);
         again();return;
@@ -1039,7 +1055,7 @@
     d.querySelectorAll('[data-equip]').forEach(x => x.onclick = () => { const id = x.dataset.equip;
       if (B().equipGear(state,id)) log('ใส่ ' + Skills.gearLabel(state,id)); again(); });
     d.querySelectorAll('[data-unequip]').forEach(x => x.onclick = () => { const slot = x.dataset.unequip, id = state.equip[slot];
-      if (!id) return; if (!B().unequipGear(state,slot)) { alert('กระเป๋าเต็ม'); return; } log('ถอด ' + Skills.gearLabel(state,id)); again(); });
+      if (!id) return; if (!B().unequipGear(state,slot)) { notice('กระเป๋าเต็ม ถอดอุปกรณ์ไม่ได้', 'กระเป๋าเต็ม'); return; } log('ถอด ' + Skills.gearLabel(state,id)); again(); });
     on('[data-enhance-city]', () => { d.remove(); block(null); enhanceCard(); });
     d.querySelectorAll('[data-gear-sell]').forEach(b => b.onclick = () => { const r = B().sellGear(state,b.dataset.gearSell); log(r.why); again(); });
     d.querySelectorAll('[data-quest]').forEach(b => b.onclick = () => { L.quest = b.dataset.quest; log('ภารกิจที่จะรับ: ' + LifeSim.QUESTS[L.quest].name); again(); });
@@ -1056,7 +1072,7 @@
     d.querySelectorAll('[data-alchemy-clinic]').forEach(b=>b.onclick=()=>{if(X()&&X().active(state))return;const day=LifeSim.setOrder(state,{kind:'alchemyClinic',recipe:b.dataset.alchemyClinic,repeat:false},clock);log('นัดไปรักษาผู้ป่วยที่ร้านยา วันที่ '+day);again();});
     on('[data-inv-auto]', () => { const enabled=B().setAuto(state,!B().auto(state));log('จัดการกระเป๋าอัตโนมัติ: '+(enabled?'เปิด':'ปิด'));again(); });
     d.querySelectorAll('[data-drop-one]').forEach(x=>x.onclick=()=>{const n=B().discardSlot(state,x.dataset.dropOne,1);if(n)log('ทิ้งของ 1 ชิ้น');again();});
-    d.querySelectorAll('[data-drop-all]').forEach(x=>x.onclick=()=>{const key=x.dataset.dropAll,row=B().slotRows(state).find(r=>r.key===key);if(row&&confirm('ทิ้ง '+B().name(row.id)+' ทั้งหมด ×'+row.n+' ?')){B().discardSlot(state,key,'all');log('ทิ้ง'+B().name(row.id)+' ×'+row.n);again();}});
+    d.querySelectorAll('[data-drop-all]').forEach(x=>x.onclick=()=>{const key=x.dataset.dropAll,row=B().slotRows(state).find(r=>r.key===key);if(row)ask('ทิ้ง '+B().name(row.id)+' ทั้งหมด ×'+row.n+' ?','ทิ้ง',()=>{B().discardSlot(state,key,'all');log('ทิ้ง'+B().name(row.id)+' ×'+row.n);again();},'ทิ้งของ');});
     d.querySelectorAll('[data-move-up]').forEach(x=>x.onclick=()=>{B().moveSlot(state,x.dataset.moveUp,-1);again();});
     d.querySelectorAll('[data-move-down]').forEach(x=>x.onclick=()=>{B().moveSlot(state,x.dataset.moveDown,1);again();});
     d.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{const r=B().claimLoot(state,x.dataset.pick);log(r.why);if(r.ok&&X()&&X().X(state)){const ex=X().X(state);ex.loot[r.id]=(ex.loot[r.id]||0)+r.n;}again();});
@@ -1066,7 +1082,7 @@
     on('[data-a=nocmd]', () => { LifeSim.setOrder(state, null); log('ยกเลิกธุระหลังเลิกงาน'); again(); });
     on('[data-a=close]', () => closeOverlay(d));
     on('[data-a=path]', () => { d.remove(); choosePath(false); });
-    on('[data-a=new]', () => { if (confirm('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?')) { d.remove(); newLife(); } });
+    on('[data-a=new]', () => ask('เริ่มชีวิตใหม่และลบความคืบหน้าในเครื่องนี้?', 'เริ่มใหม่', () => { d.remove(); newLife(); }, 'เริ่มชีวิตใหม่'));
   }
 
   // ---------- story event ----------
