@@ -44,6 +44,23 @@
   .lg-notice{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:#0008}
   .lg-notice-card{max-width:420px;text-align:center;border-color:#d7b46a;box-shadow:0 0 0 3px #2a1a0c,0 10px 40px #000a}
   .lg-notice-card h3{margin:0 0 6px;color:#f2c14e}.lg-notice-card p{margin:0 0 12px}
+  /* v133 skill cards and the skill book (cards/*.webp) */
+  .sc-book{position:relative;width:100%;aspect-ratio:1672/941;background:url(cards/book_spread.webp?v=133) center/100% 100% no-repeat;container-type:inline-size;margin:4px 0 10px}
+  .sc-page{position:absolute;top:9%;bottom:9%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:2.2cqw 1.6cqw;justify-items:center;align-items:center}
+  .sc-page.l{left:6.5%;right:52.5%}.sc-page.r{left:52.5%;right:6.5%}
+  .sc-card{display:block;position:relative;width:88%;height:auto;aspect-ratio:324/480;cursor:pointer;container-type:inline-size;border:0;padding:0;background:none}
+  .sc-art{position:absolute;left:14.5%;top:17.5%;width:71%;height:44%;background:url(cards/art.webp?v=133) 0 0/700% 400% no-repeat}
+  .sc-frame{position:absolute;inset:0;background:center/100% 100% no-repeat}
+  .sc-frame.life{background-image:url(cards/frame_life.webp?v=133)}.sc-frame.passive{background-image:url(cards/frame_passive.webp?v=133)}
+  .sc-frame.active{background-image:url(cards/frame_active.webp?v=133)}.sc-frame.secret{background-image:url(cards/frame_secret.webp?v=133)}
+  .sc-name{position:absolute;left:17%;right:17%;top:74%;height:11%;display:flex;align-items:center;justify-content:center;text-align:center;color:#3a220d;font:700 10.5cqw/1.05 system-ui;overflow:hidden}
+  .sc-tier{position:absolute;left:50%;top:63.5%;transform:translateX(-50%);background:#2a1a0cd9;color:#ffd77a;border-radius:6px;padding:0 5%;font:700 8.5cqw/1.45 system-ui;white-space:nowrap}
+  .sc-on{position:absolute;right:4%;top:3%;font-size:14cqw}
+  .sc-slot{width:80%;height:auto;aspect-ratio:258/360;background:url(cards/slot_empty.webp?v=133) center/100% 100% no-repeat;border:0;padding:0;cursor:pointer}
+  .sc-slot.lock{background-image:url(cards/slot_locked.webp?v=133);aspect-ratio:270/360;width:82%}
+  .sc-mini{display:inline-block;vertical-align:middle;width:44px;margin-right:8px}
+  .sc-new{position:absolute;inset:-25%;background:url(cards/sparkle.webp?v=133) center/contain no-repeat;pointer-events:none;animation:scnew 1.6s ease-in-out infinite}
+  @keyframes scnew{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.05)}}
   .lg-card{background:var(--lg-bg);border:1px solid var(--lg-line);border-radius:18px;padding:22px;max-width:620px;width:100%;max-height:100%;overflow:auto;
     box-shadow:0 18px 50px #000a;-webkit-overflow-scrolling:touch}
   .lg-card h2{margin:0 0 8px;font-size:22px;color:var(--lg-gold)} .lg-card h3{margin:16px 0 6px;font-size:15px;color:var(--lg-gold)}
@@ -231,8 +248,21 @@
   const sheetOk = {};
   function loadSheets() { if (loadSheets.done) return; loadSheets.done = true;
     B().ICON_SHEETS.forEach(src => { const im = new Image(); im.onload = () => { sheetOk[src] = true; }; im.src = src + '?v=100'; }); }
+  // v133 skill cards: art.webp is 7×4 tiles of 256 in this order; frame by the kind of skill
+  const CARD_ART = ['fire','ice','sword','sunfall','winterSeal','riftStrike','limitBreak','fireBody','iceSkin','lastStand','shadowStep','dangerSense',
+    'survivalInstinct','partyOath','homeResolve','brawn','nimble','keen','ironBack','trailEye','battleStep','herbalLore','smithing','cooking','mapping','haggling','gathering','back'];
+  const SECRET_SKILLS = ['riftStrike','limitBreak','sunfall','winterSeal','survivalInstinct','partyOath','homeResolve'];
+  const artPos = sk => { const i = Math.max(0, CARD_ART.indexOf(sk)), c = i % 7, r = Math.floor(i / 7); return `background-position:${c * 100 / 6}% ${r * 100 / 3}%`; };
+  const frameOf = sk => { const D = window.Skills && Skills.SKILLS[sk]; return SECRET_SKILLS.includes(sk) ? 'secret' : D && D.type === 'life' ? 'life' : D && D.type === 'active' ? 'active' : 'passive'; };
+  function cardHtml(sk, o = {}) {
+    const D = Skills.SKILLS[sk] || { name: sk };
+    return `<span class="sc-card" ${o.attr || ''} style="${o.width ? 'width:' + o.width + 'px' : ''}"><i class="sc-art" style="${artPos(sk)}"></i><i class="sc-frame ${frameOf(sk)}"></i>`
+      + `<b class="sc-name">${esc(D.name)}</b>${o.tier ? `<b class="sc-tier">${esc(o.tier)}</b>` : ''}${o.on ? '<i class="sc-on">✨</i>' : ''}${o.isNew ? '<i class="sc-new"></i>' : ''}</span>`;
+  }
   function iconHtml(id, px) {
     const b = B(); loadSheets();
+    const cardSkill = window.Skills && Skills.CARD_SKILL && Skills.CARD_SKILL[id];
+    if (cardSkill) return `<i class="lg-ic" style="width:${px}px;height:${px}px;border-radius:4px;background-image:url(cards/art.webp?v=133);background-size:700% 400%;${artPos(cardSkill)}"></i>`;
     const it = id === 'coin' || id === 'coins' ? b.COIN : b.ITEMS[id] || { icon: '❔' }, at = b.ICONS[id], src = at && b.ICON_SHEETS[at[0]];
     if (src && sheetOk[src]) { const c = at[1] % 4, r = Math.floor(at[1] / 4);
       return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(${src}?v=100);background-size:400% 400%;background-position:${c * 100 / 3}% ${r * 100 / 3}%"></i>`; }
@@ -244,6 +274,7 @@
   (function () { const im = new Image(); im.onload = () => { uiOk = true; document.querySelectorAll('[data-uiic]').forEach(e => { e.outerHTML = uiIcon(e.dataset.uiic, +e.dataset.px); }); }; im.src = 'ui_icons.webp?v=102'; })();
   function uiIcon(id, px) {
     const [k, emo] = UI_ICON[id];
+    if (id === 'skill') return `<i class="lg-ic" style="width:${px}px;height:${px}px;background:url(cards/book_icon.webp?v=133) center/contain no-repeat"></i>`;   // v133 the skill book
     if (id === 'story'||id==='alchemy'||id==='artisan'||id==='manage') return `<i class="lg-ic lg-emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*.72)}px;line-height:${px}px">${emo}</i>`;
     if (uiOk) return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(ui_icons.webp?v=102);background-size:200% 200%;background-position:${k % 2 * 100}% ${Math.floor(k / 2) * 100}%"></i>`;
     return `<i class="lg-ic lg-emo" data-uiic="${id}" data-px="${px}" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.72)}px;line-height:${px}px">${emo}</i>`;
@@ -813,7 +844,7 @@
         outnumbered: 'เมื่ออยู่คนเดียวหรือหลุดจากทีม', terrain: 'เมื่ออยู่ภูมิประเทศ ' + D.trigger.value,
         nearDeath: 'เมื่อการต่อสู้กำลังจะถึงตาย' }[D.trigger.when] || 'เงื่อนไขพิเศษ') +
         ': ' + (D.effect.name || D.effect.kind) + ' (ปลดล็อก tier ชำนาญ)' + (D.oncePerDay ? ' · วันละครั้ง' : '') : '';
-      return `<div class="lg-zone"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
+      return `<div class="lg-zone" id="sk-${id}"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
         ${triggerText ? `<small style="display:block;color:var(--lg-gold)">${esc(triggerText)}${sk.tier < 2 ? ' 🔒' : ' ✓'}</small>` : ''}
         ${D.type === 'active' ? `<button class="lg-btn ${S.activeOf(state) === id ? 'lg-cur' : ''}" data-active="${id}">${S.activeOf(state) === id ? '✓ กำลังใช้สกิลนี้' : 'เลือกเป็นสกิลแอ็กทีฟ'}</button>` : ''}
         <button class="lg-btn" data-uncard="${id}" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0">🃏 ถอดการ์ดออก<small>ความชำนาญรีเซ็ตเป็นขั้น 1</small></button>
@@ -823,9 +854,17 @@
     const used = Object.keys(state.skills || {}).length, slots = state.skillSlots || S.BOOK_SLOTS, inTowerNow = X() && X().active(state);
     const cardRows = Object.entries(S.CARD_SKILL).flatMap(([card, id]) => B().list(state).filter(s => s.id === card).map(s => {
       const inBook = !!state.skills[id], full = !inBook && used >= slots;
-      return `<button class="lg-btn" data-read="${card}" data-rarity="${esc(s.rarity || 'normal')}" ${full ? 'disabled' : ''}>${esc(S.SKILLS[id].icon)} ${inBook ? 'หลอมการ์ดซ้ำ' : 'ใส่การ์ดลงสมุด'} · ${esc(S.SKILLS[id].name)} ×${s.n}
-        <small>${esc(s.rarity || 'normal')} · ${inBook ? 'ความชำนาญ +' + S.rarityMultiplier(s.rarity || 'normal') : full ? 'สมุดเต็ม' : 'เริ่มที่ขั้น 1'} · ขายได้ ${B().ITEMS[card].sell} เหรียญที่กิลด์พ่อค้าหอคอย</small></button>`; })).join('');
-    const bookHead = `<h3>สมุดสกิล ${used}/${slots} ช่อง</h3><p class="lg-muted">สกิลทำงานเฉพาะการ์ดที่อยู่ในสมุด · ถอดการ์ดออกได้ทุกเมื่อ (ไปขายหรือใส่ทีหลัง) แต่ความชำนาญและขั้นจะรีเซ็ต · ได้สกิลใหม่ตอนสมุดเต็ม การ์ดจะเข้ากระเป๋า</p>
+      return `<button class="lg-btn" data-read="${card}" data-rarity="${esc(s.rarity || 'normal')}" ${full ? 'disabled' : ''} style="display:flex;align-items:center;gap:8px;text-align:left"><span class="sc-mini">${cardHtml(id, { width: 44 })}</span><span>${inBook ? 'หลอมการ์ดซ้ำ' : 'ใส่การ์ดลงสมุด'} · ${esc(S.SKILLS[id].name)} ×${s.n}
+        <small>${esc(s.rarity || 'normal')} · ${inBook ? 'ความชำนาญ +' + S.rarityMultiplier(s.rarity || 'normal') : full ? 'สมุดเต็ม' : 'เริ่มที่ขั้น 1'} · ขายได้ ${B().ITEMS[card].sell} เหรียญที่กิลด์พ่อค้าหอคอย</small></span></button>`; })).join('');
+    const inBookIds = Object.keys(state.skills || {});
+    const slotHtml = Array.from({ length: S.BOOK_MAX }, (_, i) => {
+      const sk = inBookIds[i];
+      if (sk) { const T = S.TIERS[state.skills[sk].tier - 1]; return cardHtml(sk, { attr: `data-cardjump="${sk}" title="${esc(S.SKILLS[sk].name)}"`, tier: T && T.name, on: S.SKILLS[sk].type === 'active' && S.activeOf(state) === sk }); }
+      if (i < slots) return `<button class="sc-slot" data-slotjump="1" title="ช่องว่าง"></button>`;
+      return `<button class="sc-slot lock" data-expandbook="${i === slots ? 1 : ''}" title="ช่องล็อก"></button>`;
+    });
+    const bookView = `<div class="sc-book"><div class="sc-page l">${slotHtml.slice(0, 6).join('')}</div><div class="sc-page r">${slotHtml.slice(6, 12).join('')}</div></div>`;
+    const bookHead = `<h3>สมุดสกิล ${used}/${slots} ช่อง</h3>${bookView}<p class="lg-muted">สกิลทำงานเฉพาะการ์ดที่อยู่ในสมุด · ถอดการ์ดออกได้ทุกเมื่อ (ไปขายหรือใส่ทีหลัง) แต่ความชำนาญและขั้นจะรีเซ็ต · ได้สกิลใหม่ตอนสมุดเต็ม การ์ดจะเข้ากระเป๋า</p>
       ${slots < S.BOOK_MAX ? `<button class="lg-btn" data-expandbook="1" ${state.money < S.expandCost(state) || inTowerNow ? 'disabled' : ''}>📖 ขยายสมุดเป็น ${slots + 1} ช่อง<small>${S.expandCost(state)} เหรียญ${inTowerNow ? ' · ต้องอยู่ในเมือง' : ''} · สูงสุด ${S.BOOK_MAX} ช่อง</small></button>` : ''}`;
     const gear = Object.entries(S.SLOTS).map(([slot, name]) => {
       const on = state.equip[slot], opts = B().list(state).filter(x => x.instanceId && Skills.GEAR[Skills.gear(state,x.instanceId).templateId].slot === slot).map(x => x.instanceId);
@@ -1053,7 +1092,12 @@
     d.querySelectorAll('[data-read]').forEach(b => b.onclick = () => { const r = Skills.readBook(state, b.dataset.read, b.dataset.rarity || null); if (r.ok) log(r.why); else notice(r.why, 'สมุดสกิล'); again(); });
     d.querySelectorAll('[data-uncard]').forEach(b => b.onclick = () => { const id = b.dataset.uncard, n = Skills.SKILLS[id].name;
       ask('ถอดการ์ด ' + n + ' ออกจากสมุด? ความชำนาญและขั้นของสกิลนี้จะรีเซ็ตเป็นขั้น 1', 'ถอดการ์ด', () => { const r = Skills.removeCard(state, id); if (r.ok) { log(r.why); save(); } else notice(r.why, 'สมุดสกิล'); again(); }, 'ถอดการ์ดสกิล'); });
-    on('[data-expandbook]', () => { const r = Skills.expandBook(state); if (r.ok) { log(r.why); save(); } else notice(r.why, 'สมุดสกิล'); again(); });
+    d.querySelectorAll('[data-cardjump]').forEach(b => b.onclick = () => { const z = d.querySelector('#sk-' + b.dataset.cardjump); if (z) { z.scrollIntoView({ behavior: 'smooth', block: 'center' }); z.style.outline = '2px solid #f2c14e'; setTimeout(() => z.style.outline = '', 1400); } });
+    d.querySelectorAll('[data-slotjump]').forEach(b => b.onclick = () => { const z = [...d.querySelectorAll('h3')].find(h => h.textContent.startsWith('การ์ดสกิลในกระเป๋า')); if (z) z.scrollIntoView({ behavior: 'smooth' }); else notice('ยังไม่มีการ์ดสกิลในกระเป๋า ทำงาน ฝึก หรือหาการ์ดในหอคอย', 'ช่องว่าง'); });
+    d.querySelectorAll('[data-expandbook]').forEach(b => b.onclick = () => {
+      if (!b.dataset.expandbook) { notice('ขยายสมุดได้ทีละช่อง ปลดล็อกช่องถัดไปก่อน', 'ช่องล็อก'); return; }
+      if (X() && X().active(state)) { notice('ขยายสมุดได้ตอนอยู่ในเมือง', 'ช่องล็อก'); return; }
+      ask('ขยายสมุดเป็น ' + (state.skillSlots + 1) + ' ช่อง ใช้ ' + Skills.expandCost(state) + ' เหรียญ?', 'ขยายสมุด', () => { const r = Skills.expandBook(state); if (r.ok) { log(r.why); save(); } else notice(r.why, 'สมุดสกิล'); again(); }, 'ขยายสมุดสกิล'); });
     d.querySelectorAll('[data-active]').forEach(b => b.onclick = () => { if (Skills.selectActive(state, b.dataset.active)) log('เลือกสกิลแอ็กทีฟ ' + Skills.SKILLS[b.dataset.active].name); again(); });
     on('[data-a=xcancel]', () => { X().cancel(state); log('ยกเลิกการออกสำรวจ'); again(); });
 
