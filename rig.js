@@ -19,7 +19,7 @@
       armB:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.66 },
       legF:  { img: 'legF', pivot: [62, 34], joint: 196, end: 300, s: 0.72 },
       legB:  { img: 'legB', pivot: [58, 34], joint: 196, end: 300, s: 0.72 },
-      sword: { img: 'sword', pivot: [62, 58], s: 0.56 },
+      sword: { img: 'sword', pivot: [60, 58], s: 0.8 },
       faces: { hurt: 'headHurt', shout: 'headShout', happy: 'headHappy' }
     }
   };
@@ -45,7 +45,7 @@
   // elbow − folds the forearm forward/up, knee + folds the shin back. sword = blade angle from "forward" in the fist.
   const BASE = { x: 0, y: 0, torso: 3, head: -2, armF: 6, elbowF: -22, armB: -8, elbowB: -26, legF: -20, kneeF: 6, legB: 20, kneeB: 4, sword: -50, face: null };
   const K = o => Object.assign({}, BASE, o);
-  const READY = K({ armF: -24, elbowF: -50, sword: -30, armB: 14, elbowB: -40, legF: -14, kneeF: 14, legB: 14, kneeB: 10, torso: 6, y: 6 });
+  const READY = K({ armF: -24, elbowF: -50, sword: -58, armB: 14, elbowB: -40, legF: -14, kneeF: 14, legB: 14, kneeB: 10, torso: 6, y: 6 });
   // combo: 1 downward slash · 2 rising slash · 3 thrust finisher (slow wind-up → burst → hold → recover)
   const ATTACK1 = [
     [0, READY],
