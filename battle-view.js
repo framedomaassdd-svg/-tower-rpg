@@ -20,6 +20,7 @@
   // ally: npc_combat 4×4 cells 620×420, rows attack · special · (hit dodge down up) · (sit sleep stand victory)
   // monster: 4×3 rows idle · attack · (hit hit defeat defeat)
   function art(u) {
+    if (u.art.type === 'rig') return { rig: u.art.id, base: 470, ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 };
     if (u.art.type === 'hero') return { img: im(u.art.src), cw: 512, ch: 400, ax: 250, base: 390, scale: 1,
       idle: [u.art.row, 0], wind: [u.art.row, 1], strike: [u.art.row, 2], follow: [u.art.row, 3], cast: [u.art.row, 1],
       hit: [4, 0], dodge: [4, 1], down: [4, 2], win: [u.art.row, 0] };
@@ -57,8 +58,28 @@
       const gy = H * (lane ? 0.71 : 0.84), sc = lane ? 0.88 : 1;
       return { x: x.side === 'L' ? W * fx : W * (1 - fx), gy, sc, dir: x.side === 'L' ? 1 : -1, i };
     }
+    // v142 a rigged character: the pose comes from its skeleton (smooth at any speed) instead of sheet cells
+    function drawRig(x, A, pose, px, gy, sc, alpha, flash, t) {
+      const v = vis.get(x), dir = x.side === 'L' ? 1 : -1, h = 375 * u * sc;
+      let anim = 'idle', at = t, extra = null;
+      if (anim && pose !== 'idle') {
+        if ((pose === 'wind' || pose === 'strike' || pose === 'follow') && actingT(x) !== null) { anim = 'attack'; at = actingT(x) - 0.04; }
+        else if (pose === 'hit' || pose === 'dodge') { anim = 'hit'; at = t - (v.hitAt || t); }
+        else if (pose === 'down') { anim = 'hit'; at = 0.3; extra = 'down'; }
+        else if (pose === 'cast') { anim = 'idle'; extra = { face: 'shout', uarmN: -120, farmN: -20, sword: -60 }; }
+      }
+      ctx.save(); ctx.globalAlpha = alpha;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill();
+      if (extra === 'down') { ctx.translate(px, gy); ctx.rotate(-dir * 1.45); ctx.translate(-px, -gy + 40 * u); }
+      const o = extra && extra !== 'down' ? { pose: extra } : undefined;
+      root.Rig.draw(ctx, A.rig, anim, Math.max(0, at), px, gy, h, dir, o);
+      if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.7; root.Rig.draw(ctx, A.rig, anim, Math.max(0, at), px, gy, h, dir, o); }
+      ctx.restore();
+    }
+    const actingT = x => anim && anim.actor === x ? simT - anim.t0 : null;
     function drawUnit(x, pose, px, gy, sc, alpha, flash, t) {
-      const A = art(x); if (!ok(A.img)) return;
+      const A = art(x); if (A.rig) return drawRig(x, A, pose, px, gy, sc, alpha, flash, t);
+      if (!ok(A.img)) return;
       const k = u * sc * A.scale, dir = x.side === 'L' ? 1 : -1;
       let [row, col] = A[pose] || A.idle;
       if (pose === 'idle' && A.idleLoop) col = Math.floor(t * 6 + vis.get(x).seed * 3) % 4;
@@ -94,7 +115,15 @@
     }
     // ---- timeline: ours above the line, theirs below, nearest to act on the left ----
     function portrait(x, cx, cy, r, big) {
-      const A = art(x); if (!ok(A.img)) return;
+      const A = art(x);
+      if (A.rig) {                                                  // the rig's own head
+        const I = im((root.Rig.RIGS[A.rig] || {}).dir + 'head.webp?v=142c');
+        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#2c4a7a'; ctx.fill(); ctx.clip();
+        if (ok(I)) { const k = r * 2.3 / I.naturalHeight; ctx.drawImage(I, cx - I.naturalWidth * k * 0.5, cy - I.naturalHeight * k * 0.42, I.naturalWidth * k, I.naturalHeight * k); }
+        ctx.restore(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.lineWidth = big ? 4 : 2.5; ctx.strokeStyle = big ? '#fff3c4' : '#9cc3ff'; ctx.stroke();
+        return;
+      }
+      if (!ok(A.img)) return;
       const [row, col] = A.idle;
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fillStyle = x.side === 'L' ? '#2c4a7a' : '#7a2c2c'; ctx.fill(); ctx.clip();
@@ -133,8 +162,8 @@
     }
     function applyHit(h, at) {
       const v = vis.get(h.target), s = spot(h.target);
-      if (h.miss) { v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
-      v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + 0.38;
+      if (h.miss) { v.hitAt = at; v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
+      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + 0.38;
       v.dp = Math.max(0, v.dp - h.took); v.ds = Math.max(0, v.ds - h.broke);       // the pips go now, as the blow lands
       shake = { t: at, a: (h.took + h.broke) * 7 + (h.killed ? 6 : 0) };
       stopUntil = performance.now() + 75;                                     // hit-stop
@@ -261,6 +290,17 @@
         if (v.alpha <= 0) continue;
         const st = actorState(x, s, t);
         drawUnit(x, st.pose, st.px, s.gy, s.sc, v.alpha, v.flash, t);
+        if (anim && anim.actor === x && anim.melee) {                         // a white arc where the weapon swings
+          const k = t - anim.t0, q = seg(k, 0.27, 0.42);
+          if (q > 0 && q < 1) {
+            const cx = st.px + s.dir * 60 * u * s.sc, cy = s.gy - 190 * u * s.sc, R = 150 * u * s.sc;
+            const a0 = s.dir > 0 ? -1.9 : Math.PI + 1.9, a1 = s.dir > 0 ? 0.9 : Math.PI - 0.9, head = a0 + (a1 - a0) * easeOut(Math.min(1, q * 1.6)), tail = a0 + (a1 - a0) * easeIn(q);
+            ctx.save(); ctx.globalAlpha = 0.85 * (1 - q); ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round';
+            for (let i = 0; i < 3; i++) { ctx.lineWidth = Math.max(2, (14 - i * 4) * u * s.sc); ctx.globalAlpha = (0.85 - i * 0.25) * (1 - q);
+              ctx.beginPath(); ctx.arc(cx, cy, R - i * 10 * u, Math.min(tail, head), Math.max(tail, head), false); ctx.stroke(); }
+            ctx.restore();
+          }
+        }
       }
       drawProjectiles(t);
       for (const x of order) if (x.alive) { const s = spot(x); pipsOf(x, actorState(x, s, t).px, s.gy, s.sc); }

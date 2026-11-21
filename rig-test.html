@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>rig test</title>
+<style>html,body{margin:0;background:#5a6a5a}canvas{display:block}</style></head><body>
+<canvas id="cv" width="1600" height="900"></canvas>
+<script src="rig.js?v=142"></script>
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const qs=new URLSearchParams(location.search), mode=qs.get('mode')||'grid';
+function grid(){
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#5a6a5a'; ctx.fillRect(0,0,1600,900);
+  const cells=[['idle',0],['walk',0],['walk',0.21],['walk',0.43],['walk',0.64],['attack',0.22],['attack',0.3],['attack',0.46],['attack',0.75],['hit',0.1]];
+  cells.forEach(([a,t],i)=>{const x=110+(i%5)*310, y=380+Math.floor(i/5)*440;
+    ctx.setTransform(1,0,0,1,0,0); ctx.strokeStyle='#888'; ctx.beginPath(); ctx.moveTo(x-140,y); ctx.lineTo(x+140,y); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='16px sans-serif'; ctx.fillText(a+' '+t,x-130,y+24);
+    Rig.draw(ctx,'hero_craft_m',a,t,x,y,330,1);});
+}
+function loop(){ const t=performance.now()/1000; ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#5a6a5a'; ctx.fillRect(0,0,1600,900);
+  const anims=['idle','walk','run','attack','hit'];
+  anims.forEach((a,i)=>{ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#fff';ctx.font='18px sans-serif';ctx.fillText(a,90+i*310,120); Rig.draw(ctx,'hero_craft_m',a,a==='attack'?t%1.4:a==='hit'?t%1.2:t,150+i*310,620,380,1);});
+  requestAnimationFrame(loop);}
+(function wait(){ if(!Rig.ready('hero_craft_m')) return setTimeout(wait,100); setTimeout(()=>{ if(mode==='grid') grid(); else loop(); },200); })();
+</script></body></html>
