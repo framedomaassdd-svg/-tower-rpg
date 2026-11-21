@@ -151,6 +151,15 @@
     horse:     { name: 'ม้า',              icon: '🐎', kind: 'vehicle', keep: 0, sell: 40, speed: 2.5, desc: 'เร็ว 2.5 เท่า ค่าอาหารม้าวันละ 1 เหรียญ' },
     bike:      { name: 'จักรยาน',           icon: '🚲', kind: 'vehicle', keep: 0, sell: 0, speed: 2.0, desc: 'เร็ว 2 เท่า ไม่ต้องเลี้ยง' },
     scooter:   { name: 'สกู๊ตเตอร์',         icon: '🛴', kind: 'vehicle', keep: 0, sell: 0, speed: 1.5, desc: 'เร็ว 1.5 เท่า ทำง่าย' },
+    // v136 special monsters of floors 4 and 9
+    leech_gland: { name: 'ต่อมปลิงวิญญาณ', icon: '🧪', kind: 'material', keep: 0, sell: 6, desc: 'ปรุงยาฟื้นแรงระดับต่ำหรือขายให้ร้านยา · ได้จากมอนพิเศษ' },
+    reed_spine: { name: 'หนามกออ้อ', icon: '🌾', kind: 'material', keep: 0, sell: 5, desc: 'ทำลูกดอกชะลอเป้าหมาย · ได้จากมอนพิเศษ' },
+    silt_core: { name: 'แกนโกเลมตะกอน', icon: '🪨', kind: 'material', keep: 0, sell: 16, desc: 'คราฟต์โล่รับแรงกระแทก · ได้จากมอนพิเศษ' },
+    bone_rune: { name: 'อักขระกระดูก', icon: '🦴', kind: 'material', keep: 0, sell: 10, desc: 'ทำเครื่องรางเตือนการซุ่มโจมตี · ได้จากมอนพิเศษ' },
+    echo_resin: { name: 'ยางเสียงสะท้อน', icon: '🫙', kind: 'material', keep: 0, sell: 9, desc: 'ผสมยาลดผลสถานะสับสน · ได้จากมอนพิเศษ' },
+    mimic_plate: { name: 'แผ่นเกราะหีบกลืนคน', icon: '🛡️', kind: 'material', keep: 0, sell: 18, desc: 'คราฟต์เกราะทนกัดและซ่อมโล่ · ได้จากมอนพิเศษ' },
+    will_o_wisp_ember: { name: 'ถ่านแสงภูต', icon: '🏮', kind: 'material', keep: 0, sell: 20, desc: 'ทำตะเกียงนำทาง; ใช้หมดหลังการเข้า · ได้จากมอนพิเศษ' },
+    warden_vertebra: { name: 'กระดูกสันหลังผู้คุม', icon: '🦴', kind: 'material', keep: 0, sell: 22, desc: 'คราฟต์หอกเจาะเกราะ · ได้จากมอนพิเศษ' },
     // v135 tower floors 1–9 (GPT design): species materials, floor gear and things found at old camps
     horn_shard: { name: 'เขาเดี่ยว', icon: '🦷', kind: 'material', keep: 0, sell: 5, desc: 'วัสดุเฉพาะสายพันธุ์; ใช้คราฟต์เกราะ/อาวุธ/ยา' },
     soft_pelt: { name: 'หนังนุ่ม', icon: '🧶', kind: 'material', keep: 0, sell: 4, desc: 'วัสดุเฉพาะสายพันธุ์; ใช้ทำเกราะ/เครื่องรางหรือขาย' },
@@ -216,7 +225,7 @@
     book_fire:.6,book_ice:.6,book_sense:.6,book_fireBody:.6,book_iceSkin:.6,book_lastStand:.6,book_shadowStep:.6,
     card_survivalInstinct:.02,card_partyOath:.02,card_homeResolve:.02,card_riftStrike:.02,card_limitBreak:.02,card_brawn:.02,card_nimble:.02,card_keen:.02,card_ironBack:.02,card_trailEye:.02,card_battleStep:.02,card_herbalLore:.02,card_sunfall:.02,card_winterSeal:.02,card_sword:.02,card_smithing:.02,card_cooking:.02,card_mapping:.02,card_haggling:.02,card_gathering:.02,card_avatarForm:.02,card_stormLance:.02,card_earthBulwark:.02,card_sanctuaryLight:.02,card_spiritCall:.02,card_spiritMend:.02,card_spiritScout:.02,card_spiritGuard:.02,
     sword:3.5,spear:3,bow:1.2,club:2.2,namelessBlade:4.5,leather:4,chain_vest:9,guardianVest:12,oldwheel:7,chain:2,plank:4,
-    horse:0,bike:0,scooter:0,charm:.3,horn_shard:0.2,soft_pelt:0.2,shadow_fang:0.2,wolf_pelt:0.2,goblin_iron:0.2,rough_hide:0.2,boar_tusk:0.2,boar_hide:0.2,acid_gland:0.2,slime_sac:0.2,spore_sac:0.2,silk_thread:0.2,venom_antler:0.2,toxic_hide:0.2,glow_cap:0.2,sturdy_mycelium:0.2,bat_wing:0.2,echo_gland:0.2,stone_claw:0.2,granite_hide:0.2,drill_jaw:0.2,ore_carapace:0.2,cave_fang:0.2,mineral_whisker:0.2,wraith_mud:0.2,soul_silt:0.2,marsh_venom:0.2,bog_scale:0.2,blood_syringe:0.2,ironwing:0.2,drowned_essence:0.2,wet_shroud:0.2,ghost_armor:0.2,rusted_signet:0.2,gargoyle_stone:0.2,wing_membrane:0.2,bone_bundle:0.2,old_buckle:0.2,sentinel_core:0.2,warding_plate:0.2,grass_guard_vest:4,wolfstep_charm:0.2,mushroom_bow:2.5,venomproof_coat:4,orebreaker_spear:2.5,granite_charm:0.2,bogwarden_armor:4,wraith_saber:2.5,ruin_sentinel_shield:4,death_knight_charm:0.2,old_expedition_map:0.1,sealed_cache_key:0.1,field_journal:0.1,safe_pass:0.1,
+    horse:0,bike:0,scooter:0,charm:.3,leech_gland:0.2,reed_spine:0.2,silt_core:0.2,bone_rune:0.2,echo_resin:0.2,mimic_plate:0.2,will_o_wisp_ember:0.2,warden_vertebra:0.2,horn_shard:0.2,soft_pelt:0.2,shadow_fang:0.2,wolf_pelt:0.2,goblin_iron:0.2,rough_hide:0.2,boar_tusk:0.2,boar_hide:0.2,acid_gland:0.2,slime_sac:0.2,spore_sac:0.2,silk_thread:0.2,venom_antler:0.2,toxic_hide:0.2,glow_cap:0.2,sturdy_mycelium:0.2,bat_wing:0.2,echo_gland:0.2,stone_claw:0.2,granite_hide:0.2,drill_jaw:0.2,ore_carapace:0.2,cave_fang:0.2,mineral_whisker:0.2,wraith_mud:0.2,soul_silt:0.2,marsh_venom:0.2,bog_scale:0.2,blood_syringe:0.2,ironwing:0.2,drowned_essence:0.2,wet_shroud:0.2,ghost_armor:0.2,rusted_signet:0.2,gargoyle_stone:0.2,wing_membrane:0.2,bone_bundle:0.2,old_buckle:0.2,sentinel_core:0.2,warding_plate:0.2,grass_guard_vest:4,wolfstep_charm:0.2,mushroom_bow:2.5,venomproof_coat:4,orebreaker_spear:2.5,granite_charm:0.2,bogwarden_armor:4,wraith_saber:2.5,ruin_sentinel_shield:4,death_knight_charm:0.2,old_expedition_map:0.1,sealed_cache_key:0.1,field_journal:0.1,safe_pass:0.1,
     root_food:0.12,clear_leaf:0.1,bind_grass:0.1,wake_leaf:0.09,moist_moss:0.15,antidote_root:0.13,warm_blossom:0.12,fever_mushroom:0.14,antiseptic_bark:0.25,blood_flower:0.13,vigor_seed:0.12,silver_moss:0.16,shadow_petal:0.06,verdant_heart:0.6,clean_water:.5,tablet_binder:.08,
     copper_ore:2.3,tin_ore:2,iron_ore:2.8,silver_ore:2.2,ember_ore:2.5,blood_ore:2.4,
     frost_ore:2,venom_ore:1.7,mind_ore:1.7,star_ore:1.4,aegis_ore:3.1,void_ore:1.3,
@@ -302,12 +311,14 @@
   function abandonFloorLoot(st,floor){const L=pending(st),before=L.length;st.bagPending=L.filter(p=>!(p.origin&&p.origin.floor===floor));return before-st.bagPending.length;}
 
   // v100 item art: two 4×4 sheets of 128px cells (items_a/items_b.webp); missing art falls back to the emoji above
-  const ICON_SHEETS = Object.freeze(['items_a.webp', 'items_b.webp']);
+  const ICON_SHEETS = Object.freeze(['items_a.webp', 'items_b.webp', 'items_c.webp', 'items_d.webp', 'items_e.webp', 'items_f.webp']);   // c–f: v136 tower floors 1–9
   const ICONS = Object.freeze({
     coin: [0, 0], ration: [0, 1], bread: [0, 2], riceball: [0, 3], jerky: [0, 4], fruit: [0, 5], meal_veg: [0, 6], meal_fish: [0, 7],
     meal_spice: [0, 8], rice: [0, 9], veg: [0, 10], fish: [0, 11], spice: [0, 12], herb: [0, 13], junk: [0, 14], scrap: [0, 15],
     iron: [1, 0], monster: [1, 1], knife: [1, 2], sickle: [1, 3], hook: [1, 4], dagger: [1, 5], sword: [1, 6], oldwheel: [1, 7],
-    chain: [1, 8], plank: [1, 9], horse: [1, 10], bike: [1, 11], scooter: [1, 12], coins: [1, 13], potion: [1, 14], chest: [1, 15]
+    chain: [1, 8], plank: [1, 9], horse: [1, 10], bike: [1, 11], scooter: [1, 12], coins: [1, 13], potion: [1, 14], chest: [1, 15],
+    // v136 tower floors 1–9 (GPT icon sheets)
+    horn_shard: [2, 0], soft_pelt: [2, 1], shadow_fang: [2, 2], wolf_pelt: [2, 3], goblin_iron: [2, 4], rough_hide: [2, 5], boar_tusk: [2, 6], boar_hide: [2, 7], acid_gland: [2, 8], slime_sac: [2, 9], spore_sac: [2, 10], silk_thread: [2, 11], venom_antler: [2, 12], toxic_hide: [2, 13], glow_cap: [2, 14], sturdy_mycelium: [2, 15], bat_wing: [3, 0], echo_gland: [3, 1], stone_claw: [3, 2], granite_hide: [3, 3], drill_jaw: [3, 4], ore_carapace: [3, 5], cave_fang: [3, 6], mineral_whisker: [3, 7], wraith_mud: [3, 8], soul_silt: [3, 9], marsh_venom: [3, 10], bog_scale: [3, 11], blood_syringe: [3, 12], ironwing: [3, 13], drowned_essence: [3, 14], wet_shroud: [3, 15], ghost_armor: [4, 0], rusted_signet: [4, 1], gargoyle_stone: [4, 2], wing_membrane: [4, 3], bone_bundle: [4, 4], old_buckle: [4, 5], sentinel_core: [4, 6], warding_plate: [4, 7], grass_guard_vest: [4, 8], wolfstep_charm: [4, 9], mushroom_bow: [4, 10], venomproof_coat: [4, 11], orebreaker_spear: [4, 12], granite_charm: [4, 13], bogwarden_armor: [4, 14], wraith_saber: [4, 15], ruin_sentinel_shield: [5, 0], death_knight_charm: [5, 1], old_expedition_map: [5, 2], sealed_cache_key: [5, 3], field_journal: [5, 4], safe_pass: [5, 5]
   });
   const COIN = Object.freeze({ name: 'เหรียญ', icon: '🪙' });
   // v111 tower safe-zone traders: rates are deliberately higher than in the city.
@@ -315,7 +326,8 @@
     book_fire: 800, book_ice: 1000, book_sense: 198, book_fireBody: 400,
     card_spiritGuard: 300, card_stormLance: 900, card_earthBulwark: 900, card_sanctuaryLight: 900, card_spiritMend: 950, card_spiritScout: 950, card_spiritCall: 1200, card_avatarForm: 1600 });
   const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain',
-    'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore']);
+    'horn_shard','soft_pelt','shadow_fang','wolf_pelt','goblin_iron','rough_hide','boar_tusk','boar_hide','acid_gland','slime_sac','spore_sac','silk_thread','venom_antler','toxic_hide','glow_cap','sturdy_mycelium','bat_wing','echo_gland','stone_claw','granite_hide','drill_jaw','ore_carapace','cave_fang','mineral_whisker','wraith_mud','soul_silt','marsh_venom','bog_scale','blood_syringe','ironwing','drowned_essence','wet_shroud','ghost_armor','rusted_signet','gargoyle_stone','wing_membrane','bone_bundle','old_buckle','sentinel_core','warding_plate',
+    'leech_gland','reed_spine','silt_core','bone_rune','echo_resin','mimic_plate','will_o_wisp_ember','warden_vertebra','copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore']);
   // v112: multipliers are supplied by the actual safe-floor service, not patched onto Bag elsewhere.
   const safeBuyPrice = (id, floor, multiplier = 1) => Math.ceil((SAFE_SHOP[id] || 0) * (1 + Math.max(0, Math.floor((floor - 5) / 5)) * 0.13) * multiplier);
   const safeSellPrice = (id, floor, multiplier = 1) => SAFE_BUYER.includes(id) || (ITEMS[id] && (ITEMS[id].equip || ITEMS[id].kind === 'book')) ?

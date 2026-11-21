@@ -13,9 +13,36 @@
   const ok = i => i && i.complete && i.naturalWidth > 0;
   const SCENES = [1, 2, 3, 4, 5].map(n => im('tower/floor' + n + '.webp?v=127'));
   // v135 one scene per territory (f1_north …) once the art exists; list ids here when their webp is in tower/regions/
-  const REGION_ART = [];
+  const REGION_ART = [1, 2, 3, 4, 6, 7, 8, 9].flatMap(f => ['north', 'east', 'south', 'west'].map(d => 'f' + f + '_' + d)).concat(['f5_gate', 'f5_market', 'f5_refuge']);
   const REGION_IMG = {};
-  const regionBg = id => REGION_ART.includes(id) ? (REGION_IMG[id] = REGION_IMG[id] || im('tower/regions/' + id + '.webp?v=135')) : null;
+  const regionBg = (id, night) => REGION_ART.includes(id) ? (REGION_IMG[id + night] = REGION_IMG[id + night] || im('tower/regions/' + (night ? 'night/' : '') + id + '.webp?v=136')) : null;
+  // v136 which territory picture: the team's current territory on this floor; floor 5 (safe zone) by the time of day
+  function regionId(st, clock, camp) {
+    const x = X(st); if (!x) return null; const f = x.floor || 1;
+    if (f === 5) return clock >= camp ? 'f5_refuge' : clock < 8.5 ? 'f5_gate' : 'f5_market';
+    return x.at && x.at.indexOf('f' + f + '_') === 0 ? x.at : null;
+  }
+  // v136 the people of the floor-5 safe zone (rows: 0 walk right · 1 their work · 2 standing facing you)
+  const SAFE_NPC = {"mara_human_quartermaster":[307,363,154,355],"durn_dwarf_smith":[282,296,141,288],"avelin_elf_pathfinder":[324,376,162,368],"lumi_spirit_healer":[272,330,136,322],"koro_wolfblood_scout":[293,362,141,354],"borga_half_orc_guard":[322,394,174,386],"pikk_goblin_salvager":[248,269,124,261],"sesh_lizardfolk_alchemist":[328,360,165,352],"talla_stonekin_mason":[374,381,187,373],"orin_human_medic":[305,378,151,370],"naiya_elf_spirit_bridge":[335,361,172,353]};
+  const SAFE_IMG = {};
+  const safeImg = id => SAFE_IMG[id] = SAFE_IMG[id] || im('safe_npc/' + id + '.webp?v=136');
+  // where each one is in each district: [id, x (share of width), row, walks back and forth over this share]
+  const SAFE_SPOTS = {
+    f5_gate: [['borga_half_orc_guard', 0.78, 2], ['koro_wolfblood_scout', 0.62, 0, 0.12], ['avelin_elf_pathfinder', 0.9, 1]],
+    f5_market: [['durn_dwarf_smith', 0.06, 1], ['mara_human_quartermaster', 0.6, 1], ['pikk_goblin_salvager', 0.74, 1], ['sesh_lizardfolk_alchemist', 0.88, 1]],
+    f5_refuge: [['lumi_spirit_healer', 0.04, 1], ['orin_human_medic', 0.33, 1], ['talla_stonekin_mason', 0.85, 1], ['naiya_elf_spirit_bridge', 0.95, 2]]   // around the team's camp spots
+  };
+  function drawSafeNpcs(ctx, rid, W, gy, u, now) {
+    const list = SAFE_SPOTS[rid]; if (!list) return;
+    list.forEach(([id, fx0, row, walk], i) => {
+      const img = safeImg(id), d = SAFE_NPC[id]; if (!ok(img) || !d) return;
+      const [cw, ch, ax, base] = d, v = u * 0.92;
+      let x = W * fx0, dir = 1, col = Math.floor(now / (row === 1 ? 260 : 420) + i) % 4;
+      if (walk) { const ph = (now / 1000 / 9 + i * 0.3) % 1, q = ph < 0.5 ? ph * 2 : 2 - ph * 2; x = W * (fx0 - walk / 2 + walk * q); dir = ph < 0.5 ? 1 : -1; col = Math.floor(now / 160) % 4; }
+      ctx.save(); ctx.translate(x, gy - 4 * u); ctx.scale(dir, 1);
+      ctx.drawImage(img, col * cw, row * ch, cw, ch, -ax * v, -base * v, cw * v, ch * v); ctx.restore();
+    });
+  }
   const PROPS = { exit: im('tower/stone_exit.webp?v=127'), up: im('tower/stone_up.webp?v=127'), camp: im('tower/camp.webp?v=127') };
   // [cw, ch, ax, base] from the cutter; fly = lifted off the ground (units)
   const MON = {
@@ -23,6 +50,8 @@
     slug: [243, 166, 131, 158], spider: [304, 203, 159, 195], deer: [466, 359, 266, 351], shroom: [426, 342, 245, 334],
     bat: [418, 304, 230, 296, 150], bear: [568, 432, 301, 424], worm: [510, 428, 282, 420], rat: [264, 163, 144, 155],
     mudghost: [486, 393, 252, 385], snake: [445, 339, 237, 331], mosquito: [274, 224, 143, 216, 130], drowned: [421, 367, 219, 359, 25],
+    // v136 own sprites: pack leaders of floors 1–3, guardians of floors 4 and 9, the special monsters of 4 and 9
+    elite_f1: [495,331,281,323], elite_f2: [523,388,279,380], elite_f3: [632,385,350,377], boss_f4: [684,510,345,502], boss_f9: [776,515,429,507], sp_armor_mimic: [446,330,224,322], sp_bone_rune_hound: [494,336,260,328], sp_echoeater: [518,428,282,420], sp_lantern_wisp: [344,237,158,229,120], sp_marrow_warden: [661,490,350,482], sp_reedstalker: [509,398,269,390], sp_silt_golem: [616,442,306,434], sp_soul_leech: [384,179,215,171,20],
     ghostknight: [489, 381, 264, 373], gargoyle: [471, 354, 257, 346], skeleton: [495, 388, 294, 380], warden: [612, 523, 328, 515],
     boss5: [900, 715, 489, 707]
   };
@@ -158,21 +187,27 @@
   const FIGHT_MS = 2600;
   function fight(o) {
     const st = o.state;
-    const id = o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin';
+    const own = o.sprite && MON['sp_' + o.sprite] ? 'sp_' + o.sprite : o.boss && (o.floor === 4 || o.floor === 9) ? 'boss_f' + o.floor
+      : o.elite && o.floor >= 1 && o.floor <= 3 ? 'elite_f' + o.floor : null;
+    const id = own || (o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin');
     // v135 rank shows on the monster: bigger, an aura in the rank's colour and a label (tower-regions.js RANK_VISUAL)
     const RV = root.TowerRegions && root.TowerRegions.RANK_VISUAL || {};
     const look = (o.boss ? RV.boss : o.elite ? RV.elite : RV[o.rank]) || { scale: o.boss ? 1.3 : 1, aura: null, label: '' };
-    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: id === 'boss5' ? 1 : Math.min(1.6, look.scale || 1), aura: look.aura, label: look.label, skill: SKILL_FX[o.skill] || null,
+    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: id === 'boss5' || own ? 1 : Math.min(1.6, look.scale || 1), aura: look.aura, label: look.label, skill: SKILL_FX[o.skill] || null,
       summon: o.summon || null, summonGone: !!o.summonGone, avatar: !!o.transformed };
     return FIGHT_MS;
   }
   function show(ctx, cv, t, clock, info, st) {
     if (!info || !info.tower || !st) { fx = null; return false; }
-    const W = cv.width, H = cv.height, n = sceneOf(st), X0 = X(st), rb = X0 && X0.at ? regionBg(X0.at) : null, bg = ok(rb) ? rb : SCENES[n - 1];
+    const CAMP0 = root.Expedition && root.Expedition.SLOTS_OF_DAY ? (root.Expedition.SLOTS_OF_DAY.find(s => s[0] === 'xcamp') || [0, 15.6])[1] : 15.6;
+    const W = cv.width, H = cv.height, n = sceneOf(st), rid = regionId(st, clock, CAMP0), rb = rid ? regionBg(rid, '') : null, bg = ok(rb) ? rb : SCENES[n - 1];
+    const dusk0 = Math.max(0, Math.min(1, (clock - (CAMP0 - 1.6)) / 1.6)), rn = rid && (dusk0 > 0 || info.sleep) ? regionBg(rid, 'n') : null;
+    const nightArt = ok(rb) && ok(rn);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#1b1410'; ctx.fillRect(0, 0, W, H);
     const s = Math.max(W / 1672, H / 941), ox = (W - 1672 * s) / 2, oy = (H - 941 * s) / 2;
     if (ok(bg)) ctx.drawImage(bg, ox, oy, 1672 * s, 941 * s);
+    if (nightArt) { ctx.save(); ctx.globalAlpha = info.sleep ? 1 : dusk0; ctx.drawImage(rn, ox, oy, 1672 * s, 941 * s); ctx.restore(); }  // painted night replaces most of the tint
     const gy = oy + 941 * s * 0.85, u = Math.min(941 * s * 0.30 / 345, W / 1150);   // a person is 30% of the scene's height (narrower on portrait screens)
     const x = X(st), stones = x && x.stones && x.stones[x.floor] || {};
     const CAMP = root.Expedition && root.Expedition.SLOTS_OF_DAY ? (root.Expedition.SLOTS_OF_DAY.find(s => s[0] === 'xcamp') || [0, 15.6])[1] : 15.6;
@@ -182,6 +217,7 @@
     if (stones.up) drawProp(ctx, PROPS.up, W * 0.95, gy, 430 * u);
     const now0 = performance.now();
     if (night) {
+      if (rid && rid.indexOf('f5_') === 0) drawSafeNpcs(ctx, rid, W, gy, u, now0);
       const team = teamOf(st), spots = [0.62, 0.22, 0.72, 0.14];
       team.forEach((sh, i) => {
         const face = i % 2 ? 1 : -1, x = W * spots[i];
@@ -269,7 +305,7 @@
           ctx.restore();
         }
         if (k > 0.75 && k < 0.9 && fx.win || !fx.win && k > 1.36 && k < 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, 0, W, H); }
-        if (info.sleep || clock >= CAMP) { ctx.fillStyle = 'rgba(8,10,30,0.45)'; ctx.fillRect(0, 0, W, H); }
+        if (info.sleep || clock >= CAMP) { ctx.fillStyle = nightArt ? 'rgba(8,10,30,0.12)' : 'rgba(8,10,30,0.45)'; ctx.fillRect(0, 0, W, H); }
         return true;
       }
     }
@@ -281,6 +317,7 @@
       const id = mons[(st.day || 0) % mons.length], mp = (now / 1000) % 20, mx = W * (0.72 - 0.06 * Math.sin(mp / 20 * Math.PI * 2));
       drawMon(ctx, id, Math.floor(now / 160) % 4, 0, mx, gy, u);
     }
+    if (rid && rid.indexOf('f5_') === 0) drawSafeNpcs(ctx, rid, W, gy, u, now);
     const team = teamOf(st), dir = out ? 1 : -1;
     team.forEach((sh, i) => drawMate(ctx, sh, moving ? 0 : 2, moving ? (Math.floor(now / 150) + i) % 4 : 0, hx - dir * (125 + 115 * i) * u, gy - 6 * u * (i % 2), u, dir));
     const xs = X(st), sm = xs && xs.summon && xs.summon.day === st.day ? xs.summon.kind : null;
@@ -288,7 +325,7 @@
     if (xs && xs.avatarDay === st.day) drawSummon(ctx, 'avatar', moving ? 0 : 0, moving ? Math.floor(now / 150) % 4 : 0, hx, gy, u, dir);
     else drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
     if (heal) { const q = (now - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, hx, gy - 190 * u, 720 * u); }
-    if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + (0.4 * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
+    if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + ((nightArt ? 0.1 : 0.4) * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
     return true;
   }
   const images = () => [...SCENES, ...Object.values(PROPS)].filter(Boolean);

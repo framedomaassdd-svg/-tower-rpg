@@ -134,6 +134,7 @@
   .lg-safe-tabs button{border-radius:10px;padding:10px 3px;background:#3a2c20;color:#f6ecd8;font-size:13px}
   .lg-safe-tabs button.on{background:#9e7538;border-color:#f2c14e;color:#fff}
   .lg-safe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+  .lg-safe-person{display:flex;gap:10px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.08)}.lg-safe-person i{flex:0 0 52px;height:62px;background-size:400% 300%;background-position:0% 100%;background-repeat:no-repeat}.lg-safe-person small{display:block}
   .lg-safe-grid .lg-btn{margin:0;font-size:14px;min-height:76px}
   .lg-safe-note{color:#eccc75;min-height:22px;margin:6px 0;font-size:14px}
   .lg-tower-directions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0}
@@ -606,6 +607,8 @@
     const allTabs = [['shop','ร้าน'],['sell','รับซื้อ'],['rest','ที่พัก'],['chest','หีบ'],['hire','จ้างคน'],['forage','หาของกิน'],['stone','ศิลา']];
     const tabs = allTabs.filter(([id]) => info.services.includes(id));
     if (info.enhance) tabs.splice(Math.max(0,tabs.findIndex(x=>x[0]==='forage')),0,['enhance','ตีบวก']);
+    const PEOPLE = info.floor === 5 && window.TowerRegions && TowerRegions.SAFE_NPCS || null;   // v136 the refugees living on floor 5
+    if (PEOPLE) tabs.push(['people', 'ชาวเซฟโซน']);
     let section = tabs[0][0], note = '', selected = enhanceOptions()[0], sacrificed = new Set();
     const d = el(`<div class="lg-card lg-safe-card"><div class="lg-safe-head">
       <h2>🏕 เซฟโซน ชั้น ${info.floor} · ${esc(info.name)}</h2>
@@ -621,7 +624,7 @@
       const x = E.X(state), floor = x.floor;
       const current = E.safeInfo(state);
       if (!current) { closeOverlay(d); return; }
-      if (!(section === 'enhance' ? current.enhance : current.services.includes(section))) section = 'stone';
+      if (!(section === 'enhance' ? current.enhance : section === 'people' ? PEOPLE : current.services.includes(section))) section = 'stone';
       d.querySelector('.lg-safe-stats').textContent = 'เงิน ' + state.money + ' เหรียญ · สุขภาพ ' + state.health + '/100 · แรง ' + state.energy + '/100 · กระเป๋า ' + b.total(state) + '/' + b.CAP;
       d.querySelector('.lg-safe-tabs').innerHTML = tabs.map(([id,n]) => `<button data-safe-tab="${id}" class="${section === id ? 'on' : ''}">${n}</button>`).join('');
       d.querySelector('.lg-safe-note').textContent = note;
@@ -658,6 +661,10 @@
           smallButton('forage', '', '🍎 ออกหาผลไม้', current.forageDay === state.day ? 'เก็บไปแล้ววันนี้' : 'ไม่เสียเงิน', current.forageDay === state.day || b.total(state) >= b.CAP) +
           (!current.services.includes('rest') ? '<h3>พักกลางแจ้ง</h3><p>ไม่มีอาคารที่พัก แต่นอนในทุ่งได้อย่างปลอดภัย ฟื้นสุขภาพ +10 และแรง +45 · วันละครั้ง</p>' +
             smallButton('rest', '', '🌙 นอนกลางแจ้ง', x.safeRestDay === state.day ? 'พักไปแล้ววันนี้' : 'ไม่เสียเงิน', x.safeRestDay === state.day) : '');
+      } else if (section === 'people') {
+        html = '<h3>ชาวเซฟโซน</h3><p class="lg-muted">ผู้พักพิงหลายเผ่าพันธุ์ที่อยู่และทำงานในชั้นนี้ · ไม่มีใครออกรบแทนทีมของคุณ</p>' +
+          PEOPLE.map(n => `<div class="lg-safe-person"><i style="background-image:url(safe_npc/${n.id}.webp?v=136)"></i><div><b>${esc(n.name)}</b> · ${esc(n.race)} · ${esc(n.role)}` +
+            `<small>${esc(n.services.join(' · '))}</small><small class="lg-muted">${esc(n.support)}</small></div></div>`).join('');
       } else if (section === 'stone') {
         html = '<h3>ศิลาเดินทาง · พร้อมใช้งาน</h3><p>ศิลาทางออกจะพากลับไปประตูหอคอยในเมือง ศิลาทางขึ้นส่งขึ้นอีกหนึ่งชั้น ไม่สามารถเดินออกจากชั้นได้เอง</p>' +
           smallButton('stone', 'exit', '🔹 ศิลาทางออก · กลับเมือง', 'ปิดการสำรวจครั้งนี้') +
@@ -727,7 +734,7 @@
           clearInterval(t);
           // v127 show the fight on the tower scene, then the results
           if (res.fight && window.TowerView) {
-            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, elite: !!(enc.monster && enc.monster.elite), rank: enc.monster && enc.monster.rank, floor, skill: res.usedActive ? res.usedActive.skill : res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null,
+            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, elite: !!(enc.monster && enc.monster.elite), rank: enc.monster && enc.monster.rank, sprite: enc.monster && enc.monster.special, floor, skill: res.usedActive ? res.usedActive.skill : res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null,
               summon: res.summon ? res.summon.kind : res.summonGone || null, summonGone: !!res.summonGone, transformed: !!res.transformed });
             d.style.visibility = 'hidden';
             setTimeout(() => { d.style.visibility = ''; results(); }, ms + 300);

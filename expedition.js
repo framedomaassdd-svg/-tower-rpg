@@ -234,6 +234,14 @@
     for (const [id, ch] of cards) { sum += ch * cm; if (r < sum) { out.push({ id, n: 1, card: true, rarity: Skills.RARITIES[rank] }); break; } }
     return out;
   }
+  // v136 special monsters (floors 4 and 9): about one fight in nine there; the three guardians never return once beaten
+  function specialOf(st, floor, id) {
+    const list = Regions && Regions.SPECIALS ? Regions.SPECIALS.filter(s => s.floor === floor) : []; if (!list.length) return null;
+    const x = X(st), done = x && x.specials || {};
+    const open = list.filter(s => !(s.once && done[s.id]));
+    if (!open.length || hash(seed(st), id, 'special') >= 0.11) return null;
+    return open[Math.floor(hash(seed(st), id, 'sp') * open.length)];
+  }
   function bossOf(st, floor) { return isBossFloor(floor) ? floorWorld(st, floor).boss : null; }
   function monsterKill(st, floor, species, isBoss = false, isElite = false, eliteId = null) {
     if (isSafeFloor(floor)) return false;
@@ -547,8 +555,16 @@
       const tot = Object.values(T.scenes).reduce((a, b) => a + b, 0); let n = r * tot;
       for (const [k, w] of Object.entries(T.scenes)) { n -= w; if (n < 0) { scene = k; break; } }
     }
+    const sp = !x.hunted && specialOf(st, x.floor, id);
+    if (sp && sp.neutral && scene !== 'combat') return { id, slot, scene: 'explore', kind: 'wisp', special: sp.id, region: reg ? reg.id : null,
+      title: sp.name + ' · ชั้น ' + x.floor, text: (reg ? reg.name + ' — ' : '') + 'แสงตะเกียงดวงเล็กลอยวนอยู่เหนือน้ำ ' + sp.behavior,
+      choices: [{ label: 'เดินตามแสงตะเกียง', hint: 'ภูตนำทาง · 🧭 🌿 มากขึ้น · ค้นหาศิลา +2', w: { compass: 2, herb: 2, tracks: 1.5 }, search: 2 },
+        { label: 'ปล่อยให้มันลอยไป', hint: 'ไม่รบกวนภูต', noSpin: true }] };
     if (scene === 'combat') {
-      const m = monsterOf(st, x.floor, id, reg);
+      let m = monsterOf(st, x.floor, id, reg);
+      if (sp && !sp.neutral) m = { ...m, name: sp.name, power: sp.power, rank: sp.rank, elite: false, eliteId: null, special: sp.id };
+      if (m.special) return { id, slot, scene, kind: 'combat', beast: true, title: 'มอนพิเศษ · ชั้น ' + x.floor, region: reg ? reg.id : null,
+        text: (reg ? reg.name + ' — ' : '') + m.name + ' (พลัง ' + m.power + ') · สัญญาณ: ' + sp.tell, monster: m, choices: CHOICES.combat };
       return { id, slot, scene, kind: 'combat', beast: hash(seed(st), id, 'b') < 0.6, title: (x.hunted ? 'สิ่งที่ตามมาโผล่ออกมา' : 'เจอมอนสเตอร์') + ' · ชั้น ' + x.floor, region: reg ? reg.id : null, text: (reg ? reg.name + ' — ' : '') + m.name + (m.elite ? ' · ' + m.rank : '') + ' (พลัง ' + m.power + ') ขวางทางอยู่',
         monster: m, choices: CHOICES.combat };
     }
@@ -743,6 +759,11 @@
               if (ok && !res.reward) res.reward = { kind: d.card ? 'book' : 'weapon', templateId: d.id, rarity, gained: !manual, queued: manual };
             } else gain(d.id, d.n);
           }
+          const SP = enc.monster.special && Regions && Regions.SPECIALS.find(q => q.id === enc.monster.special);
+          if (SP) {
+            for (const [id, ch, a, b] of SP.drops) if (hash(seed(st), enc.id, 'spd', id) < ch) gain(id, a + Math.floor(hash(seed(st), enc.id, 'spq', id) * (b - a + 1)));
+            if (SP.once) { (x.specials = x.specials || {})[SP.id] = st.day; lines.push(SP.name + 'ถูกกำจัดแล้ว จะไม่กลับมาอีก'); }
+          }
           if (enc.monster.elite) { lines.push('จ่าฝูงถูกกำจัดถาวร · ได้ผลึกวิญญาณแน่นอน 1 ชิ้น');
             lines.push(...Skills.progress(st, 'elite_win', x.floor, enc.id)); }
           if (enc.boss) {
@@ -786,6 +807,7 @@
     if (n('magic') + n('orb')) gain('crystal', n('orb') + (n('magic') >= 2 ? 1 : 0));
     // searching for a stone: compass, tracks, scrolls and keys, the choice and the mapping skill all count
     const found = 2 * n('compass') + n('tracks') + n('scroll') + n('key') + (c.search || 0) + Skills.tierOf(st, 'mapping') + Skills.tierOf(st, 'trailEye') + regionSearch;
+    if (enc.kind === 'wisp') { lines.push('ภูตตะเกียงพาทีมลัดผ่านหนอง แล้วลอยหายไปในหมอก'); if (hash(seed(st), enc.id, 'ember') < 0.18) gain('will_o_wisp_ember', 1); }
     if (found > 0) { x.search += found; lines.push('ค้นหาศิลา +' + found + ' (' + Math.min(x.search, needOf(x.floor)) + '/' + needOf(x.floor) + ')'); }
     if (x.search >= needOf(x.floor)) {
       const K = x.stones[x.floor] = x.stones[x.floor] || {};
@@ -881,5 +903,5 @@
     return 'ออกจากหอคอยทางศิลาทางออก (' + days + ' วัน สูงสุดชั้น ' + x.highest + ' ชนะ ' + x.wins + ' ครั้ง)' + (L.length ? ' ได้ ' + L.join(', ') : '') + (x.why ? ' · ' + x.why : '')+(abandoned?' · ของที่ยังไม่เก็บตกหาย '+abandoned+' รายการ':'');
   }
   return { TERRAINS, THEMES, FLOOR_THEMES, themeFor, biomeOf, PARTY, GUARD_FEE, CHOICES, SLOTS_OF_DAY, CAMP_SLEEP, terrainOf, needOf, active, planned, plan, cancel, enter, withTeam, allyPower,
-    regionOf, speciesDrops, GUARD_TABLE, encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, DROP_WEAPON, DROP_BOOK, rollDrop, isBossFloor, bossOf, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, eliteOf, recordEliteHunt, hash, seed, isSafeFloor, safeInfo, safeAction, safeTravel };
+    regionOf, speciesDrops, specialOf, GUARD_TABLE, encounter, choiceView, resolve, camp, close, X, DIRECTIONS, RANKS, SAFE_KINDS, DROP_WEAPON, DROP_BOOK, rollDrop, isBossFloor, bossOf, ensureWorld, floorWorld, tickWorld, monsterOf, monsterKill, eliteOf, recordEliteHunt, hash, seed, isSafeFloor, safeInfo, safeAction, safeTravel };
 });
