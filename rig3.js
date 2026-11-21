@@ -6,21 +6,21 @@
   'use strict';
   const SKEL = {
     chibi: {
-      dir: 'rig/chibi/', ver: 148,
+      dir: 'rig/chibi/', ver: 149,
       // pivot = joint in the (pre-scaled) picture; world = where that joint is in the full-body drawing; ang = rest angle
       bones: {
         torso: { pivot: [85.7, 115.6], world: [255, 437] },
-        legA:  { pivot: [44.9, 11.9], world: [195, 455], parent: 'torso', ang: 12 },     // back leg
-        legB:  { pivot: [41.6, 11.9], world: [305, 455], parent: 'torso', ang: -10 },    // front leg
+        legA:  { pivot: [46.2, 12.2], world: [198, 440], parent: 'torso', ang: 12 },      // back leg
+        legB:  { pivot: [42.8, 12.2], world: [302, 440], parent: 'torso', ang: -10 },     // front leg
         head:  { pivot: [117.0, 212.2], world: [240, 335], parent: 'torso' },
-        hair:  { pivot: [173.9, 115.4], world: [250, 133], parent: 'head' },
-        hat:   { pivot: [139.4, 87.5], world: [150, 80], parent: 'head' },
-        scarf: { pivot: [132.0, 26.4], world: [220, 318], parent: 'torso' },
-        armA:  { pivot: [66.0, 16.5], world: [195, 352], parent: 'torso' },              // back arm
+        hair:  { pivot: [197.4, 131.0], world: [262, 160], parent: 'head' },
+        hat:   { pivot: [164.0, 103.0], world: [150, 98], parent: 'head', ang: -6 },
+        scarf: { pivot: [152.0, 30.4], world: [212, 320], parent: 'torso' },
+        armA:  { pivot: [66.0, 16.5], world: [195, 352], parent: 'torso' },               // back arm
         fistA: { pivot: [34.6, 30.2], world: [144, 417], parent: 'armA' },
-        armB:  { pivot: [16.5, 14.5], world: [318, 352], parent: 'torso', ang: -60 },    // sword arm
+        armB:  { pivot: [16.5, 14.5], world: [318, 352], parent: 'torso', ang: -60 },     // sword arm
         fistB: { pivot: [33.8, 30.2], world: [355, 383], parent: 'armB' },
-        sword: { pivot: [39.6, 108.9], world: [360, 385], parent: 'fistB' }
+        sword: { pivot: [48.0, 132.0], world: [360, 385], parent: 'fistB' }
       },
       order: ['armB', 'legA', 'legB', 'torso', 'scarf', 'head', 'hair', 'hat', 'armA', 'fistA', 'sword', 'fistB']
     }
@@ -81,19 +81,51 @@
       return {
         legA: sw * s, legB: -sw * s,                                             // legs scissor
         legAY: -Math.max(0, -c) * lift, legBY: -Math.max(0, c) * lift,           // the leg swinging forward lifts its foot
-        armA: -sw * 1.1 * s, armB: 12 + sw * 0.5 * s, sword: -6 * s,            // arms swing against the legs
-        fistAX: 0, torso: (run ? 8 : 4) + 2 * lag(0.3) * 0,
+        armA: -sw * 1.2 * lag(0.35), armB: 12 + sw * 0.5 * lag(0.35), sword: -8 * lag(0.6), fistA: -10 * lag(0.9),   // arms swing against the legs, a beat late
+        torso: (run ? 9 : 4) + (run ? 3 : 2) * Math.cos(2 * ph - 0.5),
         y: -(1 - bob) * (run ? 14 : 9), sy: 1 + 0.03 * (bob - 0.5), sx: 1 - 0.03 * (bob - 0.5),
         head: -2 + 3 * Math.cos(2 * ph - 0.9),                                   // nods with each step, a little late
         hat: 4 * Math.cos(2 * ph - 1.4), hair: 3 * Math.cos(2 * ph - 1.2),
         scarf: (run ? -14 : -8) + 6 * Math.sin(2 * ph - 1.6)                    // scarf trails and flutters
       };
     }
-    if (ATTACK[anim]) return track(ATTACK[anim], Math.min(t, LEN[anim]));
+    if (ATTACK[anim]) return Object.assign(track(ATTACK[anim], Math.min(t, LEN[anim])), { snap: 1 });
     const b = Math.sin(t * 2.4), b2 = Math.sin(t * 2.4 - 0.9);                  // idle / ready: breathing
     const base = anim === 'ready' ? READY : {};
     return Object.assign({}, base, { y: -1.5 - b * 1.5, sy: 1 + 0.012 * b, sx: 1 - 0.008 * b, head: (base.head || 0) + b2 * 1.5, hat: b2 * 2, hair: b2 * 1.5, scarf: -3 + b2 * 3, armA: b2 * 3, armB: (base.armB || 0) + b2 * 2 });
   }
+  // ---- v149 soft layer: every channel follows its target through a damped spring, so nothing snaps;
+  // light parts (hair, hat, scarf, fists, head) are looser and also swing from the body's own motion.
+  const SPRING = {   // [stiffness, damping] — lower stiffness = softer / later
+    x: [260, 26], y: [300, 26], sx: [420, 22], sy: [420, 22], torso: [220, 20], legA: [520, 34], legB: [520, 34], legAY: [520, 34], legBY: [520, 34],
+    head: [150, 13], armA: [170, 15], armB: [300, 24], armBX: [300, 24], fistA: [120, 10], fistB: [260, 22], sword: [260, 20],
+    hat: [70, 6], hair: [90, 7], scarf: [45, 4.5]
+  };
+  const LIGHT = { hat: 1, hair: 1, scarf: 1, fistA: 1, head: 1 };
+  const FOLLOW = { head: [0.06, -0.02], hat: [0.12, -0.06], hair: [0.1, -0.05], scarf: [0.2, -0.1], fistA: [0.08, 0] };   // [from body x-accel, from y-vel]
+  function soft(state, P, now) {
+    const dt = Math.min(0.05, Math.max(0.001, state.t === undefined ? 0.016 : now - state.t)); state.t = now;
+    const S = state.s = state.s || {};
+    const prevX = S.x ? S.x.v : 0, prevY = S.y ? S.y.v : 0;
+    const out = {};
+    for (const k of new Set([...Object.keys(SPRING), ...Object.keys(P)])) {
+      const target = P[k] !== undefined ? P[k] : (k === 'sx' || k === 'sy' ? 1 : 0); let sp = SPRING[k];
+      if (sp && P.snap && !LIGHT[k]) sp = [sp[0] * 5, sp[1] * 2.2];          // strikes stay sharp; only the light parts lag
+      if (!sp || typeof target !== 'number') { out[k] = target; continue; }
+      const c = S[k] = S[k] || { v: target, w: 0 };
+      // a few small steps for stability
+      for (let i = 0; i < 3; i++) { const h = dt / 3, a = sp[0] * (target - c.v) - sp[1] * c.w; c.w += a * h; c.v += c.w * h; }
+      out[k] = c.v;
+    }
+    // body motion drives the light parts (a sudden move forward flings the hair and scarf back)
+    const ax = S.x ? S.x.w : 0, vy = S.y ? S.y.w : 0;
+    for (const k in FOLLOW) { const [fa, fv] = FOLLOW[k]; const c = S['f_' + k] = S['f_' + k] || { v: 0, w: 0 }; const tgt = -ax * fa + vy * fv;
+      for (let i = 0; i < 3; i++) { const h = dt / 3, a = 60 * (tgt - c.v) - 8 * c.w; c.w += a * h; c.v += c.w * h; }
+      out[k] = (out[k] || 0) + Math.max(-25, Math.min(25, c.v)); }
+    void prevX; void prevY;
+    return out;
+  }
+  const STATES = {};
   function solve(sk, P, root) {
     prep(sk); const M = {};
     const f = n => {
@@ -111,7 +143,8 @@
       const M = solve(sk, {}, new DOMMatrix()), bot = n => M[n].transformPoint(new DOMPoint(img(sk, n).naturalWidth / 2 - sk.bones[n].pivot[0], img(sk, n).naturalHeight - sk.bones[n].pivot[1])).y;
       sk.sole = Math.max(bot('legA'), bot('legB')); sk.H = sk.sole - M.hat.transformPoint(new DOMPoint(0, -sk.bones.hat.pivot[1])).y;
     }
-    const P = Object.assign(pose(anim, t), (opts && opts.pose) || {});
+    let P = Object.assign(pose(anim, t), (opts && opts.pose) || {});
+    if (!(opts && opts.hard)) { const st = (opts && opts.state) || (STATES[id] = STATES[id] || {}); P = soft(st, P, performance.now() / 1000); }
     const k = height / sk.H, base = ctx.getTransform();
     // feet stay on the ground: scale around the feet, the rest pose's soles sit on groundY
     const rootM = base.translate(x, gy).scale(k * (face || 1), k).scale(P.sx || 1, P.sy || 1).translate(-sk.F.torso.e, -sk.sole);
