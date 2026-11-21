@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#5a6a5a;overflow:hidden;font-family:sans-serif}canvas{display:block;width:100vw;height:100vh}
 #b{position:fixed;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap}#b button{font-size:15px;padding:6px 12px;border-radius:8px;border:1px solid #c9a35a;background:#2a1c10;color:#fbe9c4}#b button.on{background:#c9a35a;color:#2a1a0a}</style></head><body>
 <canvas id="cv"></canvas><div id="b"></div>
-<script src="rig3.js?v=149"></script>
+<script src="rig3.js?v=150d"></script>
 <script>
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 let W,H; function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;} rs(); addEventListener('resize',rs);
@@ -13,7 +13,7 @@ for(const [k,v] of Object.entries(MODES)){const b=document.createElement('button
 function loop(){
   const t=(performance.now()-t0)/1000, h=H*0.62, gy=H*0.86;
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#5a6a5a'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#4a5848'; ctx.fillRect(0,gy,W,H-gy);
-  const moving=mode==='walk'||mode==='run', v=(mode==='run'?0.9:0.5)*h, off=moving?(t*v)%(h*0.3):0;
+  const moving=mode==='walk'||mode==='run', v=mode==='run'?Rig3.runSpeed('chibi',h):Rig3.walkSpeed('chibi',h), off=moving?(t*v)%(h*0.3):0;
   ctx.fillStyle='#3c4a3a'; for(let gx=-off; gx<W; gx+=h*0.3) ctx.fillRect(gx,gy,h*0.04,H*0.025);
   ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(W*0.5,gy+2,h*0.22,h*0.035,0,0,Math.PI*2); ctx.fill();
   let an=mode, tt=t;

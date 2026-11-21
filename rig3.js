@@ -50,59 +50,85 @@
   }
   // channels: <bone> = extra rotation (deg, + clockwise); <bone>X/<bone>Y = extra move (px of the drawing);
   // x/y move the whole body; sx/sy squash & stretch around the feet
-  const READY = { armB: 10, sword: 0, torso: 2 };
-  const ATTACK = {
-    attack1: [[0, READY],                                                                                         // overhead slash
-      [0.2, { torso: -10, head: -6, armB: -95, sword: -30, armA: 20, x: -10, sx: 0.96, sy: 1.04, hat: 4, hair: 3 }, slowIn],
-      [0.27, { torso: 14, head: 8, armB: 95, sword: 45, armA: -25, x: 22, sx: 1.06, sy: 0.94, hat: -6, hair: -4, scarf: -8 }, burst],
-      [0.4, { torso: 12, head: 6, armB: 100, sword: 50, armA: -22, x: 24, sx: 1.04, sy: 0.96, hat: -2, hair: -2 }],
-      [0.65, READY, ease]],
-    attack2: [[0, READY],                                                                                         // rising slash
-      [0.18, { torso: 10, head: 4, armB: 110, sword: 60, armA: -10, x: -6, y: 8, sx: 1.05, sy: 0.95 }, slowIn],
-      [0.25, { torso: -10, head: -8, armB: -120, sword: -50, armA: 25, x: 20, y: -10, sx: 0.95, sy: 1.06, hat: 8, hair: 5, scarf: 10 }, burst],
-      [0.38, { torso: -8, head: -6, armB: -115, sword: -45, armA: 22, x: 22, y: -8, hat: 3, hair: 2 }],
-      [0.62, READY, ease]],
-    attack3: [[0, READY],                                                                                         // thrust finisher
-      [0.26, { torso: -14, head: -8, armB: -20, armBX: -30, sword: 60, armA: 25, x: -18, y: 6, sx: 0.94, sy: 1.05 }, slowIn],
-      [0.33, { torso: 20, head: 10, armB: 70, armBX: 40, sword: 25, armA: -30, x: 46, y: 4, sx: 1.1, sy: 0.92, hat: -10, hair: -6, scarf: -14 }, burst],
-      [0.52, { torso: 18, head: 9, armB: 70, armBX: 40, sword: 25, armA: -28, x: 48, y: 4, sx: 1.06, sy: 0.95, hat: -3, hair: -2 }],
-      [0.85, READY, ease]],
-    hit: [[0, READY],
-      [0.06, { torso: -18, head: -14, armB: -30, armA: 30, x: -30, sx: 0.92, sy: 1.06, hat: 10, hair: 8, scarf: 14 }, burst],
-      [0.3, { torso: -12, head: -9, armB: -20, armA: 22, x: -34, hat: 4, hair: 3 }],
-      [0.7, READY, ease]]
-  };
-  const LEN = { attack1: 0.65, attack2: 0.62, attack3: 0.85, hit: 0.7 };
-  function pose(anim, t) {
-    if (anim === 'walk' || anim === 'run') {
-      const run = anim === 'run', T = run ? 0.46 : 0.62, ph = (t % T) / T * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-      const sw = run ? 30 : 22, lift = run ? 16 : 10;
-      const lag = k => Math.sin(ph - k), bob = Math.abs(Math.cos(ph));          // two bounces per cycle
-      return {
-        legA: sw * s, legB: -sw * s,                                             // legs scissor
-        legAY: -Math.max(0, -c) * lift, legBY: -Math.max(0, c) * lift,           // the leg swinging forward lifts its foot
-        armA: -sw * 1.2 * lag(0.35), armB: 12 + sw * 0.5 * lag(0.35), sword: -8 * lag(0.6), fistA: -10 * lag(0.9),   // arms swing against the legs, a beat late
-        torso: (run ? 9 : 4) + (run ? 3 : 2) * Math.cos(2 * ph - 0.5),
-        y: -(1 - bob) * (run ? 14 : 9), sy: 1 + 0.03 * (bob - 0.5), sx: 1 - 0.03 * (bob - 0.5),
-        head: -2 + 3 * Math.cos(2 * ph - 0.9),                                   // nods with each step, a little late
-        hat: 4 * Math.cos(2 * ph - 1.4), hair: 3 * Math.cos(2 * ph - 1.2),
-        scarf: (run ? -14 : -8) + 6 * Math.sin(2 * ph - 1.6)                    // scarf trails and flutters
-      };
+  // ---- v150 motion, rebuilt from how chibi action games move (Night Camp, Maple-style):
+  // feet are planted and lifted on an ellipse (no sliding), the body bounces twice per step and squashes on
+  // contact, arms swing wide against the legs, attacks use the whole body (step in, squash, stretch, snap back).
+  // Angles: + = clockwise. Arm rest = hanging forward-down; armB −150 = sword raised overhead behind the head.
+  const LEG = 140;                                   // leg length in drawing px (for the foot arcs)
+  const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  function feetOn(P, phase, A, L) {                   // phase 0..2π; legB = near leg
+    for (const [n, ph] of [['legB', phase], ['legA', phase + Math.PI]]) {
+      const fx = A * Math.cos(ph), up = L * Math.max(0, -Math.sin(ph));
+      P[n] = (P[n] || 0) - Math.asin(Math.max(-0.9, Math.min(0.9, fx / LEG))) * R2D - (up > 0 ? 10 * up / L : 0);
+      P[n + 'Y'] = -up;
     }
-    if (ATTACK[anim]) return Object.assign(track(ATTACK[anim], Math.min(t, LEN[anim])), { snap: 1 });
-    const b = Math.sin(t * 2.4), b2 = Math.sin(t * 2.4 - 0.9);                  // idle / ready: breathing
-    const base = anim === 'ready' ? READY : {};
-    return Object.assign({}, base, { y: -1.5 - b * 1.5, sy: 1 + 0.012 * b, sx: 1 - 0.008 * b, head: (base.head || 0) + b2 * 1.5, hat: b2 * 2, hair: b2 * 1.5, scarf: -3 + b2 * 3, armA: b2 * 3, armB: (base.armB || 0) + b2 * 2 });
   }
+  const WALK = { T: 0.58, A: 20, L: 18, bob: 8, lean: 5, arm: 34 }, RUN = { T: 0.42, A: 34, L: 28, bob: 13, lean: 13, arm: 55 };
+  function walking(t, G) {
+    const ph = (t / G.T) * Math.PI * 2, P = {};
+    feetOn(P, ph, G.A, G.L);
+    const s2 = Math.abs(Math.sin(ph));                // 0 = both feet down (contact), 1 = passing
+    P.y = -G.bob * s2 + 2;
+    P.sy = 1 - 0.045 * (1 - s2) + 0.02 * s2; P.sx = 1 + 0.035 * (1 - s2);
+    P.torso = G.lean + 2.5 * Math.sin(2 * ph + 0.6);
+    P.head = -G.lean * 0.6 - 3 * Math.sin(2 * ph - 0.5);
+    const c = Math.cos(ph - 0.35);                    // arms a beat behind the legs, swinging against them
+    P.armA = -G.arm * 0.8 * c + 4; P.fistA = -10 * Math.cos(ph - 0.9);
+    P.armB = G.arm * 0.3 * c - 6; P.sword = -10 - 8 * Math.cos(ph - 0.7);
+    P.scarf = -G.lean * 1.2;
+    return P;
+  }
+  // calibrated on the sheet: armB −30 = fist at the shoulder, sword up · +30 = sword straight forward · +90 = sword down;
+  // sword −70 = blade tipped back over the head · +60 = blade down-forward; armA − = back fist comes forward
+  const READY = { y: 7, sy: 0.97, sx: 1.03, torso: 6, head: -3, armB: -8, sword: -12, armA: 10, legA: 6, legB: -6 };
+  const K = o => Object.assign({}, READY, o);
+  const ATTACK = {
+    attack1: [[0, READY],                                                                     // overhead chop
+      [0.17, K({ x: -14, y: 10, sy: 0.9, sx: 1.08, torso: -10, head: -4, armB: -30, sword: -38, armA: 26, legB: -2, legA: 14 }), slowIn],
+      [0.24, K({ x: 46, y: 2, sy: 1.07, sx: 0.95, torso: 20, head: 10, armB: 66, sword: 46, armA: -14, legB: -26, legA: 22, legBX: 12 }), burst],
+      [0.36, K({ x: 50, y: 6, sy: 0.96, sx: 1.04, torso: 16, head: 8, armB: 70, sword: 50, armA: -10, legB: -24, legA: 22, legBX: 12 })],
+      [0.7, READY, ease]],
+    attack2: [[0, READY],                                                                     // rising slash
+      [0.16, K({ x: -6, y: 14, sy: 0.88, sx: 1.1, torso: 14, head: 6, armB: 80, sword: 62, armA: 18, legB: -10, legA: 10 }), slowIn],
+      [0.23, K({ x: 36, y: -18, sy: 1.1, sx: 0.93, torso: -6, head: -3, armB: -34, sword: -14, armA: -12, legB: -20, legA: 24, legBY: -10 }), burst],
+      [0.36, K({ x: 40, y: -12, sy: 1.04, sx: 0.97, torso: -5, head: -2, armB: -32, sword: -10, armA: -8, legB: -18, legA: 20 })],
+      [0.68, READY, ease]],
+    attack3: [[0, READY],                                                                     // lunging thrust finisher
+      [0.24, K({ x: -26, y: 12, sy: 0.88, sx: 1.1, torso: -18, head: -10, armB: 20, armBX: -22, sword: 12, armA: 30, legB: 8, legA: 18 }), slowIn],
+      [0.31, K({ x: 78, y: 4, sy: 1.08, sx: 0.94, torso: 24, head: 12, armB: 22, armBX: 30, sword: 10, armA: -18, legB: -34, legA: 30, legBX: 18 }), burst],
+      [0.5, K({ x: 82, y: 8, sy: 0.97, sx: 1.04, torso: 20, head: 10, armB: 24, armBX: 28, sword: 12, armA: -14, legB: -32, legA: 30, legBX: 18 })],
+      [0.88, READY, ease]],
+    hit: [[0, READY],
+      [0.05, K({ x: -34, y: 4, sy: 0.9, sx: 1.08, torso: -14, head: -8, armB: 18, sword: -40, armA: 34, legB: 10, legA: -6 }), burst],
+      [0.28, K({ x: -40, y: 6, torso: -10, head: -6, armB: 12, sword: -30, armA: 24, legB: 8, legA: -4 })],
+      [0.72, READY, ease]]
+  };
+  const LEN = { attack1: 0.7, attack2: 0.68, attack3: 0.88, hit: 0.72 };
+  function pose(anim, t) {
+    if (anim === 'walk') return walking(t, WALK);
+    if (anim === 'run') return walking(t, RUN);
+    if (ATTACK[anim]) return Object.assign(track(ATTACK[anim], Math.min(t, LEN[anim])), { snap: 1 });
+    if (anim === 'ready') {                            // fighting stance: a light bounce on the knees
+      const b = Math.sin(t * 2 * Math.PI * 1.6), P = Object.assign({}, READY);
+      P.y += 3 * (1 - Math.abs(b)); P.sy -= 0.015 * (1 - Math.abs(b)); P.sx += 0.012 * (1 - Math.abs(b));
+      P.armB += 4 * b; P.head -= 2 * b; return P;
+    }
+    const b = Math.sin(t * 2.2), w = Math.sin(t * 1.1);  // idle: breathing and a slow weight shift
+    return { y: -2 * b, sy: 1 + 0.018 * b, sx: 1 - 0.012 * b, x: 3 * w, torso: 1.5 * w, head: -2 * w + 1.5 * Math.sin(t * 2.2 - 1),
+      armA: 4 * Math.sin(t * 2.2 - 0.6), armB: 3 * Math.sin(t * 2.2 - 0.8), legA: -1.5 * w, legB: -1.5 * w };
+  }
+  function walkSpeed(id, height) { const sk = SKEL[id]; return sk && sk.H ? (4 * WALK.A / WALK.T) * height / sk.H : 0; }
+  function runSpeed(id, height) { const sk = SKEL[id]; return sk && sk.H ? (4 * RUN.A / RUN.T) * height / sk.H : 0; }
+
   // ---- v149 soft layer: every channel follows its target through a damped spring, so nothing snaps;
   // light parts (hair, hat, scarf, fists, head) are looser and also swing from the body's own motion.
   const SPRING = {   // [stiffness, damping] — lower stiffness = softer / later
-    x: [260, 26], y: [300, 26], sx: [420, 22], sy: [420, 22], torso: [220, 20], legA: [520, 34], legB: [520, 34], legAY: [520, 34], legBY: [520, 34],
-    head: [150, 13], armA: [170, 15], armB: [300, 24], armBX: [300, 24], fistA: [120, 10], fistB: [260, 22], sword: [260, 20],
-    hat: [70, 6], hair: [90, 7], scarf: [45, 4.5]
+    torso: [380, 30], head: [170, 14], armA: [220, 17], armB: [420, 30], armBX: [420, 30], fistA: [140, 10], sword: [380, 26],
+    hat: [190, 13], hair: [150, 10], scarf: [60, 5.2]
   };
+  const LIM = { head: 6, hat: 8, hair: 12, scarf: 25, fistA: 12 };
   const LIGHT = { hat: 1, hair: 1, scarf: 1, fistA: 1, head: 1 };
-  const FOLLOW = { head: [0.06, -0.02], hat: [0.12, -0.06], hair: [0.1, -0.05], scarf: [0.2, -0.1], fistA: [0.08, 0] };   // [from body x-accel, from y-vel]
+  const FOLLOW = { head: [0.015, 0.02], hat: [0.02, 0.035], hair: [0.03, 0.05], scarf: [0.08, 0.15], fistA: [0.02, 0.03] };   // [from body x-velocity, from y-velocity]   // [from body x-accel, from y-vel]
   function soft(state, P, now) {
     const dt = Math.min(0.05, Math.max(0.001, state.t === undefined ? 0.016 : now - state.t)); state.t = now;
     const S = state.s = state.s || {};
@@ -118,10 +144,11 @@
       out[k] = c.v;
     }
     // body motion drives the light parts (a sudden move forward flings the hair and scarf back)
-    const ax = S.x ? S.x.w : 0, vy = S.y ? S.y.w : 0;
+    const vx = state.px === undefined ? 0 : ((P.x || 0) - state.px) / dt, vy = state.py === undefined ? 0 : ((P.y || 0) - state.py) / dt; state.px = P.x || 0; state.py = P.y || 0;
+    const ax = state.vx === undefined ? 0 : vx * 0.6 + state.vx * 0.4; state.vx = vx;
     for (const k in FOLLOW) { const [fa, fv] = FOLLOW[k]; const c = S['f_' + k] = S['f_' + k] || { v: 0, w: 0 }; const tgt = -ax * fa + vy * fv;
       for (let i = 0; i < 3; i++) { const h = dt / 3, a = 60 * (tgt - c.v) - 8 * c.w; c.w += a * h; c.v += c.w * h; }
-      out[k] = (out[k] || 0) + Math.max(-25, Math.min(25, c.v)); }
+      out[k] = (out[k] || 0) + Math.max(-LIM[k], Math.min(LIM[k], c.v)); }
     void prevX; void prevY;
     return out;
   }
@@ -155,8 +182,23 @@
       const b = sk.bones[n]; ctx.setTransform(M[n].translate(-b.pivot[0], -b.pivot[1])); ctx.drawImage(img(sk, n), 0, 0);
     }
     ctx.restore();
+    // a white smear behind the blade while it moves fast (strikes)
+    if (opts && opts.trail !== false) {
+      const st = (opts && opts.state) || STATES[id], tr = st.trail = st.trail || [], now = performance.now();
+      const T1 = M.sword.transformPoint(new DOMPoint(TIP[0] - sk.bones.sword.pivot[0], TIP[1] - sk.bones.sword.pivot[1])), T2 = M.sword.transformPoint(new DOMPoint(MID[0] - sk.bones.sword.pivot[0], MID[1] - sk.bones.sword.pivot[1]));
+      tr.push({ a: T1, b: T2, t: now }); while (tr.length && now - tr[0].t > 110) tr.shift();
+      const fast = P.snap && tr.length > 2 && Math.hypot(tr[tr.length - 1].a.x - tr[0].a.x, tr[tr.length - 1].a.y - tr[0].a.y) > height * 0.25;
+      if (fast) {
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+        for (let i = 1; i < tr.length; i++) { const p = tr[i - 1], q = tr[i], al = i / tr.length;
+          ctx.globalAlpha = 0.75 * al; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(p.a.x, p.a.y); ctx.lineTo(q.a.x, q.a.y); ctx.lineTo(q.b.x, q.b.y); ctx.lineTo(p.b.x, p.b.y); ctx.closePath(); ctx.fill(); }
+        ctx.restore();
+      }
+    }
     return true;
   }
+  const TIP = [188, 4], MID = [118, 64];               // on the sword picture: blade tip and mid-blade
+  function tip() { return TIP; }
   function ready(id) { const sk = SKEL[id]; return !!sk && Object.keys(sk.bones).every(n => ok(img(sk, n))); }
-  root.Rig3 = { draw, ready, pose, SKEL, LEN };
+  root.Rig3 = { draw, ready, pose, SKEL, LEN, walkSpeed, runSpeed, tip };
 })(typeof window !== 'undefined' ? window : globalThis);
