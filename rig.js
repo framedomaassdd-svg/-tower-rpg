@@ -13,13 +13,13 @@
     hero2: {
       dir: 'rig/hero2/', ver: 143,
       torso: { img: 'torso', pivot: [125, 262], s: 0.82,                 // pivot = waist
-               neck: [150, 30], shoulderF: [66, 78], shoulderB: [150, 76], hipF: [112, 286], hipB: [150, 286] },
-      head:  { img: 'head', pivot: [118, 214], s: 0.98 },
-      armF:  { img: 'armF', pivot: [50, 40], joint: 150, end: 282, s: 0.8 },
-      armB:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.8 },
-      legF:  { img: 'legF', pivot: [62, 34], joint: 196, end: 300, s: 0.66 },
-      legB:  { img: 'legB', pivot: [58, 34], joint: 196, end: 300, s: 0.66 },
-      sword: { img: 'sword', pivot: [62, 58], s: 0.78 },
+               neck: [150, 30], shoulderF: [66, 78], shoulderB: [150, 76], hipF: [146, 280], hipB: [108, 280] },
+      head:  { img: 'head', pivot: [118, 214], s: 1.16 },
+      armF:  { img: 'armF', pivot: [50, 40], joint: 150, end: 282, s: 0.66 },
+      armB:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.66 },
+      legF:  { img: 'legF', pivot: [62, 34], joint: 196, end: 300, s: 0.72 },
+      legB:  { img: 'legB', pivot: [58, 34], joint: 196, end: 300, s: 0.72 },
+      sword: { img: 'sword', pivot: [62, 58], s: 0.56 },
       faces: { hurt: 'headHurt', shout: 'headShout', happy: 'headHappy' }
     }
   };
@@ -43,7 +43,7 @@
   }
   // degrees, + = clockwise on screen. For a right-facing body: arm/leg + swings BACK, torso + leans FORWARD,
   // elbow − folds the forearm forward/up, knee + folds the shin back. sword = blade angle from "forward" in the fist.
-  const BASE = { x: 0, y: 0, torso: 3, head: -2, armF: 6, elbowF: -22, armB: -8, elbowB: -26, legF: -4, kneeF: 6, legB: 6, kneeB: 4, sword: -50, face: null };
+  const BASE = { x: 0, y: 0, torso: 3, head: -2, armF: 6, elbowF: -22, armB: -8, elbowB: -26, legF: -20, kneeF: 6, legB: 20, kneeB: 4, sword: -50, face: null };
   const K = o => Object.assign({}, BASE, o);
   const READY = K({ armF: -24, elbowF: -50, sword: -30, armB: 14, elbowB: -40, legF: -14, kneeF: 14, legB: 14, kneeB: 10, torso: 6, y: 6 });
   // combo: 1 downward slash · 2 rising slash · 3 thrust finisher (slow wind-up → burst → hold → recover)
