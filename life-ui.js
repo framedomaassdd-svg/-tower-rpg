@@ -727,7 +727,7 @@
           clearInterval(t);
           // v127 show the fight on the tower scene, then the results
           if (res.fight && window.TowerView) {
-            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor, skill: res.usedActive ? res.usedActive.skill : res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null,
+            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, elite: !!(enc.monster && enc.monster.elite), rank: enc.monster && enc.monster.rank, floor, skill: res.usedActive ? res.usedActive.skill : res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null,
               summon: res.summon ? res.summon.kind : res.summonGone || null, summonGone: !!res.summonGone, transformed: !!res.transformed });
             d.style.visibility = 'hidden';
             setTimeout(() => { d.style.visibility = ''; results(); }, ms + 300);

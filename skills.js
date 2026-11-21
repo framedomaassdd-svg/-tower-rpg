@@ -343,7 +343,9 @@
   const GEAR = Object.freeze({
     dagger: { slot: 'weapon', atk: 5 }, sword: { slot: 'weapon', atk: 11 }, spear: { slot: 'weapon', atk: 10 }, bow: { slot: 'weapon', atk: 9 }, club: { slot: 'weapon', atk: 6 }, knife: { slot: 'weapon', atk: 2 }, namelessBlade:{slot:'weapon',atk:18},
     leather: { slot: 'armor', def: 5 }, chain_vest: { slot: 'armor', def: 10 }, guardianVest: { slot: 'armor', def: 25 },
-    charm: { slot: 'charm', bonus: { agility: 3 } }
+    charm: { slot: 'charm', bonus: { agility: 3 } },
+    // v135 floor gear
+    grass_guard_vest: {slot: 'armor', def: 3, bonus: {agility: 1}}, wolfstep_charm: {slot: 'charm', bonus: {agility: 2}}, mushroom_bow: {slot: 'weapon', atk: 7, bonus: {agility: 1}}, venomproof_coat: {slot: 'armor', def: 5, bonus: {strength: 1}}, orebreaker_spear: {slot: 'weapon', atk: 11, bonus: {strength: 2}}, granite_charm: {slot: 'charm', def: 2, bonus: {strength: 2}}, bogwarden_armor: {slot: 'armor', def: 9, bonus: {strength: 2}}, wraith_saber: {slot: 'weapon', atk: 18, bonus: {intelligence: 2}}, ruin_sentinel_shield: {slot: 'armor', def: 13, bonus: {strength: 3}}, death_knight_charm: {slot: 'charm', atk: 2, def: 4, bonus: {intelligence: 3}}
   });
   const SLOTS = Object.freeze({ weapon: 'อาวุธ', armor: 'เกราะ', charm: 'เครื่องราง' });
   const RARITIES = Object.freeze(['normal', 'soldier', 'captain', 'general', 'king', 'emperor', 'legendary']);

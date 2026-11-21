@@ -12,6 +12,10 @@
   const im = src => { if (!hasImage) return null; const i = new Image(); i.src = src; return i; };
   const ok = i => i && i.complete && i.naturalWidth > 0;
   const SCENES = [1, 2, 3, 4, 5].map(n => im('tower/floor' + n + '.webp?v=127'));
+  // v135 one scene per territory (f1_north …) once the art exists; list ids here when their webp is in tower/regions/
+  const REGION_ART = [];
+  const REGION_IMG = {};
+  const regionBg = id => REGION_ART.includes(id) ? (REGION_IMG[id] = REGION_IMG[id] || im('tower/regions/' + id + '.webp?v=135')) : null;
   const PROPS = { exit: im('tower/stone_exit.webp?v=127'), up: im('tower/stone_up.webp?v=127'), camp: im('tower/camp.webp?v=127') };
   // [cw, ch, ax, base] from the cutter; fly = lifted off the ground (units)
   const MON = {
@@ -119,10 +123,12 @@
     try { const w = E.floorWorld(st, x.floor); return (w && w.species || []).map(s => idOf(s.name)).filter(Boolean); } catch (e) { return []; }
   }
   // ---- drawing helpers (all positions in canvas pixels; u = pixels per unit, a person = 345 units)
-  function drawMon(ctx, id, col, row, x, gy, u, alpha) {
+  function drawMon(ctx, id, col, row, x, gy, u, alpha, glow) {
     const img = monOf(id), m = MON[id]; if (!ok(img) || !m) return;
     const [cw, ch, ax, base, fly] = m;
     ctx.save(); if (alpha !== undefined) ctx.globalAlpha = alpha;
+    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = Math.max(14, 70 * u);   // twice for a stronger rank glow
+      ctx.drawImage(img, col * cw, row * ch, cw, ch, x - ax * u, gy - (base + (fly || 0)) * u, cw * u, ch * u); }
     ctx.drawImage(img, col * cw, row * ch, cw, ch, x - ax * u, gy - (base + (fly || 0)) * u, cw * u, ch * u);
     ctx.restore();
   }
@@ -153,13 +159,16 @@
   function fight(o) {
     const st = o.state;
     const id = o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin';
-    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: o.boss && id !== 'boss5' ? 1.3 : 1, skill: SKILL_FX[o.skill] || null,
+    // v135 rank shows on the monster: bigger, an aura in the rank's colour and a label (tower-regions.js RANK_VISUAL)
+    const RV = root.TowerRegions && root.TowerRegions.RANK_VISUAL || {};
+    const look = (o.boss ? RV.boss : o.elite ? RV.elite : RV[o.rank]) || { scale: o.boss ? 1.3 : 1, aura: null, label: '' };
+    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: id === 'boss5' ? 1 : Math.min(1.6, look.scale || 1), aura: look.aura, label: look.label, skill: SKILL_FX[o.skill] || null,
       summon: o.summon || null, summonGone: !!o.summonGone, avatar: !!o.transformed };
     return FIGHT_MS;
   }
   function show(ctx, cv, t, clock, info, st) {
     if (!info || !info.tower || !st) { fx = null; return false; }
-    const W = cv.width, H = cv.height, n = sceneOf(st), bg = SCENES[n - 1];
+    const W = cv.width, H = cv.height, n = sceneOf(st), X0 = X(st), rb = X0 && X0.at ? regionBg(X0.at) : null, bg = ok(rb) ? rb : SCENES[n - 1];
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#1b1410'; ctx.fillRect(0, 0, W, H);
     const s = Math.max(W / 1672, H / 941), ox = (W - 1672 * s) / 2, oy = (H - 941 * s) / 2;
@@ -199,7 +208,21 @@
         if (fx.win) { if (k > 0.75 && k < 1.35) { mrow = 2; mcol = k < 1.05 ? 0 : 1; } else if (k >= 1.35) { mrow = 2; mcol = k < 1.65 ? 2 : 3; malpha = Math.max(0, 1 - (k - 2.1) / 0.8); } }
         else if (k > 1.0) { mrow = 1; mcol = f4(1.0, 0.18); }
         const shake = (fx.win ? k > 0.75 && k < 0.95 : k > 1.36 && k < 1.56) ? Math.sin(k * 90) * 6 * u : 0;
-        drawMon(ctx, fx.id, mcol, mrow, mx + (fx.win ? shake : 0), gy, mu, malpha);
+        if (fx.aura) {                                                   // rank aura on the ground and around the body
+          const pulse = 0.75 + 0.25 * Math.sin(k * 6), R = 170 * mu;
+          ctx.save(); ctx.globalAlpha = (malpha === undefined ? 1 : malpha) * 0.8 * pulse;
+          const g = ctx.createRadialGradient(mx, gy, R * 0.05, mx, gy, R);
+          g.addColorStop(0, fx.aura); g.addColorStop(0.6, fx.aura + '55'); g.addColorStop(1, fx.aura + '00');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(mx, gy, R, R * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = fx.aura; ctx.lineWidth = Math.max(2, 5 * u); ctx.beginPath(); ctx.ellipse(mx, gy, R * 0.8, R * 0.17, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        }
+        drawMon(ctx, fx.id, mcol, mrow, mx + (fx.win ? shake : 0), gy, mu, malpha, fx.aura);
+        if (fx.label && (malpha === undefined || malpha > 0.3)) {
+          const fs = Math.max(12, 30 * u), M = MON[fx.id] || [0, 0, 0, 300, 0], ly = gy - (M[3] + (M[4] || 0)) * mu - 14 * u;
+          ctx.save(); ctx.font = 'bold ' + fs + 'px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = Math.max(3, fs / 5);
+          ctx.strokeStyle = 'rgba(20,12,8,.9)'; ctx.fillStyle = fx.aura || '#fff';
+          ctx.strokeText(fx.label, mx, ly); ctx.fillText(fx.label, mx, ly); ctx.restore();
+        }
         // hero
         let hrow = fx.row, hcol = 0;
         if (k > 0.3 && k < 1.1) hcol = f4(0.3, 0.2);
