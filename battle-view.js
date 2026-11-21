@@ -38,7 +38,8 @@
     const vis = new Map();                    // per-unit display state
     const pops = [];                          // floating texts and pip shards
     let simT = 0, anim = null, shake = { t: 0, a: 0 }, stopUntil = 0, waitHero = null, tl = new Map(), phase = 'advance', phaseT = 0;
-    b.units.forEach((x, i) => vis.set(x, { flash: 0, knock: 0, alpha: 1, pose: null, poseUntil: 0, seed: i * 1.7 }));
+    b.units.forEach((x, i) => vis.set(x, { flash: 0, knock: 0, alpha: 1, pose: null, poseUntil: 0, seed: i * 1.7, dp: x.pips, ds: x.shield }));
+    const sync = x => { const v = vis.get(x); if (v) { v.dp = x.pips; v.ds = x.shield; } };
 
     function resize() {
       const r = cv.getBoundingClientRect(), d = Math.min(2, root.devicePixelRatio || 1);
@@ -73,15 +74,21 @@
       }
       ctx.restore();
     }
+    // life pips as shown (they drop when the blow lands, not when it is computed); half pips are half filled
     function pipsOf(x, px, gy, sc) {
-      const A = art(x), top = gy - (A.base * 0.82 + (A.lift || 0)) * u * sc * A.scale - 16 * u;
-      const n = x.max + x.shield, r = Math.max(4, 11 * u * sc), gap = r * 2.5, x0 = px - (n - 1) * gap / 2;
+      const A = art(x), v = vis.get(x), top = gy - (A.base * 0.82 + (A.lift || 0)) * u * sc * A.scale - 16 * u;
+      const sh = Math.ceil(v.ds - 1e-6), n = x.max + sh, r = Math.max(4, 11 * u * sc), gap = r * 2.5, x0 = px - (n - 1) * gap / 2;
       for (let i = 0; i < n; i++) {
-        const cx = x0 + i * gap, shield = i >= x.max, full = shield || i < x.pips;
-        ctx.beginPath(); ctx.arc(cx, top, r, 0, Math.PI * 2);
-        ctx.fillStyle = shield ? '#f4f7ff' : full ? (x.side === 'L' ? '#e8483f' : '#d8403a') : 'rgba(30,20,20,.55)';
-        ctx.fill(); ctx.lineWidth = Math.max(1.5, r * 0.32); ctx.strokeStyle = shield ? '#9fb6d9' : '#2a1412'; ctx.stroke();
-        if (full && !shield) { ctx.beginPath(); ctx.arc(cx - r * 0.3, top - r * 0.3, r * 0.3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill(); }
+        const cx = x0 + i * gap, shield = i >= x.max, fill = shield ? Math.min(1, v.ds - (i - x.max)) : Math.max(0, Math.min(1, v.dp - i));
+        const col = shield ? '#f4f7ff' : x.side === 'L' ? '#e8483f' : '#d8403a';
+        ctx.beginPath(); ctx.arc(cx, top, r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(30,20,20,.55)'; ctx.fill();
+        if (fill > 0) {
+          ctx.save(); ctx.beginPath(); ctx.arc(cx, top, r, 0, Math.PI * 2); ctx.clip();
+          ctx.fillStyle = col; ctx.fillRect(cx - r, top - r, fill >= 1 ? r * 2 : r, r * 2); ctx.restore();
+          ctx.beginPath(); ctx.arc(cx - r * 0.3, top - r * 0.3, r * 0.3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(cx, top, r, 0, Math.PI * 2); ctx.lineWidth = Math.max(1.5, r * 0.32);
+        ctx.strokeStyle = shield ? '#9fb6d9' : x.guard > 0 ? '#9fb0c4' : '#2a1412'; ctx.stroke();
       }
       if (x.taunt > 0) { ctx.font = 'bold ' + Math.round(r * 2) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd36b'; ctx.fillText('!', px, top - r * 1.8); }
     }
@@ -122,16 +129,18 @@
       const target = ev.hits[0] && ev.hits[0].target;
       anim = { ev, actor: a, t0, melee: ev.hits.length > 0 && !a.ranged, ranged: ev.hits.length > 0 && a.ranged, from: s, to: target ? spot(target) : null,
         dur: ev.hits.length ? (a.ranged ? 0.85 : 0.78) + (ev.hits.length - 1) * 0.28 : 0.8, applied: 0 };
+      if (ev.type === 'skill' || ev.type === 'item') pops.push({ text: ev.type === 'item' ? 'ยาฟื้นฟู' : B().SKILLS[ev.id].name, x: s.x, y: s.gy - 330 * u * s.sc, t0, color: '#ffe7a8' });
     }
     function applyHit(h, at) {
       const v = vis.get(h.target), s = spot(h.target);
       if (h.miss) { v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
       v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + 0.38;
+      v.dp = Math.max(0, v.dp - h.took); v.ds = Math.max(0, v.ds - h.broke);       // the pips go now, as the blow lands
       shake = { t: at, a: (h.took + h.broke) * 7 + (h.killed ? 6 : 0) };
       stopUntil = performance.now() + 75;                                     // hit-stop
-      const label = (h.broke ? '−' + h.broke + ' โล่' : '') + (h.broke && h.took ? ' ' : '') + (h.took ? '−' + h.took : '');
-      pops.push({ text: label || '−0', x: s.x, y: s.gy - 280 * u * s.sc, t0: at, color: h.took ? '#ff6a5a' : '#e8f0ff', big: true });
-      for (let i = 0; i < 6 * (h.took + h.broke); i++) pops.push({ shard: true, x: s.x, y: s.gy - 300 * u * s.sc, vx: (Math.random() - 0.5) * 300 * u, vy: -Math.random() * 380 * u, t0: at, color: h.broke && i < 6 * h.broke ? '#f4f7ff' : '#e8483f' });
+      const nb = Math.round(h.broke * 6), nt = Math.round(h.took * 6);
+      for (let i = 0; i < nb + nt; i++) pops.push({ shard: true, x: s.x, y: s.gy - 300 * u * s.sc, vx: (Math.random() - 0.5) * 300 * u, vy: -Math.random() * 380 * u, t0: at, color: i < nb ? '#f4f7ff' : '#e8483f' });
+      if (h.cut) for (let i = 0; i < 5; i++) pops.push({ shard: true, x: s.x - s.dir * 30 * u, y: s.gy - 220 * u * s.sc, vx: (Math.random() - 0.5) * 420 * u, vy: -Math.random() * 300 * u, t0: at, color: '#c9d3df' });   // armour clink
       if (h.killed) v.dieAt = at;
     }
     function updateAnim(t) {
@@ -142,12 +151,14 @@
       if (!n && !anim.done && k > 0.35) {                                       // shield, heal, potion land
         anim.done = true; const tgt = ev.target, s = tgt && spot(tgt);
         if (s) {
-          if (ev.shield) pops.push({ text: '+' + ev.shield + ' โล่', x: s.x, y: s.gy - 280 * u * s.sc, t0: t, color: '#f4f7ff', big: true, ring: '#cfe0ff' });
-          if (ev.heal) pops.push({ text: '+' + ev.heal, x: s.x, y: s.gy - 280 * u * s.sc, t0: t, color: '#7dffa0', big: true, ring: '#7dffa0' });
+          sync(tgt);
+          if (ev.shield) pops.push({ text: '', x: s.x, y: s.gy - 280 * u * s.sc, t0: t, ring: '#cfe0ff' });
+          if (ev.heal) pops.push({ text: '', x: s.x, y: s.gy - 280 * u * s.sc, t0: t, ring: '#7dffa0' });
+          if (ev.guard) pops.push({ text: '', x: s.x, y: s.gy - 280 * u * s.sc, t0: t, ring: '#b8c4d4' });
           if (ev.type === 'skill' && B().SKILLS[ev.id] && B().SKILLS[ev.id].push) pops.push({ text: 'เร็วขึ้น!', x: s.x, y: s.gy - 280 * u * s.sc, t0: t, color: '#ffe27a', big: true, ring: '#ffe27a' });
         }
       }
-      if (k >= anim.dur) { anim = null; phase = 'advance'; phaseT = t; }
+      if (k >= anim.dur) { b.units.forEach(sync); anim = null; phase = 'advance'; phaseT = t; }
     }
     // the acting unit's position and pose during its action
     function actorState(x, s, t) {
@@ -263,7 +274,8 @@
       stop() { stopped = true; root.removeEventListener('resize', resize); ui.innerHTML = ''; },
       setAuto(v) { auto = v; if (auto && waitHero) choose({ type: 'attack' }); },
       setSpeed(v) { speed = v; },
-      get auto() { return auto; }
+      get auto() { return auto; },
+      get debug() { return { phase, anim: anim && { actor: anim.actor.name, k: simT - anim.t0, dur: anim.dur }, ready: b.ready && b.ready.name, over: b.over, simT, waitHero: !!waitHero }; }
     };
   }
   root.BattleView = { start };
