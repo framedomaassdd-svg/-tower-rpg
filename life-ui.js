@@ -49,7 +49,7 @@
   .sc-page{position:absolute;top:9%;bottom:9%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:2.2cqw 1.6cqw;justify-items:center;align-items:center}
   .sc-page.l{left:6.5%;right:52.5%}.sc-page.r{left:52.5%;right:6.5%}
   .sc-card{display:block;position:relative;width:88%;height:auto;aspect-ratio:324/480;cursor:pointer;container-type:inline-size;border:0;padding:0;background:none}
-  .sc-art{position:absolute;left:14.5%;top:17.5%;width:71%;height:44%;background:url(cards/art.webp?v=133) 0 0/700% 400% no-repeat}
+  .sc-art{position:absolute;left:14.5%;top:17.5%;width:71%;height:44%;background:url(cards/art.webp?v=134) 0 0/700% 600% no-repeat}
   .sc-frame{position:absolute;inset:0;background:center/100% 100% no-repeat}
   .sc-frame.life{background-image:url(cards/frame_life.webp?v=133)}.sc-frame.passive{background-image:url(cards/frame_passive.webp?v=133)}
   .sc-frame.active{background-image:url(cards/frame_active.webp?v=133)}.sc-frame.secret{background-image:url(cards/frame_secret.webp?v=133)}
@@ -59,6 +59,15 @@
   .sc-slot{width:80%;height:auto;aspect-ratio:258/360;background:url(cards/slot_empty.webp?v=133) center/100% 100% no-repeat;border:0;padding:0;cursor:pointer}
   .sc-slot.lock{background-image:url(cards/slot_locked.webp?v=133);aspect-ratio:270/360;width:82%}
   .sc-mini{display:inline-block;vertical-align:middle;width:44px;margin-right:8px}
+  .sc-card{filter:drop-shadow(0 0 .35cqw var(--gc,#aaa)) drop-shadow(0 0 1.6cqw color-mix(in srgb,var(--gc,#aaa) 55%,transparent))}
+  .sc-gem{position:absolute;left:50%;top:1.2%;width:11%;aspect-ratio:1;transform:translateX(-50%) rotate(45deg);background:var(--gc,#aaa);border:1px solid #fff8;box-shadow:0 0 6px var(--gc,#aaa)}
+  .sc-set{position:absolute;right:3%;bottom:2%;width:22%;aspect-ratio:1;background:url(cards/sets.webp?v=134) 0 0/800% 100% no-repeat}
+  .sc-setic{display:inline-block;vertical-align:middle;background:url(cards/sets.webp?v=134) 0 0/800% 100% no-repeat;margin-right:6px}
+  .sc-legend::after{content:'';position:absolute;inset:0;border-radius:6%;background:linear-gradient(115deg,transparent 35%,#fff7 50%,transparent 65%) -150% 0/250% 100% no-repeat;animation:scshine 2.6s linear infinite;pointer-events:none;mix-blend-mode:screen}
+  @keyframes scshine{to{background-position:150% 0}}
+  .sc-grade{font-weight:700}
+  .sc-setrow{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid #ffffff1f;border-radius:10px;margin:6px 0}
+  .sc-setrow.on{border-color:#f2c14e88;background:#f2c14e12}
   .sc-new{position:absolute;inset:-25%;background:url(cards/sparkle.webp?v=133) center/contain no-repeat;pointer-events:none;animation:scnew 1.6s ease-in-out infinite}
   @keyframes scnew{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.05)}}
   .lg-card{background:var(--lg-bg);border:1px solid var(--lg-line);border-radius:18px;padding:22px;max-width:620px;width:100%;max-height:100%;overflow:auto;
@@ -250,19 +259,24 @@
     B().ICON_SHEETS.forEach(src => { const im = new Image(); im.onload = () => { sheetOk[src] = true; }; im.src = src + '?v=100'; }); }
   // v133 skill cards: art.webp is 7×4 tiles of 256 in this order; frame by the kind of skill
   const CARD_ART = ['fire','ice','sword','sunfall','winterSeal','riftStrike','limitBreak','fireBody','iceSkin','lastStand','shadowStep','dangerSense',
-    'survivalInstinct','partyOath','homeResolve','brawn','nimble','keen','ironBack','trailEye','battleStep','herbalLore','smithing','cooking','mapping','haggling','gathering','back'];
+    'survivalInstinct','partyOath','homeResolve','brawn','nimble','keen','ironBack','trailEye','battleStep','herbalLore','smithing','cooking','mapping','haggling','gathering','back',
+    'avatarForm','stormLance','earthBulwark','sanctuaryLight','spiritCall','spiritMend','spiritScout','spiritGuard'];   // v134 7×6 sheet
   const SECRET_SKILLS = ['riftStrike','limitBreak','sunfall','winterSeal','survivalInstinct','partyOath','homeResolve'];
-  const artPos = sk => { const i = Math.max(0, CARD_ART.indexOf(sk)), c = i % 7, r = Math.floor(i / 7); return `background-position:${c * 100 / 6}% ${r * 100 / 3}%`; };
+  const artPos = sk => { const i = Math.max(0, CARD_ART.indexOf(sk)), c = i % 7, r = Math.floor(i / 7); return `background-position:${c * 100 / 6}% ${r * 100 / 5}%`; };
+  const setOf = sk => window.Skills && Skills.SET_ORDER ? Skills.SET_ORDER.find(id => Skills.SETS[id].members.includes(sk)) : null;
+  const setBadge = (id, px) => `<i class="sc-setic" style="width:${px}px;height:${px}px;background-position:${Skills.SET_ORDER.indexOf(id) * 100 / 7}% 0"></i>`;
+  const gradeHtml = r => { const g = Skills.gradeOf(r); return `<b class="sc-grade" style="color:${g.color}">${g.name}</b>`; };
   const frameOf = sk => { const D = window.Skills && Skills.SKILLS[sk]; return SECRET_SKILLS.includes(sk) ? 'secret' : D && D.type === 'life' ? 'life' : D && D.type === 'active' ? 'active' : 'passive'; };
   function cardHtml(sk, o = {}) {
-    const D = Skills.SKILLS[sk] || { name: sk };
-    return `<span class="sc-card" ${o.attr || ''} style="${o.width ? 'width:' + o.width + 'px' : ''}"><i class="sc-art" style="${artPos(sk)}"></i><i class="sc-frame ${frameOf(sk)}"></i>`
-      + `<b class="sc-name">${esc(D.name)}</b>${o.tier ? `<b class="sc-tier">${esc(o.tier)}</b>` : ''}${o.on ? '<i class="sc-on">✨</i>' : ''}${o.isNew ? '<i class="sc-new"></i>' : ''}</span>`;
+    const D = Skills.SKILLS[sk] || { name: sk }, g = Skills.gradeOf(o.rarity), set = setOf(sk), legend = g.name === 'Legend';
+    return `<span class="sc-card${legend ? ' sc-legend' : ''}" ${o.attr || ''} style="--gc:${g.color};${o.width ? 'width:' + o.width + 'px' : ''}"><i class="sc-art" style="${artPos(sk)}"></i><i class="sc-frame ${frameOf(sk)}"></i>`
+      + `<b class="sc-name">${esc(D.name)}</b>${o.tier ? `<b class="sc-tier">${esc(o.tier)}</b>` : ''}${o.on ? '<i class="sc-on">✨</i>' : ''}${o.isNew ? '<i class="sc-new"></i>' : ''}`
+      + `${set ? `<i class="sc-set" style="background-position:${Skills.SET_ORDER.indexOf(set) * 100 / 7}% 0" title="${esc(Skills.SETS[set].name)}"></i>` : ''}<i class="sc-gem" title="${g.name}"></i></span>`;
   }
   function iconHtml(id, px) {
     const b = B(); loadSheets();
     const cardSkill = window.Skills && Skills.CARD_SKILL && Skills.CARD_SKILL[id];
-    if (cardSkill) return `<i class="lg-ic" style="width:${px}px;height:${px}px;border-radius:4px;background-image:url(cards/art.webp?v=133);background-size:700% 400%;${artPos(cardSkill)}"></i>`;
+    if (cardSkill) return `<i class="lg-ic" style="width:${px}px;height:${px}px;border-radius:4px;background-image:url(cards/art.webp?v=134);background-size:700% 600%;${artPos(cardSkill)}"></i>`;
     const it = id === 'coin' || id === 'coins' ? b.COIN : b.ITEMS[id] || { icon: '❔' }, at = b.ICONS[id], src = at && b.ICON_SHEETS[at[0]];
     if (src && sheetOk[src]) { const c = at[1] % 4, r = Math.floor(at[1] / 4);
       return `<i class="lg-ic" style="width:${px}px;height:${px}px;background-image:url(${src}?v=100);background-size:400% 400%;background-position:${c * 100 / 3}% ${r * 100 / 3}%"></i>`; }
@@ -616,7 +630,7 @@
         html = '<h3>ร้านค้าภายในหอคอย</h3><p class="lg-muted">ซื้อทีละชิ้น กดซ้ำได้ · ราคาตามประเภทชั้น</p><div class="lg-safe-grid">' +
           current.shop.map(id => smallButton('buy', id, iconHtml(id, 30) + ' ' + esc(b.name(id)), b.safeBuyPrice(id, floor, current.price) + ' เหรียญ · มี ' + b.count(state, id), state.money < b.safeBuyPrice(id, floor, current.price) || b.total(state) >= b.CAP)).join('') + '</div>' +
           (Object.entries(window.Skills && window.Skills.CARD_SKILL || {}).filter(([book, skill]) => b.count(state, book)).length ?
-            '<h3>ใส่การ์ดสกิลลงสมุด</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.CARD_SKILL).filter(([book]) => b.count(state, book)).flatMap(([book, sk]) => b.list(state).filter(s=>s.id===book).map(s=>smallButton('read', book, '🃏 ' + (state.skills[sk] ? 'หลอม ' : 'ใส่ ') + esc(b.name(book)) + ' [' + esc(s.rarity||'normal') + ']', state.skills[sk] ? 'ความชำนาญ +' + Skills.rarityMultiplier(s.rarity||'normal') : 'สมุด ' + Object.keys(state.skills).length + '/' + state.skillSlots + ' ช่อง',false,s.rarity||'normal'))).join('') + '</div>' : '');
+            '<h3>ใส่การ์ดสกิลลงสมุด</h3><div class="lg-safe-grid">' + Object.entries(window.Skills.CARD_SKILL).filter(([book]) => b.count(state, book)).flatMap(([book, sk]) => b.list(state).filter(s=>s.id===book).map(s=>smallButton('read', book, '🃏 ' + (state.skills[sk] ? 'หลอม ' : 'ใส่ ') + esc(b.name(book)) + ' [' + Skills.gradeOf(s.rarity).name + ']', state.skills[sk] ? 'ความชำนาญ +' + Skills.rarityMultiplier(s.rarity||'normal') : 'สมุด ' + Object.keys(state.skills).length + '/' + state.skillSlots + ' ช่อง',false,s.rarity||'normal'))).join('') + '</div>' : '');
       } else if (section === 'sell') {
         const items = Object.keys(b.ITEMS).filter(id => (b.SAFE_BUYER.includes(id) || b.ITEMS[id].kind === 'book') && b.count(state, id));   // v132 skill cards sell here too
         html = '<h3>จุดรับซื้อวัสดุ</h3><p class="lg-muted">ขายทีละชิ้น รับเหรียญทันที (ไม่ขายของสวมใส่อัตโนมัติ)</p>' +
@@ -713,7 +727,8 @@
           clearInterval(t);
           // v127 show the fight on the tower scene, then the results
           if (res.fight && window.TowerView) {
-            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor, skill: res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null });
+            const ms = TowerView.fight({ state, name: enc.monster && enc.monster.name, win: res.fight.win, boss: !!enc.boss, floor, skill: res.usedActive ? res.usedActive.skill : res.triggered && res.triggered.kind === 'active' ? res.triggered.skill : null,
+              summon: res.summon ? res.summon.kind : res.summonGone || null, summonGone: !!res.summonGone, transformed: !!res.transformed });
             d.style.visibility = 'hidden';
             setTimeout(() => { d.style.visibility = ''; results(); }, ms + 300);
           } else results();
@@ -844,7 +859,7 @@
         outnumbered: 'เมื่ออยู่คนเดียวหรือหลุดจากทีม', terrain: 'เมื่ออยู่ภูมิประเทศ ' + D.trigger.value,
         nearDeath: 'เมื่อการต่อสู้กำลังจะถึงตาย' }[D.trigger.when] || 'เงื่อนไขพิเศษ') +
         ': ' + (D.effect.name || D.effect.kind) + ' (ปลดล็อก tier ชำนาญ)' + (D.oncePerDay ? ' · วันละครั้ง' : '') : '';
-      return `<div class="lg-zone" id="sk-${id}"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
+      return `<div class="lg-zone" id="sk-${id}"><b>${D.icon} ${esc(D.name)}</b> <span class="lg-tag">${T.name}</span> ${gradeHtml(sk.rarity)} <span class="lg-muted">${TYPE[D.type]} · ${esc(eff)}</span>
         ${triggerText ? `<small style="display:block;color:var(--lg-gold)">${esc(triggerText)}${sk.tier < 2 ? ' 🔒' : ' ✓'}</small>` : ''}
         ${D.type === 'active' ? `<button class="lg-btn ${S.activeOf(state) === id ? 'lg-cur' : ''}" data-active="${id}">${S.activeOf(state) === id ? '✓ กำลังใช้สกิลนี้' : 'เลือกเป็นสกิลแอ็กทีฟ'}</button>` : ''}
         <button class="lg-btn" data-uncard="${id}" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0 0">🃏 ถอดการ์ดออก<small>ความชำนาญรีเซ็ตเป็นขั้น 1</small></button>
@@ -854,15 +869,19 @@
     const used = Object.keys(state.skills || {}).length, slots = state.skillSlots || S.BOOK_SLOTS, inTowerNow = X() && X().active(state);
     const cardRows = Object.entries(S.CARD_SKILL).flatMap(([card, id]) => B().list(state).filter(s => s.id === card).map(s => {
       const inBook = !!state.skills[id], full = !inBook && used >= slots;
-      return `<button class="lg-btn" data-read="${card}" data-rarity="${esc(s.rarity || 'normal')}" ${full ? 'disabled' : ''} style="display:flex;align-items:center;gap:8px;text-align:left"><span class="sc-mini">${cardHtml(id, { width: 44 })}</span><span>${inBook ? 'หลอมการ์ดซ้ำ' : 'ใส่การ์ดลงสมุด'} · ${esc(S.SKILLS[id].name)} ×${s.n}
-        <small>${esc(s.rarity || 'normal')} · ${inBook ? 'ความชำนาญ +' + S.rarityMultiplier(s.rarity || 'normal') : full ? 'สมุดเต็ม' : 'เริ่มที่ขั้น 1'} · ขายได้ ${B().ITEMS[card].sell} เหรียญที่กิลด์พ่อค้าหอคอย</small></span></button>`; })).join('');
+      return `<button class="lg-btn" data-read="${card}" data-rarity="${esc(s.rarity || 'normal')}" ${full ? 'disabled' : ''} style="display:flex;align-items:center;gap:8px;text-align:left"><span class="sc-mini">${cardHtml(id, { width: 44, rarity: s.rarity })}</span><span>${inBook ? 'หลอมการ์ดซ้ำ' : 'ใส่การ์ดลงสมุด'} · ${esc(S.SKILLS[id].name)} ×${s.n}
+        <small>${gradeHtml(s.rarity)} · ${inBook ? (S.RARITIES.indexOf(s.rarity || 'normal') > S.RARITIES.indexOf(state.skills[id].rarity || 'normal') ? 'อัปเกรดการ์ดในสมุด (ความชำนาญคงเดิม)' : 'ความชำนาญ +' + S.rarityMultiplier(s.rarity || 'normal')) : full ? 'สมุดเต็ม' : 'เริ่มที่ขั้น 1'} · ขายได้ ${B().ITEMS[card].sell * S.gradeOf(s.rarity).sell} เหรียญที่กิลด์พ่อค้าหอคอย</small></span></button>`; })).join('');
     const inBookIds = Object.keys(state.skills || {});
     const slotHtml = Array.from({ length: S.BOOK_MAX }, (_, i) => {
       const sk = inBookIds[i];
-      if (sk) { const T = S.TIERS[state.skills[sk].tier - 1]; return cardHtml(sk, { attr: `data-cardjump="${sk}" title="${esc(S.SKILLS[sk].name)}"`, tier: T && T.name, on: S.SKILLS[sk].type === 'active' && S.activeOf(state) === sk }); }
+      if (sk) { const T = S.TIERS[state.skills[sk].tier - 1]; return cardHtml(sk, { rarity: state.skills[sk].rarity, attr: `data-cardjump="${sk}" title="${esc(S.SKILLS[sk].name)}"`, tier: T && T.name, on: S.SKILLS[sk].type === 'active' && S.activeOf(state) === sk }); }
       if (i < slots) return `<button class="sc-slot" data-slotjump="1" title="ช่องว่าง"></button>`;
       return `<button class="sc-slot lock" data-expandbook="${i === slots ? 1 : ''}" title="ช่องล็อก"></button>`;
     });
+    const setRows = S.SET_ORDER.map(sid => { const T = S.SETS[sid], n = S.setCount(state, sid);
+      return `<div class="sc-setrow ${n >= 2 ? 'on' : ''}">${setBadge(sid, 40)}<div><b>${esc(T.name)}</b> <span class="lg-muted">${esc(T.role)} · ${n}/${T.members.length}</span><br>
+        <small>${T.members.map(m => (state.skills[m] ? '✓ ' : '○ ') + esc(S.SKILLS[m].name) + (m === T.core ? ' (หัวใจ)' : '')).join(' · ')}</small><br>
+        ${T.bonuses.map(b => `<small style="display:block;${n >= b.pieces ? 'color:#f2c14e' : 'opacity:.6'}">${n >= b.pieces ? '✦' : '○'} ${b.pieces} ใบ: ${esc(b.text)}</small>`).join('')}</div></div>`; }).join('');
     const bookView = `<div class="sc-book"><div class="sc-page l">${slotHtml.slice(0, 6).join('')}</div><div class="sc-page r">${slotHtml.slice(6, 12).join('')}</div></div>`;
     const bookHead = `<h3>สมุดสกิล ${used}/${slots} ช่อง</h3>${bookView}<p class="lg-muted">สกิลทำงานเฉพาะการ์ดที่อยู่ในสมุด · ถอดการ์ดออกได้ทุกเมื่อ (ไปขายหรือใส่ทีหลัง) แต่ความชำนาญและขั้นจะรีเซ็ต · ได้สกิลใหม่ตอนสมุดเต็ม การ์ดจะเข้ากระเป๋า</p>
       ${slots < S.BOOK_MAX ? `<button class="lg-btn" data-expandbook="1" ${state.money < S.expandCost(state) || inTowerNow ? 'disabled' : ''}>📖 ขยายสมุดเป็น ${slots + 1} ช่อง<small>${S.expandCost(state)} เหรียญ${inTowerNow ? ' · ต้องอยู่ในเมือง' : ''} · สูงสุด ${S.BOOK_MAX} ช่อง</small></button>` : ''}`;
@@ -885,6 +904,7 @@
       <h3>เควสเรียนสกิลจาก NPC</h3><p class="lg-muted">นัดพบผู้สอนหลังเลิกงาน → ทำบททดสอบ → กลับไปรับสกิล แอ็กทีฟขั้นสูงต้องผ่านการต่อสู้ยากมาก และจะใช้ได้เฉพาะเมื่อวงล้อเปิดจังหวะ</p>${questCards}
       ${bookHead}<p class="lg-muted">สกิลแอ็กทีฟใช้ได้ทีละหนึ่ง เลือกสกิลที่จะใช้กับสล็อตต่อสู้</p>${skills}
       ${cardRows ? '<h3>การ์ดสกิลในกระเป๋า</h3>' + cardRows : ''}
+      <h3>ชุดสกิล</h3><p class="lg-muted">ใส่การ์ดของชุดเดียวกันในสมุดพร้อมกันเพื่อรับบัฟชุด · ระดับการ์ด: ${S.CARD_GRADES.map(g => `<b style="color:${g.color}">${g.name}</b>`).join(' · ')} (ยิ่งสูงยิ่งแรงและขายแพง)</p>${setRows}
       ${X() && X().safeInfo(state) ? '<button class="lg-btn" data-safe="1">🏕 เปิดบริการ · ' + esc(X().safeInfo(state).name) + '</button>' : ''}
       <h3>อุปกรณ์</h3>${gear}<p class="lg-muted">อาวุธและเกราะซื้อได้ที่โรงตีเหล็ก หรือสั่งตีเอง (ธุระหลังเลิกงาน)</p>
       <h3>ฉายา (ใช้ได้ทีละหนึ่ง)</h3>${titles}

@@ -27,10 +27,25 @@
     ['งูบึง', 'snake'], ['ยุง', 'mosquito'], ['วิญญาณจมน้ำ', 'drowned'], ['อัศวินมรณะ', 'boss5'], ['อัศวินผี', 'ghostknight'], ['การ์กอยล์', 'gargoyle'],
     ['โครงกระดูก', 'skeleton'], ['ผู้เฝ้าซาก', 'warden']];
   // v129 effects: fx/<id>.webp, 6 frames in a row on black → drawn with 'lighter' (no cut-out needed)
-  const FX_IDS = ['sword', 'fire', 'ice', 'sunfall', 'winterseal', 'rift', 'limit', 'claw', 'heal'];
+  const FX_IDS = ['sword', 'fire', 'ice', 'sunfall', 'winterseal', 'rift', 'limit', 'claw', 'heal',
+    'avatar', 'stormlance', 'earthbulwark', 'sanctuary', 'spiritcall', 'spiritmend', 'spiritscout'];   // v134 set cores
   const FX = {}; for (const id of FX_IDS) FX[id] = im('fx/fx_' + id + '.webp?v=129');
-  const SKILL_FX = { sword: 'sword', fire: 'fire', ice: 'ice', sunfall: 'sunfall', winterSeal: 'winterseal', riftStrike: 'rift', limitBreak: 'limit' };
-  const FLIES = { fire: 1, ice: 1, limit: 1 };         // these travel from the hero to the monster; the rest burst on the target
+  const SKILL_FX = { sword: 'sword', fire: 'fire', ice: 'ice', sunfall: 'sunfall', winterSeal: 'winterseal', riftStrike: 'rift', limitBreak: 'limit',
+    avatarForm: 'avatar', stormLance: 'stormlance', earthBulwark: 'earthbulwark', sanctuaryLight: 'sanctuary', spiritCall: 'spiritcall', spiritMend: 'spiritmend', spiritScout: 'spiritscout' };
+  const FLIES = { fire: 1, ice: 1, limit: 1, stormlance: 1 };
+  const AT_HERO = { avatar: 1, sanctuary: 1, spiritcall: 1, spiritmend: 1, spiritscout: 1, earthbulwark: 1 };   // these happen around the hero
+  // v134 summoned spirits and the avatar form: summons/<kind>.webp 4×3 (idle · attack · hurt/vanish), facing right
+  // [cw, ch, ax, base, lift] in units (a person = 345)
+  const SUMMON = { stone: [370, 331, 164, 323, 0], wisp: [279, 160, 119, 152, 230], hawk: [277, 266, 135, 258, 250] };
+  const AVATAR = [497, 436, 257, 428];
+  const sumImg = {}; const sumOf = k => { if (!SUMMON[k] && k !== 'avatar') return null; if (!sumImg[k]) sumImg[k] = im('summons/' + k + '.webp?v=134'); return ok(sumImg[k]) ? sumImg[k] : null; };
+  function drawSummon(ctx, kind, row, col, x, gy, u, face, alpha) {
+    const img = sumOf(kind), m = kind === 'avatar' ? AVATAR : SUMMON[kind]; if (!img || !m) return false;
+    const [cw, ch, ax, base, lift] = m;
+    ctx.save(); if (alpha !== undefined) ctx.globalAlpha = Math.max(0, alpha); ctx.translate(x, gy - (lift || 0) * u); ctx.scale(face < 0 ? -1 : 1, 1);
+    ctx.drawImage(img, col * cw, row * ch, cw, ch, -ax * u, -base * u, cw * u, ch * u); ctx.restore(); return true;
+  }
+  const summonSpot = (kind, hx, dir, u) => kind === 'stone' ? hx + dir * 150 * u : kind === 'wisp' ? hx - dir * 70 * u : hx + dir * 40 * u;         // these travel from the hero to the monster; the rest burst on the target
   function drawFx(ctx, id, q, x, y, h, flip) {          // q 0..1 through the effect, (x, y) = centre, h = height in px
     const img = FX[id]; if (!ok(img) || q < 0 || q >= 1) return;
     const fw = img.naturalWidth / 6, fh = img.naturalHeight, f = Math.min(5, Math.floor(q * 6)), w = h * fw / fh;
@@ -138,7 +153,8 @@
   function fight(o) {
     const st = o.state;
     const id = o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin';
-    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: o.boss && id !== 'boss5' ? 1.3 : 1, skill: SKILL_FX[o.skill] || null };
+    fx = { t0: performance.now(), id, win: !!o.win, row: weaponRow(st), big: o.boss && id !== 'boss5' ? 1.3 : 1, skill: SKILL_FX[o.skill] || null,
+      summon: o.summon || null, summonGone: !!o.summonGone, avatar: !!o.transformed };
     return FIGHT_MS;
   }
   function show(ctx, cv, t, clock, info, st) {
@@ -163,6 +179,7 @@
         // with a camp sheet: sit by the fire, sleep, and one keeps watch at night; town sprites just stand (only the watch at night)
         if (combatOf(sh)) { drawMateFight(ctx, sh, 3, info.sleep ? (i === 0 ? 2 : 1) : 0, x, gy - 4 * u, u, face); return; }
         if (info.sleep && i > 0) return; drawMate(ctx, sh, 2, 0, x, gy - 4 * u, u, face); });
+      const xc = X(st); if (xc && xc.summon && xc.summon.day === st.day) drawSummon(ctx, xc.summon.kind, 0, Math.floor(now0 / 200) % 4, W * 0.42, gy, u, 1);
       drawProp(ctx, PROPS.camp, W * 0.5, gy + 10 * u, 300 * u);
       if (info.sleep) drawLying(ctx, W * 0.34, gy + 6 * u, u); else drawWalk(ctx, 0, W * 0.36, gy, u, 1, false);
       if (heal) { const q = (now0 - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, W * 0.36, gy - 190 * u, 720 * u); }
@@ -199,7 +216,12 @@
             else drawMateFight(ctx, sh, 2, k < 1.7 ? 0 : 1, x, y, u, 1);
           } else drawMate(ctx, sh, busy ? 1 : 2, busy ? Math.floor(k * 7 + i) % 4 : 0, x, y, u, 1);
         });
-        drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
+        if (fx.summon) {          // the spirit fights too; a spirit that broke this fight fades out
+          const sx = summonSpot(fx.summon, hx, 1, u), gone = fx.summonGone && k > 1.3;
+          drawSummon(ctx, fx.summon, gone ? 2 : k > 0.3 && k < 1.1 ? 1 : 0, gone ? Math.min(3, Math.floor((k - 1.3) / 0.25)) : Math.floor(k * 6) % 4, sx, gy, u, 1, gone ? 1 - (k - 2.1) / 0.5 : undefined);
+        }
+        if (fx.avatar) drawSummon(ctx, 'avatar', k > 0.3 && k < 1.1 ? 1 : 0, k > 0.3 && k < 1.1 ? hcol : 0, hx + (fx.win ? 0 : shake), gy, u, 1);
+        else drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
         // v128 the arrow flies from the bow to the monster (drawn in code; the sheet's own arrow is part of frame 3)
         if (fx.row === 2 && k > 0.62 && k < 0.78) {
           const q = (k - 0.62) / 0.16, ax0 = hx + 150 * u, ay = gy - 215 * u, ax1 = mx - 40 * u, x1 = ax0 + (ax1 - ax0) * q;
@@ -210,7 +232,8 @@
         // v129 a triggered active skill plays its effect over the strike
         if (fx.skill) {
           const q = (k - 0.5) / 0.66, fly = FLIES[fx.skill];
-          drawFx(ctx, fx.skill, q, fly ? (hx + mx) / 2 + 40 * u : mx - 10 * u, fx.skill === 'sunfall' ? gy - 330 * u : fx.skill === 'winterseal' ? gy - 70 * u : gy - 180 * u,
+          const at = AT_HERO[fx.skill] ? (fx.skill === 'earthbulwark' ? hx + 140 * u : fx.skill.startsWith('spirit') && fx.summon ? summonSpot(fx.summon, hx, 1, u) : hx) : null;
+          drawFx(ctx, fx.skill, q, at !== null ? at : fly ? (hx + mx) / 2 + 40 * u : mx - 10 * u, fx.skill === 'sunfall' ? gy - 330 * u : fx.skill === 'winterseal' ? gy - 70 * u : AT_HERO[fx.skill] ? gy - 200 * u : gy - 180 * u,
             (fly ? 900 : fx.skill === 'sunfall' ? 1050 : fx.skill === 'winterseal' ? 760 : 820) * u);
         }
         if (!fx.win) drawFx(ctx, 'claw', (k - 1.3) / 0.5, hx + 30 * u, gy - 200 * u, 620 * u, true);   // the monster's blow
@@ -237,7 +260,10 @@
     }
     const team = teamOf(st), dir = out ? 1 : -1;
     team.forEach((sh, i) => drawMate(ctx, sh, moving ? 0 : 2, moving ? (Math.floor(now / 150) + i) % 4 : 0, hx - dir * (125 + 115 * i) * u, gy - 6 * u * (i % 2), u, dir));
-    drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
+    const xs = X(st), sm = xs && xs.summon && xs.summon.day === st.day ? xs.summon.kind : null;
+    if (sm) drawSummon(ctx, sm, 0, Math.floor(now / 170) % 4, summonSpot(sm, hx, dir, u), gy, u, dir);
+    if (xs && xs.avatarDay === st.day) drawSummon(ctx, 'avatar', moving ? 0 : 0, moving ? Math.floor(now / 150) % 4 : 0, hx, gy, u, dir);
+    else drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
     if (heal) { const q = (now - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, hx, gy - 190 * u, 720 * u); }
     if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + (0.4 * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
     return true;

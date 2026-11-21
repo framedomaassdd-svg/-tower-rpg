@@ -47,6 +47,31 @@
     winterSeal:{ name: 'ผนึกเหมันต์', type: 'active', icon: '❄️', power: [10, 18, 30, 44, 62],
                  desc: 'วิชาลับผนึกการเคลื่อนไหว ลดพลังและภัยถึงชีวิตเมื่อสล็อตเข้าสู่จังหวะน้ำแข็ง', teacher: 'ผู้พิทักษ์ธารน้ำแข็ง',
                  trial: t => ({ on: 'elite_win', need: t + 1, text: 'พิชิตจ่าฝูง ' + (t + 1) + ' ครั้ง' }) },
+    // v134 skill sets (designed with ChatGPT): new set cores and the summoners' passive
+    avatarForm:    { name: 'อวตารผู้พิทักษ์', type: 'active', icon: '🗿', power: [8, 14, 22, 32, 45],
+                     desc: 'แปลงร่างเป็นผู้พิทักษ์หินทั้งวัน แข็งแกร่งขึ้นทุกการต่อสู้ แต่ตอนค่ำแรงหมดไปมาก', teacher: 'ผู้พิทักษ์หินในเซฟโซน',
+                     trial: t => ({ on: 'elite_win', need: t + 1, text: 'พิชิตจ่าฝูง ' + (t + 1) + ' ครั้ง' }) },
+    stormLance:    { name: 'หอกสายฟ้า', type: 'active', icon: '⚡', power: [7, 13, 21, 31, 44],
+                     desc: 'พุ่งหอกสายฟ้าจากระยะไกลเมื่อความเร็วหรือสกิลปรากฏ', teacher: 'นักธนูสายฟ้า',
+                     trial: t => ({ on: 'clean_win', need: 3 + t, text: 'ชนะโดยไม่บาดเจ็บ ' + (3 + t) + ' ครั้ง' }) },
+    earthBulwark:  { name: 'กำแพงศิลา', type: 'active', icon: '🧱', power: [4, 8, 13, 19, 26],
+                     desc: 'ยกกำแพงหินรับแรงปะทะ ศัตรูอ่อนลงและโอกาสตายลดลงมาก', teacher: 'ร้อยเอกยามประตูเมือง',
+                     trial: t => ({ on: 'win', need: 4 + t, text: 'ชนะ ' + (4 + t) + ' ครั้ง' }) },
+    sanctuaryLight:{ name: 'แสงประคองชีวิต', type: 'active', icon: '🕯️', power: [3, 6, 10, 15, 21],
+                     desc: 'ลำแสงเยียวยาหลังการต่อสู้ ช่วยให้รอดในทีมได้นานขึ้น', teacher: 'แม่ชีเซเรน',
+                     trial: t => ({ on: 'find', need: 3 + t, text: 'พบวัตถุดิบ ' + (3 + t) + ' ครั้ง' }) },
+    spiritCall:    { name: 'อัญเชิญผู้พิทักษ์หิน', type: 'active', icon: '🪨', power: [2, 4, 6, 9, 12],
+                     desc: 'เรียกภูตหินมารับแรงปะทะแทน ภูตมีพลังชีวิต โดนหนักแล้วสลาย', teacher: 'ผู้อัญเชิญเร่ร่อน',
+                     trial: t => ({ on: 'elite_win', need: t + 1, text: 'พิชิตจ่าฝูง ' + (t + 1) + ' ครั้ง' }) },
+    spiritMend:    { name: 'อัญเชิญวิสป์เยียวยา', type: 'active', icon: '✨', power: [1, 2, 4, 6, 8],
+                     desc: 'เรียกวิสป์แสงทองรักษาหลังทุกการต่อสู้ ไม่รับแรงปะทะแทน', teacher: 'ผู้อัญเชิญเร่ร่อน',
+                     trial: t => ({ on: 'find', need: 3 + t, text: 'พบวัตถุดิบ ' + (3 + t) + ' ครั้ง' }) },
+    spiritScout:   { name: 'อัญเชิญเหยี่ยวเงา', type: 'active', icon: '🦅', power: [3, 6, 10, 15, 21],
+                     desc: 'เรียกเหยี่ยวเงาช่วยโจมตีและสอดแนมหาศิลา ไม่รับแรงปะทะแทน', teacher: 'ผู้อัญเชิญเร่ร่อน',
+                     trial: t => ({ on: 'clean_win', need: 3 + t, text: 'ชนะโดยไม่บาดเจ็บ ' + (3 + t) + ' ครั้ง' }) },
+    spiritGuard:   { name: 'พันธะภูตพิทักษ์', type: 'passive', icon: '🔮', stat: { intelligence: [1, 2, 3, 5, 7] },
+                     desc: 'ภูตที่อัญเชิญมีพลังชีวิตและพลังมากขึ้น', teacher: 'ผู้อัญเชิญเร่ร่อน',
+                     trial: t => ({ on: 'win', need: 4 + t, text: 'ชนะ ' + (4 + t) + ' ครั้ง' }) },
     fire:      { name: 'เพลิงวิญญาณ', type: 'active', icon: '🔥', power: [6, 12, 21, 32, 46], desc: 'ไฟปรากฏบนวงล้อต่อสู้เมื่อเลือกใช้สกิลนี้', teacher: 'ผู้จดตำราในเซฟโซน', trial: t => ({ on: 'win', min: 10 + 10 * t, need: 3, text: 'ชนะมอนสเตอร์พลังสูง 3 ครั้ง' }) },
     ice:       { name: 'ไอเยือกแข็ง', type: 'active', icon: '🧊', power: [5, 11, 19, 29, 42], desc: 'น้ำแข็งปรากฏบนวงล้อต่อสู้เมื่อเลือกใช้สกิลนี้', teacher: 'ผู้จดตำราในเซฟโซน', trial: t => ({ on: 'win', min: 10 + 10 * t, need: 3, text: 'ชนะมอนสเตอร์พลังสูง 3 ครั้ง' }) },
     fireBody: { name: 'กายาไฟ', type: 'passive', icon: '🔥', stat: { strength: [2, 4, 6, 8, 10] }, desc: 'เพิ่มพลังเล็กน้อย',
@@ -241,14 +266,68 @@
     sunfall: { icons: ['skill','fire'], name:'สุริยะพิพากษา', mult:[2.2,2.6,3,3.5,4] },
     winterSeal: { icons: ['skill','ice'], name:'ผนึกเหมันต์', mult:[1.55,1.75,2,2.3,2.6], enemy:[0.55,0.5,0.44,0.38,0.3], fatal:0.3 },
     riftStrike: { icons:['skill','sword'], name:'รอยแยกพิฆาต', mult:[2,2.5,3.4,4.3,5.3], enemy:[0.9,0.85,0.75,0.65,0.55] },
-    limitBreak: { icons:['skill','sword','target'], name:'ทะลวงขอบเขต', mult:[2.5,3.2,4.5,5.5,6.8] }
+    limitBreak: { icons:['skill','sword','target'], name:'ทะลวงขอบเขต', mult:[2.5,3.2,4.5,5.5,6.8] },
+    // v134 set cores
+    avatarForm: { icons:['skill','shield'], name:'แปลงร่างอวตาร', mult:[1.3,1.45,1.6,1.8,2], enemy:[0.9,0.86,0.82,0.78,0.74], fatal:0.6, transform:[1.15,1.2,1.25,1.3,1.4] },
+    stormLance: { icons:['skill','speed'], name:'หอกสายฟ้าฟาด', mult:[1.5,1.75,2,2.3,2.6], fatal:0.85 },
+    earthBulwark: { icons:['skill','shield'], name:'กำแพงศิลา', mult:[1.05,1.1,1.15,1.2,1.25], enemy:[0.72,0.66,0.6,0.54,0.48], fatal:0.5 },
+    sanctuaryLight: { icons:['skill','ally'], name:'ลำแสงประคองชีวิต', mult:[1,1.05,1.1,1.15,1.2], fatal:0.7, heal:[6,8,10,12,15] },
+    spiritCall: { icons:['skill','ally'], name:'อัญเชิญผู้พิทักษ์หิน', mult:[1,1,1.05,1.05,1.1], summon:'stone' },
+    spiritMend: { icons:['skill','luck'], name:'อัญเชิญวิสป์เยียวยา', mult:[1,1,1,1.05,1.05], summon:'wisp' },
+    spiritScout: { icons:['skill','speed'], name:'อัญเชิญเหยี่ยวเงา', mult:[1.1,1.15,1.2,1.25,1.3], summon:'hawk' }
   });
+  // v134 summoned spirits: they have HP and vanish when it runs out; the stone guardian takes blows, the others don't
+  const SUMMONS = Object.freeze({
+    stone: { name: 'ผู้พิทักษ์หิน', tank: true, hp: [30, 40, 52, 66, 82], power: [6, 9, 12, 16, 21] },
+    wisp:  { name: 'วิสป์แสงทอง', tank: false, hp: [14, 18, 23, 29, 36], power: [2, 3, 4, 5, 7], heal: [3, 4, 5, 6, 8] },
+    hawk:  { name: 'เหยี่ยวเงา', tank: false, hp: [12, 16, 21, 27, 34], power: [5, 8, 11, 15, 20], search: 1 }
+  });
+  // v134 card grades (ChatGPT design): ids stay the old seven so drops and gear keep working
+  const CARD_GRADES = Object.freeze([
+    { id: 'normal', name: 'Common', color: '#A8A8A8', mult: 1, sell: 1 }, { id: 'soldier', name: 'Uncommon', color: '#55B86A', mult: 1.05, sell: 2 },
+    { id: 'captain', name: 'Rare', color: '#4C8DFF', mult: 1.1, sell: 4 }, { id: 'general', name: 'Epic', color: '#A85CFF', mult: 1.16, sell: 8 },
+    { id: 'king', name: 'Mythic', color: '#FF9C3A', mult: 1.22, sell: 16 }, { id: 'emperor', name: 'Ancient', color: '#E94B55', mult: 1.27, sell: 32 },
+    { id: 'legendary', name: 'Legend', color: '#FFD84A', mult: 1.32, sell: 64 }]);
+  const gradeOf = r => CARD_GRADES[Math.max(0, RARITIES_ORDER.indexOf(r || 'normal'))];
+  const RARITIES_ORDER = ['normal', 'soldier', 'captain', 'general', 'king', 'emperor', 'legendary'];
+  const cardMult = (st, id) => gradeOf(st.skills && st.skills[id] && st.skills[id].rarity).mult;
+  // v134 skill sets (ChatGPT design): a bonus counts the set's cards in the book at the same time
+  const SETS = Object.freeze({
+    avatar:    { name: 'อวตารผู้พิทักษ์', role: 'แท็งก์และแปลงร่าง', core: 'avatarForm', members: ['avatarForm', 'ironBack', 'brawn', 'lastStand'],
+                 bonuses: [{ pieces: 2, text: 'กำลัง +2', stat: { strength: 2 } }, { pieces: 4, text: 'เกราะชั่วคราว +20% เมื่อแปลงร่าง', effect: { kind: 'transformBonusArmor', value: 0.2 } }] },
+    flame:     { name: 'เพลิงวิญญาณ', role: 'โจมตีไฟ', core: 'fire', members: ['fire', 'fireBody', 'brawn', 'sunfall'],
+                 bonuses: [{ pieces: 2, text: 'ผลไฟ +10%', effect: { kind: 'fireDamageMult', value: 1.1 } }, { pieces: 4, text: 'ไฟมีโอกาส 20% โจมตีซ้ำครึ่งพลัง', effect: { kind: 'fireEchoChance', value: 0.2 } }] },
+    frost:     { name: 'ผนึกเหมันต์', role: 'ควบคุมศัตรู', core: 'ice', members: ['ice', 'iceSkin', 'winterSeal', 'nimble'],
+                 bonuses: [{ pieces: 2, text: 'ลดพลังศัตรูเพิ่ม 5%', effect: { kind: 'enemyPowerReduction', value: 0.05 } }, { pieces: 4, text: 'ลดโอกาสบาดเจ็บทีม 10% เมื่อแช่แข็ง', effect: { kind: 'teamInjuryReduction', value: 0.1 } }] },
+    storm:     { name: 'วายุอสนี', role: 'โจมตีเร็วและระยะไกล', core: 'stormLance', members: ['stormLance', 'nimble', 'keen', 'battleStep'],
+                 bonuses: [{ pieces: 2, text: 'คล่องตัว +2', stat: { agility: 2 } }, { pieces: 4, text: '⚡/🎯 บนวงล้อเพิ่มพลังโจมตี 15%', effect: { kind: 'speedTargetAttackMult', value: 1.15 } }] },
+    earth:     { name: 'ศิลาผืนดิน', role: 'แท็งก์ปกป้องทีม', core: 'earthBulwark', members: ['earthBulwark', 'ironBack', 'brawn', 'dangerSense'],
+                 bonuses: [{ pieces: 2, text: 'กำลัง +2', stat: { strength: 2 } }, { pieces: 4, text: 'ลดความเสียหายขณะปกป้องเพื่อน 15%', effect: { kind: 'guardDamageReduction', value: 0.15 } }] },
+    sanctuary: { name: 'แสงประคองชีวิต', role: 'ฮีลและสนับสนุน', core: 'sanctuaryLight', members: ['sanctuaryLight', 'herbalLore', 'homeResolve', 'partyOath'],
+                 bonuses: [{ pieces: 2, text: 'ฟื้นฟู +10%', effect: { kind: 'healingMult', value: 1.1 } }, { pieces: 4, text: 'ฮีลเพิ่ม 10 เมื่อสุขภาพต่ำกว่า 40', effect: { kind: 'lowHealthAllyHeal', value: 10 } }] },
+    summon:    { name: 'ภูตอัญเชิญ', role: 'ภูตช่วยรบ ไม่แทนทีม', core: 'spiritCall', members: ['spiritCall', 'spiritGuard', 'spiritMend', 'spiritScout'],
+                 bonuses: [{ pieces: 2, text: 'ภูตมีพลังชีวิต +15%', effect: { kind: 'summonHpMult', value: 1.15 } }, { pieces: 4, text: 'ภูตรับเหตุรุนแรงแทนหนึ่งครั้งแล้วสลาย', effect: { kind: 'summonIntercept', value: 1 } }] },
+    rift:      { name: 'นักสำรวจรอยแยก', role: 'สอดแนมและเอาตัวรอด', core: 'riftStrike', members: ['riftStrike', 'trailEye', 'shadowStep', 'survivalInstinct'],
+                 bonuses: [{ pieces: 2, text: 'คล่องตัว +2', stat: { agility: 2 } }, { pieces: 4, text: '🌀 บนวงล้อช่วยให้ได้เปรียบ +10%', effect: { kind: 'terrainVortexAdvantage', value: 0.1 } }] }
+  });
+  const SET_ORDER = ['avatar', 'flame', 'frost', 'storm', 'earth', 'sanctuary', 'summon', 'rift'];   // = cards/sets.webp
+  const setCount = (st, id) => SETS[id].members.filter(m => st.skills && st.skills[m]).length;
+  function setBonuses(st) {
+    const out = [];
+    for (const id of SET_ORDER) { const n = setCount(st, id); for (const b of SETS[id].bonuses) if (n >= b.pieces) out.push({ set: id, ...b }); }
+    return out;
+  }
+  const setEffect = (st, kind) => { const b = setBonuses(st).find(x => x.effect && x.effect.kind === kind); return b ? b.effect.value : null; };
   function activeEffect(st, reels) {
     const id = activeOf(st), spec = ACTIVE_IMPACT[id];
     if (!spec || !Array.isArray(reels) || !reels.some(s => spec.icons.includes(s))) return null;
-    const t = Math.max(0, Math.min(4, tierOf(st,id)-1));
+    const t = Math.max(0, Math.min(4, tierOf(st,id)-1)), g = cardMult(st, id);
+    let attack = 1 + (spec.mult[t] - 1) * g;
+    if (['fire', 'sunfall'].includes(id)) attack *= setEffect(st, 'fireDamageMult') || 1;
     return { skill:id, name:spec.name, icon:SKILLS[id].icon, kind:'active',
-      attackMult:spec.mult[t], enemyMult:spec.enemy ? spec.enemy[t] : 1, deadlyMult:spec.fatal || 1 };
+      attackMult:attack, enemyMult:spec.enemy ? 1 - (1 - spec.enemy[t]) * g : 1, deadlyMult:spec.fatal || 1,
+      ...(spec.transform ? { transform: spec.transform[t] } : {}), ...(spec.heal ? { heal: Math.round(spec.heal[t] * g) } : {}),
+      ...(spec.summon ? { summon: spec.summon } : {}) };
   }
   // titles: one is worn at a time
   const TITLES = Object.freeze({
@@ -389,7 +468,8 @@
   const tierOf = (st, id) => (st.skills && st.skills[id] ? st.skills[id].tier : 0);
   function bonus(st) {
     data(st); const b = { strength: 0, agility: 0, intelligence: 0, magicPower:0 };
-    for (const [id, s] of Object.entries(st.skills)) { const S = SKILLS[id]; if (S && S.stat) for (const k in S.stat) b[k] += S.stat[k][s.tier - 1] || 0; }
+    for (const [id, s] of Object.entries(st.skills)) { const S = SKILLS[id]; if (S && S.stat) for (const k in S.stat) b[k] += Math.round((S.stat[k][s.tier - 1] || 0) * gradeOf(s.rarity).mult); }
+    for (const sb of setBonuses(st)) if (sb.stat) for (const k in sb.stat) b[k] += sb.stat[k];       // v134 set bonuses
     for (const id of Object.values(st.equip)) { const g = effectiveGear(st, id); if (g && g.bonus) for (const k in g.bonus) b[k] += g.bonus[k]; }
     const T = TITLES[st.title]; if (T) for (const k in T.bonus) b[k] += T.bonus[k];
     const Ar=(typeof globalThis!=='undefined'&&globalThis.Artisan)||(typeof require==='function'?require('./artisan.js'):null);
@@ -476,9 +556,18 @@
     if (!B || !B.count(st, book)) return { ok: false, why: 'ไม่มีการ์ดในกระเป๋า' };
     const picked = B.list(st).find(s => s.id === book && (rarity === null || (s.rarity || 'normal') === rarity));
     if (!picked) return { ok: false, why: 'ไม่มีการ์ดระดับนี้ในกระเป๋า' };
-    const xp = rarityMultiplier(picked.rarity || 'normal'), had = !!st.skills[id];
+    const xp = rarityMultiplier(picked.rarity || 'normal'), had = !!st.skills[id], r = picked.rarity || 'normal';
+    // v134 a higher-grade copy upgrades the card in the book (proficiency kept, the old card comes back)
+    if (had && RARITIES_ORDER.indexOf(r) > RARITIES_ORDER.indexOf(st.skills[id].rarity || 'normal')) {
+      const old = st.skills[id].rarity || 'normal';
+      if (!B.takeBook(st, book, rarity)) return { ok: false, why: 'ใช้การ์ดไม่สำเร็จ' };
+      if (!B.addBook(st, book, old, 'upgraded')) { B.addBook(st, book, r, 'back'); return { ok: false, why: 'กระเป๋าเต็ม รับการ์ดใบเก่าคืนไม่ได้' }; }
+      st.skills[id].rarity = r; recalc(st);
+      return { ok: true, why: 'อัปเกรดการ์ด ' + SKILLS[id].name + ' เป็น ' + gradeOf(r).name + ' (ความชำนาญคงเดิม การ์ดใบ ' + gradeOf(old).name + ' กลับเข้ากระเป๋า)' };
+    }
     if (!B.takeBook(st, book, rarity)) return { ok: false, why: 'ใช้การ์ดไม่สำเร็จ' };
     const notice = train(st, id, xp, true);
+    if (!had && st.skills[id]) { st.skills[id].rarity = r; recalc(st); }
     return { ok: true, why: had ? 'หลอมการ์ดซ้ำ ความชำนาญ ' + SKILLS[id].name + ' +' + xp + (notice ? ' · ' + notice : '')
       : 'ใส่การ์ด ' + SKILLS[id].name + ' ลงสมุดสกิล' + (SKILLS[id].type === 'active' ? ' · เลือกใช้ในแท็บสกิล' : '') };
   }
@@ -487,7 +576,7 @@
     data(st); const S = SKILLS[id];
     if (!S || !st.skills[id]) return { ok: false, why: 'ไม่มีการ์ดนี้ในสมุด' };
     const B = bagMod();
-    if (!B || !B.addBook(st, CARD_OF(id), 'normal', 'removed')) return { ok: false, why: 'กระเป๋าเต็ม ถอดการ์ดไม่ได้' };
+    if (!B || !B.addBook(st, CARD_OF(id), st.skills[id].rarity || 'normal', 'removed')) return { ok: false, why: 'กระเป๋าเต็ม ถอดการ์ดไม่ได้' };
     delete st.skills[id]; delete st.trials[id];
     if (st.activeSkill === id) st.activeSkill = null;
     data(st); recalc(st);
@@ -506,7 +595,7 @@
   // ---- combat: stats + selected active skill + weapon/armor against a monster's power
   function power(st) {
     data(st); const w = effectiveGear(st, st.equip.weapon), a = effectiveGear(st, st.equip.armor), id = activeOf(st), sk = id && st.skills[id];
-    return Math.round(st.strength + 0.6 * st.agility + 0.25 * st.intelligence + (w ? w.atk : 0) + (a ? a.def * 0.6 : 0) + (sk ? SKILLS[id].power[sk.tier - 1] : 0) + (sk && ['fire','ice','sunfall','winterSeal'].includes(id) ? (st.magicPower-15)*.25 : 0) + (gear(st,st.equip.weapon)?.special?.id==='focus'? Math.round(st.magicPower*0.15):0));
+    return Math.round(st.strength + 0.6 * st.agility + 0.25 * st.intelligence + (w ? w.atk : 0) + (a ? a.def * 0.6 : 0) + (sk ? Math.round(SKILLS[id].power[sk.tier - 1] * gradeOf(sk.rarity).mult) : 0) + (sk && ['fire','ice','sunfall','winterSeal'].includes(id) ? (st.magicPower-15)*.25 : 0) + (gear(st,st.equip.weapon)?.special?.id==='focus'? Math.round(st.magicPower*0.15):0));
   }
   // chance to win against `mon` (power) with `ally` power fighting alongside: 1 / (1 + (m/h)^3)
   //   hero 50 vs rabbit 10 → 99.2% · equal → 50% · half as strong → 11%
@@ -535,8 +624,14 @@
   }
   function fight(st, mon, ally, r1, r2, slot, opts = {}) {
     const impact = opts.activeEffect && opts.activeEffect.skill === activeOf(st) ? opts.activeEffect : null;
-    const basePower = power(st) + (ally || 0), h = basePower * (impact ? impact.attackMult : 1);
-    let enemyPower = mon.power * (impact ? impact.enemyMult : 1);
+    const reels = Array.isArray(opts.reels) ? opts.reels : [];
+    let h = (power(st) + (ally || 0)) * (impact ? impact.attackMult : 1) * (opts.powerMult || 1);
+    if (reels.some(s => s === 'speed' || s === 'target')) h *= setEffect(st, 'speedTargetAttackMult') || 1;       // v134 set bonuses
+    let enemyPower = mon.power * (impact ? impact.enemyMult : 1) * (1 - (setEffect(st, 'enemyPowerReduction') || 0));
+    if (reels.includes('vortex')) slot = (slot || 0) + (setEffect(st, 'terrainVortexAdvantage') || 0);
+    let injuryMult = opts.injuryMult || 1;
+    if (opts.team) injuryMult *= 1 - (setEffect(st, 'guardDamageReduction') || 0);
+    if (opts.team && impact && ['ice', 'winterSeal'].includes(impact.skill)) injuryMult *= 1 - (setEffect(st, 'teamInjuryReduction') || 0);
     const blade = gear(st,st.equip.weapon)?.special;
     const roll=Number.isFinite(opts.affixRoll)?opts.affixRoll:1;
     const affixProc=blade&&['bleedStrike','frostEdge'].includes(blade.id)&&roll<(blade.potency||0)
@@ -544,11 +639,15 @@
     if(affixProc)enemyPower*=blade.id==='bleedStrike'?0.88:0.9;
     const p = clamp(winChance(h, enemyPower) + (slot || 0), 0.005, 0.995);
     if (r1 < p) return { win: true, p, hurt: r2 < 0.25 * (1 - p) * 2, ...(affixProc?{affixProc}:{}), ...(impact ? { usedActive:impact } : {}) };
+    // v134 flame set: the fire echoes for half power once in a while and can still turn the fight
+    const echo = impact && ['fire', 'sunfall'].includes(impact.skill) && setEffect(st, 'fireEchoChance');
+    if (echo && Number.isFinite(opts.echoRoll) && opts.echoRoll < echo && r1 < clamp(winChance(h * 1.5, enemyPower) + (slot || 0), 0.005, 0.995))
+      return { win: true, p, hurt: true, echo: true, ...(affixProc?{affixProc}:{}), usedActive: impact };
     const initialDeadlyChance = clamp(0.15 * Math.pow(enemyPower / Math.max(1, h), 2) * (impact ? impact.deadlyMult : 1), 0.002, 0.6);
     const initialDeadly = r2 < initialDeadlyChance;
     const startHealth = Math.max(1, Number(st.health) || 100);
     // A single computed injury for the first defeat (even when the second stage wins).
-    const injury = Math.max(1, Math.round(9 + 17 * enemyPower / Math.max(1, h)));
+    const injury = Math.max(1, Math.round((9 + 17 * enemyPower / Math.max(1, h)) * injuryMult));
     const depleted = injury >= startHealth;
     st.health = Math.max(1, startHealth - injury);
     const info = { startHealth, health: st.health, lost: startHealth - st.health,
@@ -590,5 +689,6 @@
     return { money, gear, gearLabels, until: st.wounds.until };
   }
   return { TIERS, SKILLS, SKILL_QUESTS, questChapter, questChapterCount, questState, meetQuestNPC, questProgress, ACTIVE_IMPACT, activeEffect, TITLES, GEAR, SLOTS, RARITIES, RARITY_MULT, RARITY_COLORS, rarityMultiplier, rarityIndex, createGear, gear, effectiveGear, gearLabel, migrateGear, enhance, enhanceChance, enhanceCost, hashGear, STAT_NAME, data, bonus, recalc, train, trialOf, accept, progress, earnTitle, wearTitle, tierOf,
-    power, winChance, fight, triggerMatches, triggeredPassives, rescuePenalty, activeOf, selectActive, readBook, BOOK_SKILL, CARD_SKILL, CARD_OF, removeCard, expandBook, expandCost, BOOK_SLOTS, BOOK_MAX };
+    power, winChance, fight, triggerMatches, triggeredPassives, rescuePenalty, activeOf, selectActive, readBook, BOOK_SKILL, CARD_SKILL, CARD_OF, removeCard, expandBook, expandCost, BOOK_SLOTS, BOOK_MAX,
+    SUMMONS, CARD_GRADES, gradeOf, cardMult, SETS, SET_ORDER, setCount, setBonuses, setEffect };
 });

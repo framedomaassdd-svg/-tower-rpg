@@ -125,6 +125,15 @@
     card_mapping: { name: 'การ์ดสกิลทำแผนที่', icon: '🧭', kind: 'book', keep: 0, sell: 30, desc: 'ใส่สมุดสกิลเพื่อใช้ ทำแผนที่ · ถอดออกแล้วความชำนาญรีเซ็ต' },
     card_haggling: { name: 'การ์ดสกิลต่อรอง', icon: '⚖️', kind: 'book', keep: 0, sell: 30, desc: 'ใส่สมุดสกิลเพื่อใช้ ต่อรอง · ถอดออกแล้วความชำนาญรีเซ็ต' },
     card_gathering: { name: 'การ์ดสกิลคุ้ยหาของ', icon: '🧺', kind: 'book', keep: 0, sell: 20, desc: 'ใส่สมุดสกิลเพื่อใช้ คุ้ยหาของ · ถอดออกแล้วความชำนาญรีเซ็ต' },
+    // v134 set cards
+    card_avatarForm: { name: 'การ์ดสกิลอวตารผู้พิทักษ์', icon: '🗿', kind: 'book', keep: 0, sell: 220, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ อวตารผู้พิทักษ์' },
+    card_stormLance: { name: 'การ์ดสกิลหอกสายฟ้า', icon: '⚡', kind: 'book', keep: 0, sell: 90, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ หอกสายฟ้า' },
+    card_earthBulwark: { name: 'การ์ดสกิลกำแพงศิลา', icon: '🧱', kind: 'book', keep: 0, sell: 90, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ กำแพงศิลา' },
+    card_sanctuaryLight: { name: 'การ์ดสกิลแสงประคองชีวิต', icon: '🕯️', kind: 'book', keep: 0, sell: 90, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ แสงประคองชีวิต' },
+    card_spiritCall: { name: 'การ์ดสกิลอัญเชิญผู้พิทักษ์หิน', icon: '🪨', kind: 'book', keep: 0, sell: 110, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ อัญเชิญผู้พิทักษ์หิน' },
+    card_spiritMend: { name: 'การ์ดสกิลอัญเชิญวิสป์เยียวยา', icon: '✨', kind: 'book', keep: 0, sell: 90, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ อัญเชิญวิสป์เยียวยา' },
+    card_spiritScout: { name: 'การ์ดสกิลอัญเชิญเหยี่ยวเงา', icon: '🦅', kind: 'book', keep: 0, sell: 90, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ อัญเชิญเหยี่ยวเงา' },
+    card_spiritGuard: { name: 'การ์ดสกิลพันธะภูตพิทักษ์', icon: '🔮', kind: 'book', keep: 0, sell: 60, desc: 'การ์ดชุดสกิล · ใส่สมุดสกิลเพื่อใช้ พันธะภูตพิทักษ์' },
     // v108 gear (Skills.GEAR has the numbers)
     namelessBlade:{name:'ดาบของผู้ไม่มีชื่อ',icon:'⚔️',kind:'goods',keep:0,sell:95,equip:'weapon',desc:'อาวุธเควสลับ พลังพื้นฐาน 18'},
     sword:     { name: 'ดาบเหล็ก',          icon: '⚔️', kind: 'goods', keep: 0, sell: 24, equip: 'weapon', desc: 'อาวุธ พลังโจมตี +11' },
@@ -150,7 +159,7 @@
     rice:1,veg:.3,fish:.55,spice:.08,herb:.12,junk:1.1,scrap:.7,iron:1.8,monster:1.2,
     knife:.7,sickle:1.2,hook:.85,dagger:1.1,meat:.4,ore:2.2,crystal:.5,soul_crystal:.25,potion:.45,
     book_fire:.6,book_ice:.6,book_sense:.6,book_fireBody:.6,book_iceSkin:.6,book_lastStand:.6,book_shadowStep:.6,
-    card_survivalInstinct:.02,card_partyOath:.02,card_homeResolve:.02,card_riftStrike:.02,card_limitBreak:.02,card_brawn:.02,card_nimble:.02,card_keen:.02,card_ironBack:.02,card_trailEye:.02,card_battleStep:.02,card_herbalLore:.02,card_sunfall:.02,card_winterSeal:.02,card_sword:.02,card_smithing:.02,card_cooking:.02,card_mapping:.02,card_haggling:.02,card_gathering:.02,
+    card_survivalInstinct:.02,card_partyOath:.02,card_homeResolve:.02,card_riftStrike:.02,card_limitBreak:.02,card_brawn:.02,card_nimble:.02,card_keen:.02,card_ironBack:.02,card_trailEye:.02,card_battleStep:.02,card_herbalLore:.02,card_sunfall:.02,card_winterSeal:.02,card_sword:.02,card_smithing:.02,card_cooking:.02,card_mapping:.02,card_haggling:.02,card_gathering:.02,card_avatarForm:.02,card_stormLance:.02,card_earthBulwark:.02,card_sanctuaryLight:.02,card_spiritCall:.02,card_spiritMend:.02,card_spiritScout:.02,card_spiritGuard:.02,
     sword:3.5,spear:3,bow:1.2,club:2.2,namelessBlade:4.5,leather:4,chain_vest:9,guardianVest:12,oldwheel:7,chain:2,plank:4,
     horse:0,bike:0,scooter:0,charm:.3,
     root_food:0.12,clear_leaf:0.1,bind_grass:0.1,wake_leaf:0.09,moist_moss:0.15,antidote_root:0.13,warm_blossom:0.12,fever_mushroom:0.14,antiseptic_bark:0.25,blood_flower:0.13,vigor_seed:0.12,silver_moss:0.16,shadow_petal:0.06,verdant_heart:0.6,clean_water:.5,tablet_binder:.08,
@@ -282,6 +291,12 @@
     if (ITEMS[id] && ITEMS[id].equip) { const entry = list(st).find(s => s.id === id && s.instanceId); if (entry) return safeSell(st, entry.instanceId, floor, multiplier); }
     const price = safeSellPrice(id, floor, multiplier);
     if (!price || !count(st, id)) return { ok: false, why: 'ไม่มีสินค้าที่ร้านรับซื้อ' };
+    if (ITEMS[id].kind === 'book' && S && S.gradeOf) {          // v134 a card sells by its grade (lowest grade first)
+      const rows = list(st).filter(s => s.id === id && !s.instanceId).sort((a, b) => S.gradeOf(a.rarity).sell - S.gradeOf(b.rarity).sell);
+      const g = S.gradeOf(rows[0].rarity), p = price * g.sell;
+      if (!takeBook(st, id, rows[0].rarity || null)) return { ok: false, why: 'ขายไม่สำเร็จ' };
+      st.money = (st.money || 0) + p; return { ok: true, why: 'ขาย' + name(id) + ' [' + g.name + '] + ' + p + ' เหรียญ' };
+    }
     if (!take(st, id, 1)) return { ok: false, why: 'ขายไม่สำเร็จ' };
     st.money = (st.money || 0) + price; return { ok: true, why: 'ขาย' + name(id) + ' + ' + price + ' เหรียญ' };
   }
@@ -303,7 +318,7 @@
       'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore'] },
     tmerchant:  { name: 'กิลด์พ่อค้าหอคอย', place: 'tmerchant', takes: ['monster', 'herb', 'crystal'] },
     // v132 skill cards are bought by the card dealer in the Tower Merchants' hall (cards in the skill book are not for sale)
-    cards:      { name: 'ร้านรับซื้อการ์ดสกิล (กิลด์พ่อค้าหอคอย)', place: 'tmerchant', takes: ['book_fire','book_ice','book_sense','book_fireBody','book_iceSkin','book_lastStand','book_shadowStep','card_survivalInstinct','card_partyOath','card_homeResolve','card_riftStrike','card_limitBreak','card_brawn','card_nimble','card_keen','card_ironBack','card_trailEye','card_battleStep','card_herbalLore','card_sunfall','card_winterSeal','card_sword','card_smithing','card_cooking','card_mapping','card_haggling','card_gathering'] }   // v103 ย่านกิลด์
+    cards:      { name: 'ร้านรับซื้อการ์ดสกิล (กิลด์พ่อค้าหอคอย)', place: 'tmerchant', takes: ['book_fire','book_ice','book_sense','book_fireBody','book_iceSkin','book_lastStand','book_shadowStep','card_survivalInstinct','card_partyOath','card_homeResolve','card_riftStrike','card_limitBreak','card_brawn','card_nimble','card_keen','card_ironBack','card_trailEye','card_battleStep','card_herbalLore','card_sunfall','card_winterSeal','card_sword','card_smithing','card_cooking','card_mapping','card_haggling','card_gathering','card_avatarForm','card_stormLance','card_earthBulwark','card_sanctuaryLight','card_spiritCall','card_spiritMend','card_spiritScout','card_spiritGuard'] }   // v103 ย่านกิลด์
   });
   const RECIPES = Object.freeze({
     meal_veg:   { needs: { rice: 1, veg: 1 }, makes: 2 },

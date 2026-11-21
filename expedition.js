@@ -596,13 +596,41 @@
         return finish(st, res);
       }
       const shift = clamp(0.05 * (att + def) + (n('skill') ? 0.08 : 0) + n('fire') * 0.04 + n('ice') * 0.03 - 0.06 * bad - (c.flee ? 0.1 : 0), -0.25, 0.25);
-      const f = Skills.fight(st, enc.monster, allyPower(st), hash(seed(st), enc.id, 'f1'), hash(seed(st), enc.id, 'f2'), shift,
-        { activeEffect: Skills.activeEffect(st, out.reels), affixRoll:hash(seed(st),enc.id,'affix'), r3: hash(seed(st), enc.id, 'f3'), r4: hash(seed(st), enc.id, 'f4'),
-          alone: !withTeam(st) && !x.ally, terrain: T.name });
+      // v134 set cores: summon a spirit / take the avatar form before the blow; both last the rest of this day
+      const impact = Skills.activeEffect(st, out.reels);
+      if (x.summon && x.summon.day !== st.day) { lines.push(x.summon.name + 'กลับคืนสู่ความว่างเปล่าเมื่อวันใหม่มาถึง'); x.summon = null; }
+      if (impact && impact.summon && (!x.summon || x.summon.kind !== impact.summon)) {
+        const S = Skills.SUMMONS[impact.summon], t = Math.max(0, Skills.tierOf(st, impact.skill) - 1), g = Skills.cardMult(st, impact.skill), gt = Skills.tierOf(st, 'spiritGuard');
+        const hp = Math.round(S.hp[t] * g * (Skills.setEffect(st, 'summonHpMult') || 1) * (1 + 0.1 * gt));
+        x.summon = { kind: impact.summon, name: S.name, tank: S.tank, hp, max: hp, power: Math.round(S.power[t] * g + 2 * gt), heal: S.heal ? Math.round(S.heal[t] * g) : 0, search: S.search || 0, day: st.day, intercept: !!Skills.setEffect(st, 'summonIntercept') };
+        lines.push('อัญเชิญ' + S.name + ' (พลังชีวิต ' + hp + ')' + (S.tank ? ' · คอยรับแรงปะทะแทน' : ''));
+      }
+      if (impact && impact.transform && x.avatarDay !== st.day) { x.avatarDay = st.day; x.avatarMult = impact.transform; lines.push('แปลงร่างเป็นผู้พิทักษ์หิน! (พลัง ×' + impact.transform + ' ทั้งวัน)'); }
+      const transformed = x.avatarDay === st.day;
+      const f = Skills.fight(st, enc.monster, allyPower(st) + (x.summon ? x.summon.power : 0), hash(seed(st), enc.id, 'f1'), hash(seed(st), enc.id, 'f2'), shift,
+        { activeEffect: impact, affixRoll:hash(seed(st),enc.id,'affix'), r3: hash(seed(st), enc.id, 'f3'), r4: hash(seed(st), enc.id, 'f4'),
+          alone: !withTeam(st) && !x.ally, terrain: T.name, reels: out.reels, team: withTeam(st), echoRoll: hash(seed(st), enc.id, 'echo'),
+          powerMult: transformed ? (x.avatarMult || 1.2) : 1, injuryMult: transformed ? 1 - (Skills.setEffect(st, 'transformBonusArmor') || 0) : 1 });
+      if (f.echo) lines.push('🔥 เปลวไฟสะท้อนซ้ำ พลิกกลับมาชนะ!');
+      // v134 the spirit takes its share of the blow; the stone guardian shields the hero, the others only get hurt
+      if (x.summon && !f.win && f.damage) {
+        const S = x.summon, share = S.tank ? Math.round(f.damage * 0.6) : 0;
+        if (share) { st.health = Math.min(100, st.health + share); f.damage -= share; lines.push(S.name + 'รับแรงปะทะแทน ' + share); }
+        S.hp -= S.tank ? share + 4 : Math.round(f.damage * 0.5) + 2;
+      }
+      if (x.summon && f.deadly && (x.summon.tank || x.summon.intercept)) { f.deadly = false; lines.push(x.summon.name + 'รับเหตุรุนแรงแทนจนสลายไป'); x.summon.hp = 0; }
+      if (x.summon && x.summon.hp <= 0) { if (!lines.some(l => l.includes('สลายไป'))) lines.push(x.summon.name + 'ได้รับความเสียหายหนักจนสลายไป'); res.summonGone = x.summon.kind; x.summon = null; }
+      const healMult = Skills.setEffect(st, 'healingMult') || 1;
+      if (x.summon && x.summon.heal) { const h0 = st.health; st.health = Math.min(100, st.health + Math.round(x.summon.heal * healMult)); if (st.health > h0) lines.push(x.summon.name + 'รักษา (สุขภาพ +' + (st.health - h0) + ')'); }
+      if (x.summon && x.summon.search) { x.search += x.summon.search; lines.push(x.summon.name + 'บินสำรวจ ค้นหาศิลา +' + x.summon.search); }
+      if (f.usedActive && f.usedActive.heal) { const h0 = st.health; st.health = Math.min(100, st.health + Math.round(f.usedActive.heal * healMult)); lines.push('แสงประคองชีวิต (สุขภาพ +' + (st.health - h0) + ')'); }
+      const lowHeal = Skills.setEffect(st, 'lowHealthAllyHeal');
+      if (lowHeal && st.health < 40 && Skills.activeOf(st) === 'sanctuaryLight') { st.health = Math.min(100, st.health + lowHeal); lines.push('แสงศักดิ์สิทธิ์ประคองชีวิตยามวิกฤต (สุขภาพ +' + lowHeal + ')'); }
+      res.summon = x.summon ? { kind: x.summon.kind, hp: x.summon.hp, max: x.summon.max } : null; res.transformed = transformed;
       if (f.usedActive) {
         res.usedActive = f.usedActive;
-        lines.push(f.usedActive.icon + ' ' + f.usedActive.name + ' สำแดงฤทธิ์! ' +
-          (f.usedActive.enemyMult < 1 ? 'ศัตรูถูกผนึก พลังลดลง' : 'เกิดการโจมตีรุนแรงกว่าปกติ') +
+        if (!f.usedActive.summon || f.usedActive.attackMult > 1.001) lines.push(f.usedActive.icon + ' ' + f.usedActive.name + ' สำแดงฤทธิ์! ' +
+          (f.usedActive.enemyMult < 1 ? 'ศัตรูถูกผนึก พลังลดลง' : f.usedActive.heal ? 'แสงศักดิ์สิทธิ์ปกป้อง' : 'เกิดการโจมตีรุนแรงกว่าปกติ') +
           ' (พลังโจมตี ×' + f.usedActive.attackMult.toFixed(2) + ')');
       }
       if(f.affixProc)lines.push('✨ '+f.affixProc.name+' ทำงานกับศัตรูในจังหวะนี้');
@@ -756,6 +784,7 @@
     if (safeInfo(st) && x.safeRestDay === st.day && !x.safeRestOutside) { st.life.sleptAt = 'tower'; st.life.roomSlept = null; st.life.fedDay = st.day;
       return x.safeRestOutside ? 'นอนกลางแจ้งในเซฟโซนอย่างปลอดภัย' : 'พักในที่พักเซฟโซนอย่างปลอดภัย'; }
     if (safeInfo(st) && x.safeRestDay === st.day && x.safeRestOutside) out.push('นอนกลางแจ้งในเซฟโซนอย่างปลอดภัย');
+    if (x.avatarDay === st.day) { st.energy = Math.max(0, (st.energy || 0) - 25); out.push('คืนร่างจากอวตาร เหนื่อยล้ามาก (แรง −25)'); }   // v134
     const id = Bag ? Bag.eat(st) : null;
     if (id) {st.life.fedDay=st.day;out.push('กิน' + Bag.name(id) + 'ข้างกองไฟ');}
     else if (withTeam(st)) { st.health = Math.max(1, st.health - 3); out.push('ไม่มีอะไรกิน ทีมแบ่งเสบียงให้นิดหน่อย (สุขภาพ −3)'); }

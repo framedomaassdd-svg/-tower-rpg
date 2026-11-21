@@ -706,7 +706,13 @@
     }
     if (O.kind === 'sell') {
       const B = Bag.BUYERS[O.buyer], sold = []; let money = 0; orderDone(st);
-      for (const id of B.takes) { const n = Bag.count(st, id); if (n) { Bag.take(st, id, n); money += n * Bag.ITEMS[id].sell; sold.push([id, n]); } }
+      const S = typeof Skills !== 'undefined' ? Skills : (typeof require === 'function' ? require('./skills.js') : null);
+      for (const id of B.takes) { const n = Bag.count(st, id); if (!n) continue;
+        if (Bag.ITEMS[id].kind === 'book' && S && S.gradeOf) {      // v134 cards sell by grade
+          for (const row of Bag.list(st).filter(s => s.id === id && !s.instanceId)) money += row.n * Bag.ITEMS[id].sell * S.gradeOf(row.rarity).sell;
+          while (Bag.count(st, id)) { const row = Bag.list(st).find(s => s.id === id && !s.instanceId); if (!row || !Bag.takeBook(st, id, row.rarity || null)) break; }
+        } else { Bag.take(st, id, n); money += n * Bag.ITEMS[id].sell; }
+        sold.push([id, n]); }
       st.money += money;
       return say(st, sold.length ? 'ขาย ' + Bag.label(sold) + ' ให้' + B.name + ' ได้ ' + money + ' เหรียญ' : B.name + 'ไม่รับซื้ออะไรในกระเป๋า');
     }
