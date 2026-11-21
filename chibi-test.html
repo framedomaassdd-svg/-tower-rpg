@@ -1,0 +1,26 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>chibi rig test</title>
+<style>html,body{margin:0;background:#5a6a5a;overflow:hidden;font-family:sans-serif}canvas{display:block;width:100vw;height:100vh}
+#b{position:fixed;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap}#b button{font-size:15px;padding:6px 12px;border-radius:8px;border:1px solid #c9a35a;background:#2a1c10;color:#fbe9c4}#b button.on{background:#c9a35a;color:#2a1a0a}</style></head><body>
+<canvas id="cv"></canvas><div id="b"></div>
+<script src="rig3.js?v=148b"></script>
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let W,H; function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;} rs(); addEventListener('resize',rs);
+const MODES={'ยืน':'idle','พร้อมสู้':'ready','เดิน':'walk','วิ่ง':'run','คอมโบ':'combo','โดนตี':'hit'};
+let mode=new URLSearchParams(location.search).get('m')||'walk', t0=performance.now();
+const bar=document.getElementById('b');
+for(const [k,v] of Object.entries(MODES)){const b=document.createElement('button');b.textContent=k;b.onclick=()=>{mode=v;t0=performance.now();[...bar.children].forEach(c=>c.classList.toggle('on',c===b));};if(v===mode)b.classList.add('on');bar.appendChild(b);}
+function loop(){
+  const t=(performance.now()-t0)/1000, h=H*0.62, gy=H*0.86;
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#5a6a5a'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#4a5848'; ctx.fillRect(0,gy,W,H-gy);
+  const moving=mode==='walk'||mode==='run', v=(mode==='run'?0.9:0.5)*h, off=moving?(t*v)%(h*0.3):0;
+  ctx.fillStyle='#3c4a3a'; for(let gx=-off; gx<W; gx+=h*0.3) ctx.fillRect(gx,gy,h*0.04,H*0.025);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(W*0.5,gy+2,h*0.22,h*0.035,0,0,Math.PI*2); ctx.fill();
+  let an=mode, tt=t;
+  if(mode==='combo'){const c=t%2.6; if(c<0.75){an='attack1';tt=c}else if(c<1.45){an='attack2';tt=c-0.75}else{an='attack3';tt=c-1.45}}
+  else if(mode==='hit') tt=t%1.2;
+  Rig3.draw(ctx,'chibi',an,tt,W*0.5,gy,h,1);
+  requestAnimationFrame(loop);
+}
+(function w(){ if(!Rig3.ready('chibi')) return setTimeout(w,100); loop(); })();
+</script></body></html>
