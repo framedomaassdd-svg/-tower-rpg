@@ -11,14 +11,18 @@
   //  limb: top pivot (shoulder/hip), joint = elbow/knee y, end = fist/ankle y, s = scale
   const SKEL = {
     hero2: {
-      dir: 'rig/hero2/', ver: 145,
+      dir: 'rig/hero2/', ver: 146,
+      // placement measured by matching each part against the assembled guide figure (template matching):
+      // guide scale of torso 0.66 · head 0.90 · arms 0.65 · legs ~0.72 → relative to the torso below
       torso: { img: 'torso', pivot: [125, 262], s: 0.82,                 // pivot = waist
-               neck: [148, 20], collar: [40, 80], shoulderF: [66, 78], shoulderB: [150, 76], hipF: [146, 280], hipB: [108, 280] },
-      head:  { img: 'head', pivot: [118, 214], s: 1.16 },
-      armF:  { img: 'armF', pivot: [50, 40], joint: 150, end: 282, s: 0.66 },
-      armB:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.66 },
-      legF:  { img: 'legF', pivot: [62, 34], joint: 196, end: 300, s: 0.72 },
-      legB:  { img: 'legB', pivot: [58, 34], joint: 196, end: 300, s: 0.72 },
+               neck: [142, 32], collar: [40, 80], shoulderF: [150, 62], shoulderB: [64, 58], hipF: [150, 282], hipB: [104, 282] },
+      head:  { img: 'head', pivot: [118, 214], s: 1.12 },
+      // in this 3/4 view the SWORD arm is the far one (its upper arm hides behind the torso, the fist comes out in
+      // front of the belt) and the free arm is the near one, hanging in front of the body
+      armF:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.8 },   // sword arm (far, darker picture)
+      armB:  { img: 'armF', pivot: [50, 40], joint: 150, end: 282, s: 0.8 },   // free arm (near)
+      legF:  { img: 'legF', pivot: [62, 34], joint: 196, end: 300, s: 0.86 },
+      legB:  { img: 'legB', pivot: [58, 34], joint: 196, end: 300, s: 0.86 },
       sword: { img: 'sword', pivot: [60, 58], s: 0.8 },
       faces: { hurt: 'headHurt', shout: 'headShout', happy: 'headHappy' }
     }
@@ -43,7 +47,7 @@
   }
   // degrees, + = clockwise on screen. For a right-facing body: arm/leg + swings BACK, torso + leans FORWARD,
   // elbow − folds the forearm forward/up, knee + folds the shin back. sword = blade angle from "forward" in the fist.
-  const BASE = { x: 0, y: 0, torso: 3, head: -2, armF: 6, elbowF: -22, armB: -8, elbowB: -26, legF: -20, kneeF: 6, legB: 20, kneeB: 4, sword: -50, face: null };
+  const BASE = { x: 0, y: 0, torso: 3, head: -2, armF: 6, elbowF: -22, armB: 16, elbowB: -34, legF: -20, kneeF: 6, legB: 20, kneeB: 4, sword: -50, face: null };
   const K = o => Object.assign({}, BASE, o);
   const READY = K({ armF: -24, elbowF: -50, sword: -58, armB: 14, elbowB: -40, legF: -14, kneeF: 14, legB: 14, kneeB: 10, torso: 6, y: 6 });
   // combo: 1 downward slash · 2 rising slash · 3 thrust finisher (slow wind-up → burst → hold → recover)
@@ -110,7 +114,7 @@
     for (const ch of ['legF', 'kneeF', 'legB', 'kneeB', 'y', 'torso']) P[ch] = cyc(WALK, u, ch);
     const legFl = cyc(WALK, lag, 'legF'), legBl = cyc(WALK, lag, 'legB'), yl = cyc(WALK, u - 0.1, 'y');
     // arms swing against the legs on their side; the sword arm swings less and keeps the blade forward
-    const armB = -legBl * 0.85 - 4, armF = -legFl * 0.35 - 14;
+    const armB = -legBl * 0.85 + 10, armF = -legFl * 0.35 - 14;
     return K(Object.assign(P, {
       armB, elbowB: -28 - Math.max(0, -armB) * 0.9,
       armF, elbowF: -46 - Math.max(0, -armF) * 0.6,
@@ -124,14 +128,14 @@
   // ---- a bendable limb: horizontal strips from top to bottom; each strip turns with the bone it belongs to
   // (blending from the upper to the lower bone around the joint). M = matrix at the pivot (unrotated).
   // Returns { end: matrix at the fist/ankle, bottom: matrix at the bottom edge of the picture }.
-  function limb(ctx, M, L, I, a1, a2) {
+  function limb(ctx, M, L, I, a1, a2, from) {
     const w = I.naturalWidth, h = I.naturalHeight, px = L.pivot[0], py = L.pivot[1], jy = L.joint, blend = 24, step = 4;
     const angAt = y => { const q = Math.min(1, Math.max(0, (y - (jy - blend)) / (2 * blend))); return a1 + a2 * q * q * (3 - 2 * q); };
     let m = M.rotate(a1), cur = a1, end = null;
-    if (ctx && py > 0) { ctx.setTransform(m); ctx.drawImage(I, 0, 0, w, py + 1, -px, -py, w, py + 1); }
+    if (ctx && py > 0 && !from) { ctx.setTransform(m); ctx.drawImage(I, 0, 0, w, py + 1, -px, -py, w, py + 1); }
     for (let y = py; y < h; y += step) {
       const sh = Math.min(step, h - y), a = angAt(y + sh / 2), seg = m.rotate(a - cur); cur = a;
-      if (ctx) { ctx.setTransform(seg); ctx.drawImage(I, 0, y, w, Math.min(sh + 3, h - y), -px, 0, w, Math.min(sh + 3, h - y)); }
+      if (ctx && (!from || y >= from)) { ctx.setTransform(seg); ctx.drawImage(I, 0, y, w, Math.min(sh + 3, h - y), -px, 0, w, Math.min(sh + 3, h - y)); }
       if (!end && y + sh >= L.end) end = seg.translate(0, L.end - y);
       m = seg.translate(0, sh);
     }
@@ -156,16 +160,18 @@
     const sole = n => limb(null, pr.at(T[n === 'legF' ? 'hipF' : 'hipB'], sk[n].s), sk[n], I(sk[n].img), P[n], P[n === 'legF' ? 'kneeF' : 'kneeB']).bottom.f;
     const low = Math.max(sole('legF'), sole('legB'));
     const base = ctx.getTransform(), B = build(sk, P, base.translate(x, gy).scale(k * (face || 1), k).translate(0, -low));
-    const L = (n, pt, a1, a2) => limb(ctx, B.at(pt, sk[n].s, n[0] === 'a'), sk[n], I(sk[n].img), a1, a2);   // arms follow the torso, legs hang from the hips
+    const L = (n, pt, a1, a2, from) => limb(ctx, B.at(pt, sk[n].s, n[0] === 'a'), sk[n], I(sk[n].img), a1, a2, from);   // arms follow the torso, legs hang from the hips
     ctx.save();
-    // back → front: back arm · back leg · front leg · torso · sword · front arm · head
-    L('armB', T.shoulderB, P.armB, P.elbowB);
+    // back → front: sword arm (far) · back leg · front leg · torso · the sword arm's forearm and fist + sword (in front
+    // of the belt) · free arm (near) · head
+    L('armF', T.shoulderF, P.armF, P.elbowF);
     L('legB', T.hipB, P.legB, P.kneeB);
     L('legF', T.hipF, P.legF, P.kneeF);
     ctx.setTransform(B.torsoM); ctx.drawImage(I(T.img), 0, 0);
     const hand = limb(null, B.at(T.shoulderF, sk.armF.s, true), sk.armF, I(sk.armF.img), P.armF, P.elbowF).end;
+    L('armF', T.shoulderF, P.armF, P.elbowF, sk.armF.joint + 10);
     if (!(opts && opts.noWeapon)) { const S = sk.sword; ctx.setTransform(hand.rotate(90 + P.sword).scale(S.s / sk.armF.s).translate(-S.pivot[0], -S.pivot[1])); ctx.drawImage(I(S.img), 0, 0); }
-    L('armF', T.shoulderF, P.armF, P.elbowF);
+    L('armB', T.shoulderB, P.armB, P.elbowB);
     const H = sk.head, fimg = P.face && sk.faces[P.face] && ok(I(sk.faces[P.face])) ? sk.faces[P.face] : H.img;
     ctx.setTransform(B.at(T.neck, H.s, true).rotate(-P.torso * 0.6 + P.head).translate(-H.pivot[0], -H.pivot[1])); ctx.drawImage(I(fimg), 0, 0);
     // the collar goes back over the bottom of the neck, so the neck sits INSIDE the shirt instead of on top of it
