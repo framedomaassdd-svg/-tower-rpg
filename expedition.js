@@ -562,7 +562,7 @@
         { label: 'ปล่อยให้มันลอยไป', hint: 'ไม่รบกวนภูต', noSpin: true }] };
     if (scene === 'combat') {
       let m = monsterOf(st, x.floor, id, reg);
-      if (sp && !sp.neutral) m = { ...m, name: sp.name, power: sp.power, rank: sp.rank, elite: false, eliteId: null, special: sp.id };
+      if (sp && !sp.neutral) m = { ...m, name: sp.name, baseName: m.name, power: sp.power, rank: sp.rank, elite: false, eliteId: null, special: sp.id };
       if (m.special) return { id, slot, scene, kind: 'combat', beast: true, title: 'มอนพิเศษ · ชั้น ' + x.floor, region: reg ? reg.id : null,
         text: (reg ? reg.name + ' — ' : '') + m.name + ' (พลัง ' + m.power + ') · สัญญาณ: ' + sp.tell, monster: m, choices: CHOICES.combat };
       return { id, slot, scene, kind: 'combat', beast: hash(seed(st), id, 'b') < 0.6, title: (x.hunted ? 'สิ่งที่ตามมาโผล่ออกมา' : 'เจอมอนสเตอร์') + ' · ชั้น ' + x.floor, region: reg ? reg.id : null, text: (reg ? reg.name + ' — ' : '') + m.name + (m.elite ? ' · ' + m.rank : '') + ' (พลัง ' + m.power + ') ขวางทางอยู่',

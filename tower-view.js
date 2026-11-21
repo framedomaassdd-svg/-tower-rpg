@@ -188,9 +188,11 @@
   const FIGHT_MS = 2600;
   function fight(o) {
     const st = o.state;
-    const own = o.sprite && MON['sp_' + o.sprite] ? 'sp_' + o.sprite : o.boss && (o.floor === 4 || o.floor === 9) ? 'boss_f' + o.floor
-      : o.elite && o.floor >= 1 && o.floor <= 3 ? 'elite_f' + o.floor : null;
-    const id = own || (o.boss && o.floor === 9 ? 'boss5' : idOf(o.name) || floorMonsters(st)[0] || 'goblin');
+    // v138 own sprites only once they pass the style check (OWN_OK); until then the species' sprite with the rank aura
+    const OWN_OK = [];
+    const pick = o.sprite ? 'sp_' + o.sprite : o.boss && (o.floor === 4 || o.floor === 9) ? 'boss_f' + o.floor : o.elite && o.floor >= 1 && o.floor <= 3 ? 'elite_f' + o.floor : null;
+    const own = pick && MON[pick] && OWN_OK.includes(pick) ? pick : null;
+    const id = own || (o.boss && o.floor === 9 ? 'boss5' : idOf(o.base || o.name) || floorMonsters(st)[0] || 'goblin');
     // v135 rank shows on the monster: bigger, an aura in the rank's colour and a label (tower-regions.js RANK_VISUAL)
     const RV = root.TowerRegions && root.TowerRegions.RANK_VISUAL || {};
     const look = (o.boss ? RV.boss : o.elite ? RV.elite : RV[o.rank]) || { scale: o.boss ? 1.3 : 1, aura: null, label: '' };
