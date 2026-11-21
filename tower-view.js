@@ -200,17 +200,47 @@
       summon: o.summon || null, summonGone: !!o.summonGone, avatar: !!o.transformed };
     return FIGHT_MS;
   }
-  function show(ctx, cv, t, clock, info, st) {
+  // ---- v139 motion: easing, squash & stretch, turning, breathing, shadows, dust, lunges, hit-stop and camera shake.
+  // The sheets have only 4 frames per action; this layer adds the in-between movement so nobody moves like a robot.
+  const ease = q => q <= 0 ? 0 : q >= 1 ? 1 : q * q * (3 - 2 * q);
+  const easeOut = q => q <= 0 ? 0 : q >= 1 ? 1 : 1 - (1 - q) * (1 - q) * (1 - q);
+  const easeOutBack = q => { if (q <= 0) return 0; if (q >= 1) return 1; const c = 1.7, z = q - 1; return 1 + (c + 1) * z * z * z + c * z * z; };
+  const seg = (k, a, b) => (k - a) / (b - a);
+  function posed(ctx, x, gy, sx, sy, rot, draw) {             // scale/rotate around the feet
+    ctx.save(); ctx.translate(x, gy); if (rot) ctx.rotate(rot); ctx.scale(sx, sy); ctx.translate(-x, -gy); draw(); ctx.restore();
+  }
+  function shadow(ctx, x, gy, w, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha === undefined ? 0.28 : alpha; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(x, gy + 2, w, w * 0.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  const breathe = (t, seed) => 1 + 0.014 * Math.sin(t * 2.6 + (seed || 0));
+  const dust = [];
+  function puff(x, gy, u, dir) { dust.push({ x, y: gy - 6 * u, vx: -dir * (20 + Math.random() * 25) * u, r: (10 + Math.random() * 8) * u, t0: performance.now() }); if (dust.length > 30) dust.shift(); }
+  function drawDust(ctx, now) {
+    for (let i = dust.length - 1; i >= 0; i--) {
+      const d = dust[i], q = (now - d.t0) / 520; if (q >= 1) { dust.splice(i, 1); continue; }
+      ctx.save(); ctx.globalAlpha = 0.35 * (1 - q); ctx.fillStyle = '#e8dcc0';
+      ctx.beginPath(); ctx.arc(d.x + d.vx * q, d.y - 14 * q * d.r / 10, d.r * (0.6 + 0.9 * q), 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+  }
+  const walker = { moving: false, since: 0, face: 1, faceSince: 0, frame: -1 };
+  function turnSquash(now, since) { const q = (now - since) / 150; return q >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(q); }
+  function show(ctx, cv, t, clock, info, st) { const r = showScene(ctx, cv, t, clock, info, st); ctx.setTransform(1, 0, 0, 1, 0, 0); return r; }
+  function showScene(ctx, cv, t, clock, info, st) {
     if (!info || !info.tower || !st) { fx = null; return false; }
     const CAMP0 = root.Expedition && root.Expedition.SLOTS_OF_DAY ? (root.Expedition.SLOTS_OF_DAY.find(s => s[0] === 'xcamp') || [0, 15.6])[1] : 15.6;
     const W = cv.width, H = cv.height, n = sceneOf(st), rid = regionId(st, clock, CAMP0), rb = rid ? regionBg(rid, '') : null, bg = ok(rb) ? rb : SCENES[n - 1];
     const dusk0 = Math.max(0, Math.min(1, (clock - (CAMP0 - 1.6)) / 1.6)), rn = rid && (dusk0 > 0 || info.sleep) ? regionBg(rid, 'n') : null;
     const nightArt = ok(rb) && ok(rn);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#1b1410'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1b1410'; ctx.fillRect(-30, -30, W + 60, H + 60);
     const s = Math.max(W / 1672, H / 941), ox = (W - 1672 * s) / 2, oy = (H - 941 * s) / 2;
-    if (ok(bg)) ctx.drawImage(bg, ox, oy, 1672 * s, 941 * s);
-    if (nightArt) { ctx.save(); ctx.globalAlpha = info.sleep ? 1 : dusk0; ctx.drawImage(rn, ox, oy, 1672 * s, 941 * s); ctx.restore(); }  // painted night replaces most of the tint
+    let camX = 0, camY = 0;
+    if (fx) { const kq = (performance.now() - fx.t0) / 1000, hit = fx.win ? 0.75 : 1.36, q = (kq - hit) / 0.3;
+      if (q > 0 && q < 1) { const a = (1 - q) * (1 - q) * 9 * (fx.big || 1); camX = Math.sin(kq * 97) * a * s; camY = Math.cos(kq * 71) * a * 0.6 * s; } }
+    ctx.translate(camX, camY);
+    if (ok(bg)) ctx.drawImage(bg, ox - 12 * s, oy - 7 * s, 1672 * s + 24 * s, 941 * s + 14 * s);
+    if (nightArt) { ctx.save(); ctx.globalAlpha = info.sleep ? 1 : dusk0; ctx.drawImage(rn, ox - 12 * s, oy - 7 * s, 1672 * s + 24 * s, 941 * s + 14 * s); ctx.restore(); }  // painted night replaces most of the tint
     const gy = oy + 941 * s * 0.85, u = Math.min(941 * s * 0.30 / 345, W / 1150);   // a person is 30% of the scene's height (narrower on portrait screens)
     const x = X(st), stones = x && x.stones && x.stones[x.floor] || {};
     const CAMP = root.Expedition && root.Expedition.SLOTS_OF_DAY ? (root.Expedition.SLOTS_OF_DAY.find(s => s[0] === 'xcamp') || [0, 15.6])[1] : 15.6;
@@ -231,16 +261,29 @@
       drawProp(ctx, PROPS.camp, W * 0.5, gy + 10 * u, 300 * u);
       if (info.sleep) drawLying(ctx, W * 0.34, gy + 6 * u, u); else drawWalk(ctx, 0, W * 0.36, gy, u, 1, false);
       if (heal) { const q = (now0 - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, W * 0.36, gy - 190 * u, 720 * u); }
-      ctx.fillStyle = 'rgba(8,10,30,0.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(8,10,30,0.55)'; ctx.fillRect(-30, -30, W + 60, H + 60);
       const g = ctx.createRadialGradient(W * 0.47, gy - 60 * u, 10, W * 0.47, gy - 60 * u, 420 * u);
       g.addColorStop(0, 'rgba(255,170,70,0.38)'); g.addColorStop(1, 'rgba(255,170,70,0)');
-      ctx.fillStyle = g; ctx.globalCompositeOperation = 'lighter'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = g; ctx.globalCompositeOperation = 'lighter'; ctx.fillRect(-30, -30, W + 60, H + 60); ctx.globalCompositeOperation = 'source-over';
       return true;
     }
     const now = performance.now();
     if (fx) {
-      const k = (now - fx.t0) / 1000, hx = W * 0.36, mx = W * 0.66, mu = u * fx.big, f4 = (a, b) => Math.min(3, Math.max(0, Math.floor((k - a) / b)));
-      if (k > FIGHT_MS / 1000 + 0.6) fx = null;
+      const kr = (now - fx.t0) / 1000, hitAt0 = fx.win ? 0.75 : 1.36, STOP = 0.09;
+      // hit-stop: everything freezes for a moment when the blow lands
+      const k = kr < hitAt0 ? kr : kr < hitAt0 + STOP ? hitAt0 : kr - STOP;
+      const melee = fx.row !== 2, reach = (W * 0.66 - W * 0.36) * 0.42;
+      // the hero dashes in, strikes and steps back (archers lean into the shot); takes a knock back when hit
+      const lunge = melee ? reach * (k < 0.3 ? 0 : k < 0.62 ? easeOut(seg(k, 0.3, 0.62)) : k < 0.9 ? 1 : 1 - ease(seg(k, 0.9, 1.25))) : 0;
+      const knock = !fx.win && k > 1.36 ? -60 * u * easeOut(seg(k, 1.36, 1.6)) * (1 - ease(seg(k, 1.9, 2.4))) : 0;
+      const hx = W * 0.36 + lunge + knock;
+      // the monster lunges when it strikes; gets pushed back and squashed when struck
+      const mLunge = !fx.win && k > 1.0 ? -reach * 0.8 * (k < 1.3 ? easeOut(seg(k, 1.0, 1.3)) : 1 - ease(seg(k, 1.5, 1.9))) : 0;
+      const mKnock = fx.win && k > 0.75 ? 70 * u * easeOut(seg(k, 0.75, 0.95)) : 0;
+      const mx = W * 0.66 + mLunge + mKnock, mu = u * fx.big, f4 = (a, b) => Math.min(3, Math.max(0, Math.floor((k - a) / b)));
+      const mHit = fx.win && k > 0.75 && k < 1.05 ? 1 - seg(k, 0.75, 1.05) : 0;
+      const mSx = 1 + 0.12 * mHit * Math.cos(seg(k, 0.75, 1.05) * 9), mSy = (1 - 0.1 * mHit * Math.cos(seg(k, 0.75, 1.05) * 9)) * (mHit ? 1 : breathe(k * 1.4, 1));
+      if (kr > FIGHT_MS / 1000 + 0.6 + STOP) fx = null;
       else {
         // monster
         let mrow = 0, mcol = Math.floor(k * 6) % 4, malpha;
@@ -255,7 +298,8 @@
           ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(mx, gy, R, R * 0.22, 0, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = fx.aura; ctx.lineWidth = Math.max(2, 5 * u); ctx.beginPath(); ctx.ellipse(mx, gy, R * 0.8, R * 0.17, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
         }
-        drawMon(ctx, fx.id, mcol, mrow, mx + (fx.win ? shake : 0), gy, mu, malpha, fx.aura);
+        shadow(ctx, mx, gy, 120 * mu, 0.3 * (malpha === undefined ? 1 : malpha));
+        posed(ctx, mx, gy, mSx, mSy, 0, () => drawMon(ctx, fx.id, mcol, mrow, mx + (fx.win ? shake : 0), gy, mu, malpha, fx.aura));
         if (fx.label && (malpha === undefined || malpha > 0.3)) {
           const fs = Math.max(12, 30 * u), M = MON[fx.id] || [0, 0, 0, 300, 0], ly = gy - (M[3] + (M[4] || 0)) * mu - 14 * u;
           ctx.save(); ctx.font = 'bold ' + fs + 'px sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = Math.max(3, fs / 5);
@@ -269,7 +313,8 @@
         else if (k >= 1.1) hcol = 3;
         const team = teamOf(st), busy = k > 0.3 && k < 1.2;
         team.forEach((sh, i) => {
-          const x = hx - (150 + 120 * i) * u, y = gy - 8 * u * (i % 2);
+          const x = W * 0.36 + lunge * 0.35 - (150 + 120 * i) * u, y = gy - 8 * u * (i % 2);
+          shadow(ctx, x, y, 60 * u);
           if (combatOf(sh)) {                       // attack (or a special every other mate), then cheer or take the hit
             const atk = Math.min(3, Math.max(0, Math.floor((k - 0.3 - 0.08 * i) / 0.2)));
             if (k < 0.3) drawMateFight(ctx, sh, 0, 0, x, y, u, 1);
@@ -283,7 +328,17 @@
           drawSummon(ctx, fx.summon, gone ? 2 : k > 0.3 && k < 1.1 ? 1 : 0, gone ? Math.min(3, Math.floor((k - 1.3) / 0.25)) : Math.floor(k * 6) % 4, sx, gy, u, 1, gone ? 1 - (k - 2.1) / 0.5 : undefined);
         }
         if (fx.avatar) drawSummon(ctx, 'avatar', k > 0.3 && k < 1.1 ? 1 : 0, k > 0.3 && k < 1.1 ? hcol : 0, hx + (fx.win ? 0 : shake), gy, u, 1);
-        else drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1);
+        else {
+          // squash on the wind-up, stretch on the strike, a little lean forward while dashing
+          const wind = k > 0.3 && k < 0.45 ? Math.sin(seg(k, 0.3, 0.45) * Math.PI) : 0, strike = k > 0.55 && k < 0.8 ? Math.sin(seg(k, 0.55, 0.8) * Math.PI) : 0;
+          const hurt = !fx.win && k > 1.36 && k < 1.7 ? Math.sin(seg(k, 1.36, 1.7) * Math.PI) : 0;
+          const hsx = 1 + 0.07 * wind - 0.04 * strike + 0.06 * hurt, hsy = (1 - 0.07 * wind + 0.05 * strike - 0.06 * hurt) * (k < 0.3 || k > 1.3 ? breathe(k, 0) : 1);
+          const lean = melee && k > 0.3 && k < 0.9 ? 0.06 * Math.sin(seg(k, 0.3, 0.9) * Math.PI) : -0.08 * hurt;
+          shadow(ctx, hx, gy, 75 * u);
+          if (melee && k > 0.3 && k < 0.62 && Math.floor(k * 30) % 3 === 0) puff(hx - 40 * u, gy, u, 1);
+          posed(ctx, hx, gy, hsx, hsy, lean, () => drawCombat(ctx, hcol, hrow, hx + (fx.win ? 0 : shake), gy, u, 1));
+          drawDust(ctx, now);
+        }
         // v128 the arrow flies from the bow to the monster (drawn in code; the sheet's own arrow is part of frame 3)
         if (fx.row === 2 && k > 0.62 && k < 0.78) {
           const q = (k - 0.62) / 0.16, ax0 = hx + 150 * u, ay = gy - 215 * u, ax1 = mx - 40 * u, x1 = ax0 + (ax1 - ax0) * q;
@@ -307,28 +362,44 @@
           for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.3; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.35); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke(); }
           ctx.restore();
         }
-        if (k > 0.75 && k < 0.9 && fx.win || !fx.win && k > 1.36 && k < 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, 0, W, H); }
-        if (info.sleep || clock >= CAMP) { ctx.fillStyle = nightArt ? 'rgba(8,10,30,0.12)' : 'rgba(8,10,30,0.45)'; ctx.fillRect(0, 0, W, H); }
+        if (k > 0.75 && k < 0.9 && fx.win || !fx.win && k > 1.36 && k < 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-30, -30, W + 60, H + 60); }
+        if (info.sleep || clock >= CAMP) { ctx.fillStyle = nightArt ? 'rgba(8,10,30,0.12)' : 'rgba(8,10,30,0.45)'; ctx.fillRect(-30, -30, W + 60, H + 60); }
         return true;
       }
     }
     // exploring: the hero walks back and forth; one of the floor's monsters prowls on the far side
-    const ph = (now / 1000) % 16, out = ph < 8, p = out ? ph / 8 : (16 - ph) / 8, moving = (ph % 8) > 0.6 && (ph % 8) < 7.4;
-    const hx = W * (0.14 + 0.36 * Math.min(1, Math.max(0, (p * 8 - 0.6) / 6.8)));
+    // v139 eased walk: starts and stops smoothly, feet step with the distance walked (no sliding), turns with a squash
+    const ph = (now / 1000) % 16, out = ph < 8, lp = ph % 8, wq = ease(seg(lp, 0.6, 7.4)), pq = out ? wq : 1 - wq;
+    const x0 = W * 0.14, span = W * 0.36, hx = x0 + span * pq, speed = Math.sin(Math.PI * Math.min(1, Math.max(0, seg(lp, 0.6, 7.4))));
+    const moving = lp > 0.6 && lp < 7.4 && speed > 0.12;
+    const stride = 92 * u, dist = out ? span * wq : span + span * wq, wframe = Math.floor(dist / stride) % 4;
+    if (moving !== walker.moving) { walker.moving = moving; walker.since = now; }
+    const wdir = out ? 1 : -1; if (wdir !== walker.face) { walker.face = wdir; walker.faceSince = now; }
+    if (moving && wframe !== walker.frame && (wframe === 0 || wframe === 2)) puff(hx - wdir * 30 * u, gy, u, wdir);
+    walker.frame = wframe;
     const mons = floorMonsters(st);
     if (mons.length && !(x && x.floor % 5 === 0)) {
       const id = mons[(st.day || 0) % mons.length], mp = (now / 1000) % 20, mx = W * (0.72 - 0.06 * Math.sin(mp / 20 * Math.PI * 2));
-      drawMon(ctx, id, Math.floor(now / 160) % 4, 0, mx, gy, u);
+      shadow(ctx, mx, gy, 110 * u, 0.25);
+      posed(ctx, mx, gy, 1, breathe(now / 1000 * 1.3, 2), 0, () => drawMon(ctx, id, Math.floor(now / 160) % 4, 0, mx, gy, u));
     }
     if (rid && rid.indexOf('f5_') === 0) drawSafeNpcs(ctx, rid, W, gy, u, now);
     const team = teamOf(st), dir = out ? 1 : -1;
-    team.forEach((sh, i) => drawMate(ctx, sh, moving ? 0 : 2, moving ? (Math.floor(now / 150) + i) % 4 : 0, hx - dir * (125 + 115 * i) * u, gy - 6 * u * (i % 2), u, dir));
+    const tsq = Math.min(turnSquash(now, walker.since), turnSquash(now, walker.faceSince));
+    drawDust(ctx, now);
+    team.forEach((sh, i) => {
+      const tx = hx - dir * (125 + 115 * i) * u, ty = gy - 6 * u * (i % 2), mf = Math.floor((dist + 40 * u * (i + 1)) / stride) % 4;
+      shadow(ctx, tx, ty, 58 * u);
+      posed(ctx, tx, ty, tsq, moving ? 1 : breathe(now / 1000, i + 1), moving ? 0.03 * dir * speed : 0,
+        () => drawMate(ctx, sh, moving ? 0 : 2, moving ? mf : 0, tx, ty, u, dir));
+    });
     const xs = X(st), sm = xs && xs.summon && xs.summon.day === st.day ? xs.summon.kind : null;
     if (sm) drawSummon(ctx, sm, 0, Math.floor(now / 170) % 4, summonSpot(sm, hx, dir, u), gy, u, dir);
     if (xs && xs.avatarDay === st.day) drawSummon(ctx, 'avatar', moving ? 0 : 0, moving ? Math.floor(now / 150) % 4 : 0, hx, gy, u, dir);
-    else drawWalk(ctx, Math.floor(now / 140), hx, gy, u, out ? 1 : -1, moving);
+    else { shadow(ctx, hx, gy, 72 * u);
+      posed(ctx, hx, gy, tsq, moving ? 1 : breathe(now / 1000, 0), moving ? 0.035 * wdir * speed : 0, () => drawWalk(ctx, wframe, hx, gy, u, wdir, moving)); }
     if (heal) { const q = (now - heal) / 1000; if (q >= 1) heal = 0; else drawFx(ctx, 'heal', q, hx, gy - 190 * u, 720 * u); }
-    if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + ((nightArt ? 0.1 : 0.4) * dusk).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
+    if (dusk > 0) { ctx.fillStyle = 'rgba(40,20,50,' + ((nightArt ? 0.1 : 0.4) * dusk).toFixed(3) + ')'; ctx.fillRect(-30, -30, W + 60, H + 60); }
     return true;
   }
   const images = () => [...SCENES, ...Object.values(PROPS)].filter(Boolean);
