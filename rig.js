@@ -77,23 +77,49 @@
   const ANIMS = { attack: ATTACK1, attack1: ATTACK1, attack2: ATTACK2, attack3: ATTACK3, hit: HIT };
   const LEN = { attack: 0.62, attack1: 0.62, attack2: 0.6, attack3: 0.8, hit: 0.7 };
   function pose(anim, t) {
-    if (anim === 'walk' || anim === 'run') {
-      const run = anim === 'run', T = run ? 0.5 : 0.8, ph = (t % T) / T * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-      const sw = run ? 30 : 22;
+    if (anim === 'walk') return walkPose(t);
+    if (anim === 'run') {
+      const T = 0.5, ph = (t % T) / T * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), sw = 30;
       return K({
-        legF: -sw * s - (run ? 6 : 2), legB: sw * s - (run ? 6 : 2),
-        kneeF: 6 + Math.max(0, -c) * (run ? 60 : 40), kneeB: 6 + Math.max(0, c) * (run ? 60 : 40),    // the leg swinging forward lifts its foot
-        armF: sw * 0.9 * s + 4, elbowF: -30 - Math.max(0, -s) * (run ? 40 : 18),                       // arms swing AGAINST the legs
-        armB: -sw * 0.9 * s - 4, elbowB: -30 - Math.max(0, s) * (run ? 40 : 18),
-        torso: (run ? 12 : 5) + 1.5 * Math.cos(ph * 2), head: -(run ? 8 : 3) - 2 * Math.cos(ph * 2 + 0.8),
-        y: Math.abs(Math.sin(ph)) * (run ? -10 : -6),                                                      // up when passing, down on contact
-        sword: -48 + 8 * s
+        legF: -sw * s - 6, legB: sw * s - 6, kneeF: 6 + Math.max(0, -c) * 60, kneeB: 6 + Math.max(0, c) * 60,
+        armF: sw * 0.5 * s + 4, elbowF: -55, armB: -sw * 0.9 * s - 4, elbowB: -40 - Math.max(0, s) * 40,
+        torso: 12 + 1.5 * Math.cos(ph * 2), head: -8 - 2 * Math.cos(ph * 2 + 0.8), y: Math.abs(Math.sin(ph)) * -10, sword: -70 + 6 * s
       });
     }
     if (ANIMS[anim]) return track(ANIMS[anim], Math.min(t, LEN[anim]));
     const b = Math.sin(t * 2.6), b2 = Math.sin(t * 2.6 - 0.8), base = anim === 'ready' ? READY : BASE;   // breathing
     return Object.assign({}, base, { y: (base.y || 0) + b * 3, torso: base.torso + b * 1.5, head: base.head - b2 * 2.5, armF: base.armF + b2 * 3, elbowF: base.elbowF - b2 * 3, armB: base.armB - b2 * 3, sword: base.sword + b2 * 2 });
   }
+
+  // ---- walking with the sword in hand: the four classic key poses per step (contact · down · passing · up),
+  // mirrored for the other leg, joined by a smooth Catmull-Rom curve so the motion never stops at a key.
+  // legF/legB = thigh, kneeF/kneeB = shin fold. The body is lowest just after contact and highest while pushing off.
+  const STEP = [   // first half of the cycle: the FRONT leg steps forward
+    { legF: -27, kneeF: 3,  legB: 25, kneeB: 16, y: 1,  torso: 5 },     // contact: front heel lands, back toe still down
+    { legF: -18, kneeF: 16, legB: 20, kneeB: 34, y: 8,  torso: 6 },     // down: weight drops onto the front leg
+    { legF: 0,   kneeF: 6,  legB: -6, kneeB: 66, y: 2,  torso: 5 },     // passing: back leg swings through, knee high
+    { legF: 15,  kneeF: 3,  legB: -22, kneeB: 32, y: -6, torso: 4 }     // up: pushing off, body at its highest
+  ];
+  const swap = k => ({ legF: k.legB, kneeF: k.kneeB, legB: k.legF, kneeB: k.kneeF, y: k.y, torso: k.torso });
+  const WALK = [...STEP, ...STEP.map(swap)];
+  const WALK_T = 0.92;                                  // seconds per full cycle (two steps)
+  function cr(p0, p1, p2, p3, q) { const q2 = q * q, q3 = q2 * q; return 0.5 * (2 * p1 + (-p0 + p2) * q + (2 * p0 - 5 * p1 + 4 * p2 - p3) * q2 + (-p0 + 3 * p1 - 3 * p2 + p3) * q3); }
+  function cyc(keys, u, ch) { const n = keys.length, f = ((u % 1) + 1) % 1 * n, i = Math.floor(f), q = f - i, g = j => keys[(i + j + n) % n][ch]; return cr(g(-1), g(0), g(1), g(2), q); }
+  function walkPose(t) {
+    const u = t / WALK_T, P = {}, lag = u - 0.06;      // arms, sword and head follow a moment later (follow-through)
+    for (const ch of ['legF', 'kneeF', 'legB', 'kneeB', 'y', 'torso']) P[ch] = cyc(WALK, u, ch);
+    const legFl = cyc(WALK, lag, 'legF'), legBl = cyc(WALK, lag, 'legB'), yl = cyc(WALK, u - 0.1, 'y');
+    // arms swing against the legs on their side; the sword arm swings less and keeps the blade forward
+    const armB = -legBl * 0.85 - 4, armF = -legFl * 0.35 - 14;
+    return K(Object.assign(P, {
+      armB, elbowB: -28 - Math.max(0, -armB) * 0.9,
+      armF, elbowF: -46 - Math.max(0, -armF) * 0.6,
+      sword: -52 + legFl * 0.25,
+      head: -3 + (yl - 1) * 0.35,                       // the head nods with the bob, a little late
+    }));
+  }
+  // stride: how far the body travels per second when walking, in rig units (so the planted foot doesn't slide)
+  function walkSpeed(sk) { return sk.H ? sk.H * 0.62 : 0; }
 
   // ---- a bendable limb: horizontal strips from top to bottom; each strip turns with the bone it belongs to
   // (blending from the upper to the lower bone around the joint). M = matrix at the pivot (unrotated).
@@ -153,6 +179,12 @@
     const L = sk.legF, foot = B.at(T.hipF, L.s).rotate(BASE.legF).transformPoint(new DOMPoint(0, (img(sk, L.img).naturalHeight || 360) - L.pivot[1])).y;
     return foot - top;
   }
+  // where both soles are (rig units, origin = hips on the ground line) — used to match walking speed to the steps
+  function feet(rigId, anim, t) {
+    const sk = SKEL[RIGS[rigId] || rigId], P = pose(anim, t), T = sk.torso, I = n => img(sk, n), pr = build(sk, P, new DOMMatrix());
+    const f = n => { const b = limb(null, pr.at(T[n === 'legF' ? 'hipF' : 'hipB'], sk[n].s), sk[n], I(sk[n].img), P[n], P[n === 'legF' ? 'kneeF' : 'kneeB']).bottom; return { x: b.e, y: b.f }; };
+    return { F: f('legF'), B: f('legB'), H: sk.H || (sk.H = measure(sk)) };
+  }
   const ready = rigId => { const sk = SKEL[RIGS[rigId] || rigId]; if (!sk) return false; return [sk.torso.img, sk.head.img, sk.armF.img, sk.armB.img, sk.legF.img, sk.legB.img, sk.sword.img, ...Object.values(sk.faces)].map(n => ok(img(sk, n))).every(Boolean); };
-  root.Rig = { draw, pose, ready, SKEL, RIGS, LEN };
+  root.Rig = { draw, pose, ready, SKEL, RIGS, LEN, WALK_T, walkSpeed, feet };
 })(typeof window !== 'undefined' ? window : globalThis);

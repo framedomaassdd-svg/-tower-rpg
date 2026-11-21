@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>walk test</title>
+<style>html,body{margin:0;background:#5a6a5a;overflow:hidden}canvas{display:block;width:100vw;height:100vh}</style></head><body>
+<canvas id="cv"></canvas>
+<script src="rig.js?v=144"></script>
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let W,H; function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;} rs(); addEventListener('resize',rs);
+let speed=0;
+(function wait(){ if(!Rig.ready('hero2')) return setTimeout(wait,100);
+  // ground speed = how far the planted front foot moves back while it carries the body (half a cycle)
+  const T=Rig.WALK_T, a=Rig.feet('hero2','walk',0.02*T), b=Rig.feet('hero2','walk',0.46*T);
+  speed=(a.F.x-b.F.x)/(0.44*T)/a.H;   // in "body heights per second"
+  requestAnimationFrame(loop); })();
+function loop(){
+  const t=performance.now()/1000, h=H*0.62, gy=H*0.86, x=W*0.5;
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#5a6a5a'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#4a5848'; ctx.fillRect(0,gy,W,H-gy);
+  // ground marks scroll at the walking speed: a planted foot should stay on its mark
+  const v=speed*h, off=(t*v)%(h*0.25);
+  ctx.fillStyle='#3c4a3a'; for(let gx=-off; gx<W; gx+=h*0.25) ctx.fillRect(gx,gy,h*0.03,H*0.03);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x,gy+2,h*0.2,h*0.035,0,0,Math.PI*2); ctx.fill();
+  Rig.draw(ctx,'hero2','walk',t,x,gy,h,1);
+  requestAnimationFrame(loop);
+}
+</script></body></html>
