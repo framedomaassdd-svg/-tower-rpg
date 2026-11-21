@@ -96,7 +96,9 @@
   // v115 active books are extremely rare without changing the v113 book DROP probability.
   // Most book drops are passive; advanced quest-only actives never enter the monster pool.
   const BOOK_TEMPLATES = Object.freeze(Array(98).fill('book_sense').concat(['book_fire', 'book_ice']));
-  const ADVANCED_BOOKS = Object.freeze(['book_fireBody', 'book_iceSkin', 'book_lastStand', 'book_shadowStep']);
+  const ADVANCED_BOOKS = Object.freeze(['book_fireBody', 'book_iceSkin', 'book_lastStand', 'book_shadowStep', 'card_spiritGuard']);
+  // v134 set cores drop from floor guardians (and are sold in safe zones)
+  const SET_CORE_CARDS = Object.freeze(['card_avatarForm', 'card_stormLance', 'card_earthBulwark', 'card_sanctuaryLight', 'card_spiritCall', 'card_spiritMend', 'card_spiritScout']);
   const isBossFloor = floor => Number.isInteger(floor) && floor >= 4 && (floor + 1) % 5 === 0;
   // A single special reward roll, shared by weapons and skill books; no slot modifiers.
   function rollDrop(st, monster, eventId) {
@@ -112,7 +114,7 @@
     for (const candidate of outcomes) { sum += candidate.probability; if (r < sum) { special = { ...candidate }; delete special.probability; break; } }
     if (special) {
       const templates = special.kind === 'weapon' ? WEAPON_TEMPLATES :
-        (rank >= 1 ? BOOK_TEMPLATES.concat(ADVANCED_BOOKS) : BOOK_TEMPLATES);
+        monster && monster.boss ? SET_CORE_CARDS : (rank >= 1 ? BOOK_TEMPLATES.concat(ADVANCED_BOOKS) : BOOK_TEMPLATES);
       special.templateId = templates[Math.floor(hash(seed(st), 'drop', eventId, 'type') * templates.length)];
     }
     const crystalRate = Math.min(1, 0.08 + rank * 0.04);

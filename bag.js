@@ -257,7 +257,8 @@
   const COIN = Object.freeze({ name: 'เหรียญ', icon: '🪙' });
   // v111 tower safe-zone traders: rates are deliberately higher than in the city.
   const SAFE_SHOP = Object.freeze({ bread: 4, jerky: 6, potion: 10, clean_water: 4, leather: 22, sword: 72, spear: 62, bow: 56, club: 20,
-    book_fire: 800, book_ice: 1000, book_sense: 198, book_fireBody: 400 });
+    book_fire: 800, book_ice: 1000, book_sense: 198, book_fireBody: 400,
+    card_spiritGuard: 300, card_stormLance: 900, card_earthBulwark: 900, card_sanctuaryLight: 900, card_spiritMend: 950, card_spiritScout: 950, card_spiritCall: 1200, card_avatarForm: 1600 });
   const SAFE_BUYER = Object.freeze(['herb','ore','crystal','monster','junk','scrap','iron','fruit','oldwheel','chain',
     'copper_ore','tin_ore','iron_ore','silver_ore','ember_ore','blood_ore','frost_ore','venom_ore','mind_ore','star_ore','aegis_ore','void_ore']);
   // v112: multipliers are supplied by the actual safe-floor service, not patched onto Bag elsewhere.
