@@ -13,7 +13,8 @@
   const ok = i => i && i.complete && i.naturalWidth > 0;
   const SCENES = [1, 2, 3, 4, 5].map(n => im('tower/floor' + n + '.webp?v=127'));
   // v135 one scene per territory (f1_north …) once the art exists; list ids here when their webp is in tower/regions/
-  const REGION_ART = [1, 2, 3, 4, 6, 7, 8, 9].flatMap(f => ['north', 'east', 'south', 'west'].map(d => 'f' + f + '_' + d)).concat(['f5_gate', 'f5_market', 'f5_refuge']);
+  // v137 only territories whose art matches the floor's own look; the rest wait for re-drawn scenes (fall back to the floor scene)
+  const REGION_ART = ['f1_east', 'f1_south', 'f1_west'];
   const REGION_IMG = {};
   const regionBg = (id, night) => REGION_ART.includes(id) ? (REGION_IMG[id + night] = REGION_IMG[id + night] || im('tower/regions/' + (night ? 'night/' : '') + id + '.webp?v=136')) : null;
   // v136 which territory picture: the team's current territory on this floor; floor 5 (safe zone) by the time of day
