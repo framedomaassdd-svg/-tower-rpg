@@ -11,9 +11,9 @@
   //  limb: top pivot (shoulder/hip), joint = elbow/knee y, end = fist/ankle y, s = scale
   const SKEL = {
     hero2: {
-      dir: 'rig/hero2/', ver: 143,
+      dir: 'rig/hero2/', ver: 145,
       torso: { img: 'torso', pivot: [125, 262], s: 0.82,                 // pivot = waist
-               neck: [150, 30], shoulderF: [66, 78], shoulderB: [150, 76], hipF: [146, 280], hipB: [108, 280] },
+               neck: [148, 20], collar: [40, 80], shoulderF: [66, 78], shoulderB: [150, 76], hipF: [146, 280], hipB: [108, 280] },
       head:  { img: 'head', pivot: [118, 214], s: 1.16 },
       armF:  { img: 'armF', pivot: [50, 40], joint: 150, end: 282, s: 0.66 },
       armB:  { img: 'armB', pivot: [48, 40], joint: 150, end: 280, s: 0.66 },
@@ -168,6 +168,8 @@
     L('armF', T.shoulderF, P.armF, P.elbowF);
     const H = sk.head, fimg = P.face && sk.faces[P.face] && ok(I(sk.faces[P.face])) ? sk.faces[P.face] : H.img;
     ctx.setTransform(B.at(T.neck, H.s, true).rotate(-P.torso * 0.6 + P.head).translate(-H.pivot[0], -H.pivot[1])); ctx.drawImage(I(fimg), 0, 0);
+    // the collar goes back over the bottom of the neck, so the neck sits INSIDE the shirt instead of on top of it
+    if (T.collar) { const [cy0, cy1] = T.collar, TI = I(T.img); ctx.setTransform(B.torsoM); ctx.drawImage(TI, 0, cy0, TI.naturalWidth, cy1 - cy0, 0, cy0, TI.naturalWidth, cy1 - cy0); }
     ctx.restore();
     return true;
   }
