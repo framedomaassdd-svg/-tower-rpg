@@ -61,12 +61,12 @@
     // v142 a rigged character: the pose comes from its skeleton (smooth at any speed) instead of sheet cells
     function drawRig(x, A, pose, px, gy, sc, alpha, flash, t) {
       const v = vis.get(x), dir = x.side === 'L' ? 1 : -1, h = 375 * u * sc;
-      let anim = 'idle', at = t, extra = null;
+      let anim = 'ready', at = t, extra = null;
       if (anim && pose !== 'idle') {
-        if ((pose === 'wind' || pose === 'strike' || pose === 'follow') && actingT(x) !== null) { anim = 'attack'; at = actingT(x) - 0.04; }
+        if ((pose === 'wind' || pose === 'strike' || pose === 'follow') && actingT(x) !== null) { const c = (v.acts || 0) % 3; anim = 'attack' + (c + 1); at = actingT(x) - (0.34 - [0.27, 0.25, 0.33][c]); }   // a 3-hit combo across turns
         else if (pose === 'hit' || pose === 'dodge') { anim = 'hit'; at = t - (v.hitAt || t); }
         else if (pose === 'down') { anim = 'hit'; at = 0.3; extra = 'down'; }
-        else if (pose === 'cast') { anim = 'idle'; extra = { face: 'shout', uarmN: -120, farmN: -20, sword: -60 }; }
+        else if (pose === 'cast') { anim = 'ready'; extra = { face: 'shout', armF: -150, elbowF: -20, sword: -40 }; }
       }
       ctx.save(); ctx.globalAlpha = alpha;
       ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill();
@@ -117,7 +117,7 @@
     function portrait(x, cx, cy, r, big) {
       const A = art(x);
       if (A.rig) {                                                  // the rig's own head
-        const I = im((root.Rig.RIGS[A.rig] || {}).dir + 'head.webp?v=142c');
+        const SK = root.Rig.SKEL[root.Rig.RIGS[A.rig] || A.rig] || {}, I = im(SK.dir + 'head.webp?v=' + SK.ver);
         ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#2c4a7a'; ctx.fill(); ctx.clip();
         if (ok(I)) { const k = r * 2.3 / I.naturalHeight; ctx.drawImage(I, cx - I.naturalWidth * k * 0.5, cy - I.naturalHeight * k * 0.42, I.naturalWidth * k, I.naturalHeight * k); }
         ctx.restore(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.lineWidth = big ? 4 : 2.5; ctx.strokeStyle = big ? '#fff3c4' : '#9cc3ff'; ctx.stroke();
@@ -153,6 +153,7 @@
 
     // ---- turns ----
     function begin(ev) {
+      vis.get(ev.actor).acts = (vis.get(ev.actor).acts || 0) + (ev.hits.length ? 1 : 0);
       const a = ev.actor, s = spot(a), melee = ev.hits.length && !a.ranged && a.art.type !== 'ally-cast';
       const t0 = simT;
       const target = ev.hits[0] && ev.hits[0].target;
