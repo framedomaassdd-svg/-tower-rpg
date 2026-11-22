@@ -79,6 +79,9 @@
       ctx.restore();
     }
     // v152 a character from AI-video clips: which action plays, and how far into it, comes from the battle state
+    // v155 clips play faster than the video they came from (game timing, not film timing)
+    const RATE = { atkA: 1.55, atkB: 1.55, atkC: 1.45, skill: 1.35, guard: 1.4, potion: 1.5, hit: 1.35, down: 1.25, win: 1 };
+    const rate = act => RATE[act] || 1;
     const clipImg = (A, name) => im(A.clip.dir + name + '.webp?v=' + A.clip.ver);
     function clipState(x, t) {
       const v = vis.get(x), A = art(x);
@@ -90,7 +93,7 @@
     }
     function clipFrame(C, act, lt) {
       let M = C.acts[act]; if (!M) { act = 'idle'; M = C.acts.idle; }
-      let f = Math.floor(Math.max(0, lt) * M.fps);
+      let f = Math.floor(Math.max(0, lt) * M.fps * rate(act));
       if (M.loop) f %= M.n;
       else if (f >= M.n) {
         if (M.loopFrom != null) f = M.loopFrom + (f - M.loopFrom) % (M.n - M.loopFrom);
@@ -100,14 +103,23 @@
       return { act, f };
     }
     function drawClip(x, A, px, gy, sc, alpha, flash, t) {
-      const C = A.clip, st = clipState(x, t), fr = clipFrame(C, st.act, st.lt), I = clipImg(A, fr.act);
+      const C = A.clip, st = clipState(x, t), fr = clipFrame(C, st.act, st.lt), I = clipImg(A, fr.act), v = vis.get(x);
+      if (!v.cf || v.cf.act !== fr.act) { v.pf = v.cf; v.pfT = t; }                  // action changed: fade the last frame out
+      v.cf = fr;
+      const fade = v.pf && t - v.pfT < 0.12 ? 1 - (t - v.pfT) / 0.12 : 0;
       const dir = (x.side === 'L' ? 1 : -1) * (C.faceLeft ? -1 : 1), k = (C.disp || 340) * (x.art.scale || 1) * u * sc / C.h, F = C.acts[fr.act];
       ctx.save(); ctx.globalAlpha = alpha;
       if (fr.act !== 'down') { ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill(); }
       if (!ok(I)) { ctx.restore(); return; }
       const sx = (fr.f % F.cols) * F.cw, sy = Math.floor(fr.f / F.cols) * F.ch;
       ctx.translate(px, gy); ctx.scale(dir, 1);
+      if (fade > 0) {
+        const P = C.acts[v.pf.act], PI = clipImg(A, v.pf.act);
+        if (P && ok(PI)) { ctx.globalAlpha = alpha * fade; ctx.drawImage(PI, (v.pf.f % P.cols) * P.cw, Math.floor(v.pf.f / P.cols) * P.ch, P.cw, P.ch, -P.ax * k, -P.ay * k, P.cw * k, P.ch * k); }
+        ctx.globalAlpha = alpha * (1 - fade * 0.5);
+      }
       ctx.drawImage(I, sx, sy, F.cw, F.ch, -F.ax * k, -F.ay * k, F.cw * k, F.ch * k);
+      ctx.globalAlpha = alpha;
       if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.6; ctx.drawImage(I, sx, sy, F.cw, F.ch, -F.ax * k, -F.ay * k, F.cw * k, F.ch * k); }
       ctx.restore();
     }
@@ -208,14 +220,14 @@
         const M = n => C.acts[n], nh = ev.hits.length;
         if (nh && ev.type === 'attack' && !a.ranged) {
           const AT = C.attacks || ['atkA', 'atkB', 'atkC'], act = AT[((vis.get(a).acts || 1) - 1) % AT.length], m = M(act);
-          anim.clipAct = act; anim.hitT = Math.max(0.3, m.hit / m.fps); anim.backAt = Math.max(anim.hitT + 0.15 + (nh - 1) * 0.28, m.n / m.fps - 0.25);
-          anim.dur = anim.backAt + 0.25;
+          anim.clipAct = act; anim.hitT = Math.max(0.24, m.hit / m.fps / rate(act)); anim.backAt = anim.hitT + 0.2 + (nh - 1) * 0.28;
+          anim.dur = anim.backAt + 0.22;
         } else if (nh && M('skill')) {                           // a skill that hits: charged slash from where he stands
           const m = M('skill'); anim.clipAct = 'skill'; anim.melee = false; anim.ranged = false; anim.inPlace = true;
-          anim.hitT = m.hit / m.fps; anim.dur = m.n / m.fps;
+          anim.hitT = m.hit / m.fps / rate('skill'); anim.dur = m.n / m.fps / rate('skill');
         } else {
           const act = ev.type === 'item' ? 'potion' : 'guard', m = M(act);
-          if (m) { anim.clipAct = act; anim.landT = m.hit / m.fps; anim.dur = m.n / m.fps; }
+          if (m) { anim.clipAct = act; anim.landT = m.hit / m.fps / rate(act); anim.dur = m.n / m.fps / rate(act) - 0.15; }
         }
       }
       if (ev.type === 'skill' || ev.type === 'item') pops.push({ text: ev.type === 'item' ? 'ยาฟื้นฟู' : B().SKILLS[ev.id].name, x: s.x, y: s.gy - 330 * u * s.sc, t0, color: '#ffe7a8' });
@@ -224,10 +236,10 @@
       const v = vis.get(h.target), s = spot(h.target);
       if (h.miss) { v.hitAt = at; v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
       const HC = art(h.target).clip;
-      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + (HC && HC.acts.hit ? HC.acts.hit.n / HC.acts.hit.fps : 0.38);
+      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + (HC && HC.acts.hit ? HC.acts.hit.n / HC.acts.hit.fps / rate('hit') : 0.38);
       v.dp = Math.max(0, v.dp - h.took); v.ds = Math.max(0, v.ds - h.broke);       // the pips go now, as the blow lands
       shake = { t: at, a: (h.took + h.broke) * 7 + (h.killed ? 6 : 0) };
-      stopUntil = performance.now() + 75;                                     // hit-stop
+      stopUntil = performance.now() + 55;                                     // hit-stop
       const nb = Math.round(h.broke * 6), nt = Math.round(h.took * 6);
       for (let i = 0; i < nb + nt; i++) pops.push({ shard: true, x: s.x, y: s.gy - 300 * u * s.sc, vx: (Math.random() - 0.5) * 300 * u, vy: -Math.random() * 380 * u, t0: at, color: i < nb ? '#f4f7ff' : '#e8483f' });
       if (h.cut) for (let i = 0; i < 5; i++) pops.push({ shard: true, x: s.x - s.dir * 30 * u, y: s.gy - 220 * u * s.sc, vx: (Math.random() - 0.5) * 420 * u, vy: -Math.random() * 300 * u, t0: at, color: '#c9d3df' });   // armour clink
@@ -322,7 +334,7 @@
     }
     function advance(t) {
       if (b.over) { if (phase !== 'end') { phase = 'end'; phaseT = t; } return; }
-      if (t - phaseT < 0.16) return;                                  // a breath between turns so the bar can glide
+      if (t - phaseT < 0.07) return;                                  // a breath between turns so the bar can glide
       const x = B().step(b); if (!x) return;
       if (x.kind === 'hero' && !auto) { phase = 'hero'; heroButtons(x); return; }
       phase = 'act'; const ev = B().act(b, x); if (ev) begin(ev);
@@ -348,7 +360,7 @@
       const order = b.units.slice().sort((p, q) => spot(p).gy - spot(q).gy || (anim && anim.actor === p ? 1 : anim && anim.actor === q ? -1 : 0));
       for (const x of order) {
         const s = spot(x), v = vis.get(x);
-        if (!x.alive && v.dieAt !== undefined) { const DC = art(x).clip, dd = DC && DC.acts.down ? DC.acts.down.n / DC.acts.down.fps + 0.3 : 0.5; v.alpha = x.side === 'R' ? Math.max(0, 1 - seg(t, v.dieAt + dd, v.dieAt + dd + 0.6)) : 1; }
+        if (!x.alive && v.dieAt !== undefined) { const DC = art(x).clip, dd = DC && DC.acts.down ? DC.acts.down.n / DC.acts.down.fps / rate('down') + 0.2 : 0.5; v.alpha = x.side === 'R' ? Math.max(0, 1 - seg(t, v.dieAt + dd, v.dieAt + dd + 0.6)) : 1; }
         if (v.alpha <= 0) continue;
         const st = actorState(x, s, t);
         drawUnit(x, st.pose, st.px, s.gy, s.sc, v.alpha, v.flash, t);
@@ -368,7 +380,7 @@
       for (const x of order) if (x.alive) { const s = spot(x); pipsOf(x, actorState(x, s, t).px, s.gy, s.sc); }
       drawPops(t);
       drawTimeline(dt);
-      if (phase === 'end' && !endSent && t - phaseT > 0.9) { endSent = true; ui.innerHTML = ''; opts.onEnd && opts.onEnd(b.over, b); }
+      if (phase === 'end' && !endSent && t - phaseT > 1.8) { endSent = true; ui.innerHTML = ''; opts.onEnd && opts.onEnd(b.over, b); }
       root.requestAnimationFrame(frame);
     }
     root.requestAnimationFrame(frame);
