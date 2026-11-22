@@ -87,13 +87,14 @@ canvas{display:block;width:100vw;height:100vh;touch-action:none}
         ctx.drawImage(I, -pw / 2, -ph, pw, ph); ctx.restore();
       }
     };
-    drawProps(false);
+    // v159 props off: the cut-out props don't sit naturally in these painted scenes (user call); the pictures carry the scene on their own
+    if (q.get('props') === '1') drawProps(false);
     const act = cur < 0.04 ? 'idle' : mode === 'run' || cur > 0.5 ? 'run' : 'walk', M = C.acts[act];
     anT += dt * (act === 'idle' ? 1 : cur / speed[act]);
     const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h, px = wx - cam;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, gy, H * 0.065, H * 0.013, 0, 0, 7); ctx.fill();
     if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
-    drawProps(true);
+    if (q.get('props') === '1') drawProps(true);
     if (fadeT >= 0) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, 1 - Math.abs(fadeT - 0.35) / 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
     document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + bg[0];
     requestAnimationFrame(frame);
