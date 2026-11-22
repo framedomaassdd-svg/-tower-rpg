@@ -53,6 +53,12 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
 /* "!" over the hero */
 #bang{position:fixed;z-index:6;font:800 30px/1 -apple-system,sans-serif;color:#ffe08a;text-shadow:0 2px 0 #7a4a10,0 0 8px #000;transform:translate(-50%,-100%) scale(0);transition:transform .18s cubic-bezier(.2,1.6,.4,1);pointer-events:none}
 #bang.on{transform:translate(-50%,-100%) scale(1)}
+/* warp to the battle stage and back */
+#warp{position:fixed;inset:0;z-index:10;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at var(--x,50%) var(--y,60%),#fff 0,#fff6d8 8%,rgba(255,220,140,.9) 18%,#1a1208 55%,#000 75%)}
+#warp.in{animation:warpIn .55s ease-in forwards}#warp.out{animation:warpOut .5s ease-out forwards}
+@keyframes warpIn{0%{opacity:0;transform:scale(.2)}55%{opacity:1;transform:scale(1.4)}100%{opacity:1;transform:scale(3);background:#000}}
+@keyframes warpOut{0%{opacity:1;background:#000}100%{opacity:0;background:#000}}
 /* battle ui (same as battle-test) */
 #ui{position:fixed;left:0;right:0;bottom:10px;display:flex;justify-content:center;z-index:5;pointer-events:none}
 .bt-turn{pointer-events:auto;background:rgba(25,18,12,.86);border:1px solid #c9a35a;border-radius:14px;padding:8px 10px 10px;max-width:96vw}
@@ -73,12 +79,13 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
 <div id="enc"></div>
 <div id="toast"></div>
 <div id="ui"></div>
+<div id="warp"></div>
 <script src="tower-view.js?v=127&motion=140"></script>
 <script src="bag.js?v=136"></script>
 <script src="tower-regions.js?v=136"></script>
 <script src="battle.js?v=141"></script>
-<script src="hero-clips.js?v=160"></script>
-<script src="battle-view.js?v=143&clip=160"></script>
+<script src="hero-clips.js?v=161"></script>
+<script src="battle-view.js?v=143&clip=161"></script>
 <script src="explore-art.js?v=158"></script>
 <script>
 (function () {
@@ -237,20 +244,37 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
   const ALLY = [
     { kind: 'ally', name: 'โล่หญิง', pow: 30, spd: 9, max: 4, def: 20, row: 0, skills: ['taunt'], art: { type: 'ally', src: 'npc_combat/shieldmaiden.webp?v=131' } },
     { kind: 'ally', name: 'นักบวช', pow: 18, spd: 11, max: 3, row: 1, ranged: true, skills: ['mend'], art: { type: 'ally', src: 'npc_combat/priest.webp?v=131' } }];
+  // warp: a burst from the hero, black, then the next scene fades in
+  const warpEl = document.getElementById('warp');
+  function warp(fromX, fromY, mid) {
+    warpEl.style.setProperty('--x', fromX + 'px'); warpEl.style.setProperty('--y', fromY + 'px');
+    warpEl.className = ''; void warpEl.offsetWidth; warpEl.className = 'in';
+    setTimeout(() => { mid(); warpEl.className = 'out'; setTimeout(() => { warpEl.className = ''; }, 520); }, 560);
+  }
+  let heroScreen = [0, 0];
   function fight(ev) {
     state = 'fight'; chrome(false); bang.classList.remove('on');
+    warp(heroScreen[0], heroScreen[1], () => battle(ev));
+  }
+  // the fight happens on the floor's battle stage (tower/battle/f<floor>.webp), not on the road
+  let lastFight = null;
+  function battle(ev) {
+    lastFight = ev;
     const pow = 18 + floor * 6, foes = [];
     for (let i = 0; i < ev.pack; i++) foes.push({ kind: 'mon', name: ev.mon.name, pow: pow - i * 2, spd: (ev.mon.id === 'wolf' ? 14 : 11) - i, rank: 'Normal', max: 3, row: i ? 1 : 0, art: { type: 'mon', id: ev.mon.id } });
     const b = Battle.create({ allies: [HERO(), ...ALLY.map(a => Object.assign({}, a))], foes, seed: (Math.random() * 1e9) | 0, potions });
-    camX = Math.max(0, Math.min(geo().bw - W, ev.u * geo().bw - W * 0.5));   // frame the spot where the monster stood
-    ctl = BattleView.start(cv, ui, b, { drawBg, ground: geo().gy / H, onEnd: (res, bb) => {
-      const h = bb.units.find(x => x.kind === 'hero'); heroPips = Math.max(1, h.pips); potions = bb.potions; ctl.stop(); ctl = null;
+    ctl = BattleView.start(cv, ui, b, { bg: 'tower/battle/f' + floor + '.webp?v=161', ground: 0.705, onEnd: (res, bb) => {
+      const h = bb.units.find(x => x.kind === 'hero'); heroPips = Math.max(1, h.pips); potions = bb.potions;
+      warp(W / dpr / 2, H / dpr / 2, () => { ctl.stop(); ctl = null; after(res); });
+    } });
+  }
+  function after(res) {
+      const ev = lastFight;
       if (res === 'win') {
         const D = TR.DROPS[ev.mon.name] || {}, got = (D.common || []).slice(0, 2).filter(() => Math.random() < 0.7);
         toast('🏆 ชนะ!'); got.forEach((d, i) => setTimeout(() => toast(icon(d[0], 26) + ' ' + ((BAG.ITEMS[d[0]] || {}).name || d[0]) + ' × 1'), 300 + i * 350));
       } else { toast('💀 พ่ายแพ้... ถอยกลับมาพัก'); heroPips = 3; potions = 2; }
-      resume(); requestAnimationFrame(frame);
-    } });
+      resize(); resume(); last = performance.now(); requestAnimationFrame(frame);
   }
 
   // ---------- walking ----------
@@ -276,6 +300,7 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
     const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h, px = wx - camX;
     ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, G.gy, H * 0.065, H * 0.013, 0, 0, 7); ctx.fill();
     if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, G.gy - M.ay * k, M.cw * k, M.ch * k);
+    heroScreen = [px / dpr, (G.gy - H * 0.17) / dpr];
     bang.style.left = px / dpr + 'px'; bang.style.top = (G.gy - H * 0.36) / dpr + 'px';
     if (fadeT >= 0) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, 1 - Math.abs(fadeT - 0.35) / 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
     document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + G.bg[0] + ' · ' + '●'.repeat(Math.ceil(heroPips)) + ' 🧪' + potions;
