@@ -100,14 +100,14 @@
     }
     function drawClip(x, A, px, gy, sc, alpha, flash, t) {
       const C = A.clip, st = clipState(x, t), fr = clipFrame(C, st.act, st.lt), I = clipImg(A, fr.act);
-      const dir = x.side === 'L' ? 1 : -1, k = 340 * u * sc / C.h;
+      const dir = x.side === 'L' ? 1 : -1, k = 340 * u * sc / C.h, F = C.acts[fr.act];
       ctx.save(); ctx.globalAlpha = alpha;
       if (fr.act !== 'down') { ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill(); }
       if (!ok(I)) { ctx.restore(); return; }
-      const sx = (fr.f % C.cols) * C.cw, sy = Math.floor(fr.f / C.cols) * C.ch;
+      const sx = (fr.f % F.cols) * F.cw, sy = Math.floor(fr.f / F.cols) * F.ch;
       ctx.translate(px, gy); ctx.scale(dir, 1);
-      ctx.drawImage(I, sx, sy, C.cw, C.ch, -C.ax * k, -C.ay * k, C.cw * k, C.ch * k);
-      if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.6; ctx.drawImage(I, sx, sy, C.cw, C.ch, -C.ax * k, -C.ay * k, C.cw * k, C.ch * k); }
+      ctx.drawImage(I, sx, sy, F.cw, F.ch, -F.ax * k, -F.ay * k, F.cw * k, F.ch * k);
+      if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.6; ctx.drawImage(I, sx, sy, F.cw, F.ch, -F.ax * k, -F.ay * k, F.cw * k, F.ch * k); }
       ctx.restore();
     }
     const actingT = x => anim && anim.actor === x ? simT - anim.t0 : null;
@@ -154,7 +154,8 @@
       if (A.clip) {                                                 // the clip's first idle frame, head and shoulders
         const C = A.clip, I = clipImg(A, 'idle');
         ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#2c4a7a'; ctx.fill(); ctx.clip();
-        if (ok(I)) { const k = r * 2.4 / (C.h * 0.62); ctx.drawImage(I, 0, 0, C.cw, C.ch, cx - C.ax * k, cy + r * 1.05 - (C.ay - C.h * 0.38) * k, C.cw * k, C.ch * k); }
+        const F = C.acts.idle;
+        if (ok(I)) { const k = r * 2.4 / (C.h * 0.62); ctx.drawImage(I, 0, 0, F.cw, F.ch, cx - F.ax * k, cy + r * 1.05 - (F.ay - C.h * 0.38) * k, F.cw * k, F.ch * k); }
         ctx.restore(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.lineWidth = big ? 4 : 2.5; ctx.strokeStyle = big ? '#fff3c4' : '#9cc3ff'; ctx.stroke();
         return;
       }
