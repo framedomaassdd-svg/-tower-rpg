@@ -57,7 +57,8 @@
       const sameRow = mates.filter(y => y.row === x.row), j = sameRow.indexOf(x);
       const lane = j % 2, col = x.row;
       const fx = (col === 0 ? 0.39 : 0.22) - lane * 0.075;
-      const gy = H * (lane ? 0.71 : 0.84), sc = lane ? 0.88 : 1;
+      // v160 opts.ground: the path's feet line (fraction of screen height) when fighting on an exploration picture
+      const G = opts.ground, gy = G ? H * (lane ? G - 0.065 : Math.min(0.95, G + 0.035)) : H * (lane ? 0.71 : 0.84), sc = lane ? 0.88 : 1;
       return { x: x.side === 'L' ? W * fx : W * (1 - fx), gy, sc, dir: x.side === 'L' ? 1 : -1, i };
     }
     // v142 a rigged character: the pose comes from its skeleton (smooth at any speed) instead of sheet cells
@@ -354,7 +355,8 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       const sq = seg(t, shake.t, shake.t + 0.3), sa = shake.a * (1 - sq) * (1 - sq) * u * 1.4;
       ctx.translate(Math.sin(t * 97) * sa, Math.cos(t * 71) * sa * 0.6);
-      if (ok(bg)) { const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight) * 1.03; ctx.drawImage(bg, (W - bg.naturalWidth * s) / 2, (H - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); }
+      if (opts.drawBg) opts.drawBg(ctx, W, H);                     // v160 the exploration scene draws its own picture (same crop as walking)
+      else if (ok(bg)) { const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight) * 1.03; ctx.drawImage(bg, (W - bg.naturalWidth * s) / 2, (H - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); }
       else { ctx.fillStyle = '#334'; ctx.fillRect(0, 0, W, H); }
       ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(-20, -20, W + 40, H + 40);
       const order = b.units.slice().sort((p, q) => spot(p).gy - spot(q).gy || (anim && anim.actor === p ? 1 : anim && anim.actor === q ? -1 : 0));

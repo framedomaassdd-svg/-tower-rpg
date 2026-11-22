@@ -3,103 +3,286 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>ทดสอบเดินสำรวจ</title>
 <style>
-html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,sans-serif}
-canvas{display:block;width:100vw;height:100vh;touch-action:none}
-.bar{position:fixed;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
-.bar button{background:rgba(20,16,10,.78);color:#f3e6c4;border:1px solid #8a6d3b;border-radius:8px;padding:7px 11px;font-size:13px}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,'Sukhumvit Set','Noto Sans Thai',sans-serif;color:#f3ead8}
+canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-action:none}
+.bar{position:fixed;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:72vw;z-index:4}
+.bar button,#top button{font:inherit;background:rgba(20,16,10,.78);color:#f3e6c4;border:1px solid #8a6d3b;border-radius:8px;padding:6px 10px;font-size:13px}
 .bar button.on{background:#7a5a22}
-.tag{position:fixed;left:10px;top:10px;color:#fff;font-size:13px;text-shadow:0 1px 3px #000}
+.tag{position:fixed;left:10px;top:10px;color:#fff;font-size:13px;text-shadow:0 1px 3px #000;z-index:4}
+/* ---- encounter card ---- */
+#enc{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#enc .dim{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.15),rgba(0,0,0,.62));opacity:0;transition:opacity .25s}
+#enc.show .dim{opacity:1}
+.card{position:relative;pointer-events:auto;display:flex;gap:14px;width:min(600px,92vw);max-height:88vh;box-sizing:border-box;padding:12px 14px 12px 12px;
+  background:linear-gradient(180deg,rgba(43,31,20,.97),rgba(26,19,13,.97));border:1.5px solid #c9a35a;border-radius:16px;
+  box-shadow:0 0 0 3px rgba(0,0,0,.35),0 18px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,230,170,.18);
+  transform:translateY(18px) scale(.96);opacity:0;transition:transform .28s cubic-bezier(.2,.9,.3,1.2),opacity .2s}
+#enc.show .card{transform:none;opacity:1}
+.card::before,.card::after{content:'';position:absolute;width:14px;height:14px;border:2px solid #e8c77a;opacity:.8}
+.card::before{left:5px;top:5px;border-right:0;border-bottom:0;border-radius:6px 0 0 0}
+.card::after{right:5px;bottom:5px;border-left:0;border-top:0;border-radius:0 0 6px 0}
+.pic{flex:0 0 auto;width:clamp(130px,30vw,190px);aspect-ratio:4/5;border-radius:12px;overflow:hidden;position:relative;border:1.5px solid #8a6d3b;background:#111}
+.pic canvas{width:100%;height:100%;display:block}
+.pic .rank{position:absolute;left:0;right:0;bottom:0;padding:5px 6px;font-size:12px;text-align:center;background:linear-gradient(0deg,rgba(0,0,0,.85),rgba(0,0,0,0));letter-spacing:.3px}
+.body{flex:1;min-width:0;display:flex;flex-direction:column}
+.chip{align-self:flex-start;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;margin-bottom:4px;letter-spacing:.3px}
+.chip.mon{background:#7a1f1a;color:#ffd9cf;border:1px solid #c4503f}
+.chip.herb{background:#1f4d24;color:#d7f5cf;border:1px solid #4f9a4a}
+.chip.ore{background:#2c3b52;color:#d6e4ff;border:1px solid #6382b0}
+.name{font-size:20px;font-weight:700;line-height:1.2;color:#fff1cf;text-shadow:0 1px 0 #000}
+.sub{font-size:12.5px;opacity:.72;margin:2px 0 8px}
+.info{flex:1;background:rgba(0,0,0,.25);border:1px solid rgba(201,163,90,.28);border-radius:10px;padding:8px 10px;font-size:13px;overflow:auto}
+.row{display:flex;align-items:center;gap:8px;margin:3px 0}
+.row b{font-weight:600;min-width:62px;opacity:.85;font-size:12.5px}
+.pips i{display:inline-block;width:11px;height:11px;border-radius:50%;background:#e04a3a;box-shadow:inset 0 -2px 0 rgba(0,0,0,.3),0 0 0 1.5px #3a0d08;margin-right:3px}
+.meter{flex:1;height:6px;border-radius:3px;background:#3a2a1a;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,#e8c77a,#ffdf9a)}
+.drops{display:flex;gap:6px;flex-wrap:wrap}
+.ic{width:30px;height:30px;border-radius:7px;background-color:rgba(255,255,255,.06);border:1px solid rgba(201,163,90,.35);background-repeat:no-repeat}
+.lock{display:flex;gap:8px;align-items:center;opacity:.8}
+.lock .q{flex:1}.lock .q span{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.12);margin:5px 0}
+.lock small{display:block;font-size:11.5px;opacity:.8;margin-top:4px}
+.note{font-size:12.5px;opacity:.85;margin-top:4px}
+.acts{display:flex;gap:8px;margin-top:9px}
+.acts button{flex:1;font:inherit;font-size:15px;font-weight:600;padding:9px 8px;border-radius:11px;border:1px solid #8a6d3b;background:rgba(60,44,28,.9);color:#f3e6c4}
+.acts button.main{background:linear-gradient(180deg,#e9c36d,#b8862f);color:#2a1a08;border-color:#ffe3a0;box-shadow:0 2px 0 #6b4a17}
+.acts button small{display:block;font-size:11px;font-weight:400;opacity:.75}
+/* toast for picked-up items */
+#toast{position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:9;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+#toast div{display:flex;align-items:center;gap:8px;background:rgba(26,19,13,.92);border:1px solid #c9a35a;border-radius:99px;padding:5px 14px 5px 6px;font-size:14px;animation:tst 2.2s forwards}
+@keyframes tst{0%{opacity:0;transform:translateY(8px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+/* "!" over the hero */
+#bang{position:fixed;z-index:6;font:800 30px/1 -apple-system,sans-serif;color:#ffe08a;text-shadow:0 2px 0 #7a4a10,0 0 8px #000;transform:translate(-50%,-100%) scale(0);transition:transform .18s cubic-bezier(.2,1.6,.4,1);pointer-events:none}
+#bang.on{transform:translate(-50%,-100%) scale(1)}
+/* battle ui (same as battle-test) */
+#ui{position:fixed;left:0;right:0;bottom:10px;display:flex;justify-content:center;z-index:5;pointer-events:none}
+.bt-turn{pointer-events:auto;background:rgba(25,18,12,.86);border:1px solid #c9a35a;border-radius:14px;padding:8px 10px 10px;max-width:96vw}
+.bt-bar{height:5px;background:#3a2a1a;border-radius:3px;overflow:hidden;margin-bottom:8px}
+.bt-bar i{display:block;height:100%;width:100%;background:#ffd36b;transform-origin:left;animation:bt-count linear forwards}
+@keyframes bt-count{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.bt-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.bt-acts button{font:inherit;border:1px solid #c9a35a;background:rgba(40,28,18,.88);color:#fbe9c4;border-radius:10px;padding:7px 12px;font-size:14px}
+.bt-acts button small{display:block;font-size:11px;opacity:.75}.bt-acts button:disabled{opacity:.4}
 </style></head><body>
 <canvas id="cv"></canvas>
 <div class="tag" id="tag"></div>
-<div class="bar">
+<div class="bar" id="bar">
   <button id="bStop">หยุด</button><button id="bWalk" class="on">เดิน</button><button id="bRun">วิ่ง</button>
-  <button id="bPrev">◀ ชั้น</button><button id="bNext">ชั้น ▶</button><button id="bVar">ฉากอื่น</button>
+  <button id="bPrev">◀ ชั้น</button><button id="bNext">ชั้น ▶</button><button id="bKnow" class="on">ความรู้: มี</button>
 </div>
-<script src="hero-clips.js?v=158"></script>
+<div id="bang">!</div>
+<div id="enc"></div>
+<div id="toast"></div>
+<div id="ui"></div>
+<script src="tower-view.js?v=127&motion=140"></script>
+<script src="bag.js?v=136"></script>
+<script src="tower-regions.js?v=136"></script>
+<script src="battle.js?v=141"></script>
+<script src="hero-clips.js?v=160"></script>
+<script src="battle-view.js?v=143&clip=160"></script>
 <script src="explore-art.js?v=158"></script>
 <script>
 (function () {
-  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-  const C = HeroClips.hero_sword, EA = ExploreArt, cache = {};
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d'), ui = document.getElementById('ui');
+  const C = HeroClips.hero_sword, EA = ExploreArt, TR = TowerRegions, BAG = Bag, cache = {};
   const im = s => cache[s] || (cache[s] = Object.assign(new Image(), { src: s }));
   const ok = i => i.complete && i.naturalWidth > 0;
   const q = new URLSearchParams(location.search);
   // feet line of the walkable path in each background (fraction of its height), checked by eye on every image
   const GROUND = { F1_A: .67, F1_B: .75, F1_C: .76, F2_B: .83, F2_C: .86, F3_B: .82, F3_C: .83, F4_B: .72, F4_C: .71,
     F5_B: .80, F5_C: .82, F6_B: .80, F6_C: .82, F7_B: .82, F7_C: .84, F8_B: .82, F8_C: .84, F9_B: .85, F9_C: .83 };
-  // props: 'front' = low things that may pass in front of the hero's feet; 'back' = stands behind the path; 'no' = not used while walking
-  const KIND = { F1_prop_fern: 'front', F1_prop_rocklog: 'front', F2_prop_glowingrock: 'front', F2_prop_root: 'front', F2_prop_mushrooms: 'back',
-    F3_prop_ore: 'front', F4_prop_aquaticplants: 'front', F4_prop_reeds: 'front', F4_prop_spiritlamp: 'no', F8_prop_overgrowngrass: 'front',
-    F7_prop_stonepile: 'front',
-    F1_prop_tree_01: 'no', F1_prop_tree_02: 'no', F3_prop_support: 'no', F4_prop_stump: 'no' };  // trees and beams look like toys at prop size; a stump behind the boardwalk would float on the water
-  const kindOf = n => KIND[n] || 'back';
-  let floor = +q.get('f') || 1, seg = 0, mode = 'walk', hx = 0, W = 0, H = 0, dpr = 1, props = [], fadeT = -1, cur = 0, anT = 0;
+  let floor = +q.get('f') || 1, seg = 0, mode = 'walk', hx = 0, W = 0, H = 0, dpr = 1, fadeT = -1, cur = 0, anT = 0;
+  let know = true, events = [], state = 'walk', ctl = null, heroPips = 3, potions = 2;
   const rng = s => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
   const bgOf = () => EA[floor].bg[seg % EA[floor].bg.length];
-  // a segment is one background walked from left to right; its props are fixed by floor + segment (save-seed friendly)
+  const pick = (r, a) => a[Math.floor(r() * a.length)];
+
+  // ---------- what can be met on this floor (from the floor data) ----------
+  function floorPool() {
+    const regs = TR.REGIONS[floor] || TR.REGIONS[1];
+    const mons = regs.map(g => ({ name: g.species, id: TowerView.idOf(g.species), region: g })).filter(m => m.id && TowerView.MON[m.id]);
+    const herbs = ['bind_grass', 'clear_leaf', 'wake_leaf', 'root_food', 'moist_moss', floor >= 2 ? 'fever_mushroom' : 'herb'];
+    const ores = floor >= 3 ? ['copper_ore', 'tin_ore', 'iron_ore', floor >= 6 ? 'silver_ore' : 'iron_ore'] : ['copper_ore', 'tin_ore'];
+    return { mons, herbs, ores };
+  }
+  // each stretch of path gets 1–2 events at fixed spots (same floor + stretch → same events)
   function layout() {
-    const r = rng(floor * 977 + seg * 131 + 7), P = EA[floor].props.filter(p => kindOf(p[0]) !== 'no');
-    const back = P.filter(p => kindOf(p[0]) === 'back'), front = P.filter(p => kindOf(p[0]) === 'front');
-    props = [];
-    for (let u = 0.08 + r() * 0.1; u < 0.95; u += 0.22 + r() * 0.2) if (back.length) props.push({ p: back[Math.floor(r() * back.length)], u, front: false, flip: r() < 0.5, s: 0.8 + r() * 0.25 });
-    for (let u = 0.2 + r() * 0.2; u < 0.95; u += 0.35 + r() * 0.3) if (front.length) props.push({ p: front[Math.floor(r() * front.length)], u, front: true, flip: r() < 0.5, s: 0.85 + r() * 0.2 });
+    const r = rng(floor * 977 + seg * 131 + 7), P = floorPool(); events = [];
+    const n = 1 + (r() < 0.55 ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+      const u = n === 1 ? 0.5 + r() * 0.15 : (i ? 0.72 : 0.38) + r() * 0.08, k = r();
+      if (k < 0.55 && P.mons.length) { const m = pick(r, P.mons); events.push({ u, kind: 'mon', mon: m, pack: 1 + (r() < 0.45 ? 1 : 0) + (r() < 0.15 ? 1 : 0) }); }
+      else if (k < 0.8) events.push({ u, kind: 'herb', item: pick(r, P.herbs), n: 1 + (r() < 0.4 ? 1 : 0) });
+      else events.push({ u, kind: 'ore', item: pick(r, P.ores), n: 1 });
+    }
   }
   function resize() { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; }
   addEventListener('resize', resize); resize();
-  const speed = { stop: 0, walk: 0.30, run: 0.72 };  // hero speed in screen heights per second, matched to the clip's stride
+  const speed = { stop: 0, walk: 0.30, run: 0.72 };
   function setMode(m) { mode = m; ['Stop', 'Walk', 'Run'].forEach(k => document.getElementById('b' + k).classList.toggle('on', k.toLowerCase() === m)); }
   document.getElementById('bStop').onclick = () => setMode('stop');
   document.getElementById('bWalk').onclick = () => setMode('walk');
   document.getElementById('bRun').onclick = () => setMode('run');
   const start = () => { hx = 0; layout(); };
-  const setFloor = f => { floor = (f + 8) % 9 + 1; seg = 0; start(); };
+  const setFloor = f => { if (state !== 'walk') return; floor = (f + 8) % 9 + 1; seg = 0; start(); };
   document.getElementById('bPrev').onclick = () => setFloor(floor - 1);
   document.getElementById('bNext').onclick = () => setFloor(floor + 1);
-  document.getElementById('bVar').onclick = () => { seg++; start(); };
+  document.getElementById('bKnow').onclick = e => { know = !know; e.target.textContent = 'ความรู้: ' + (know ? 'มี' : 'ไม่มี'); e.target.classList.toggle('on', know); };
   start();
-  let last = performance.now();
-  function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    const bg = bgOf(), B = im('tower/explore/' + bg[0] + '.webp');
-    // background covers the screen (cropped from the top if it is narrow), bottom aligned
-    const bs = Math.max(H / bg[2], W / bg[1]), bw = bg[1] * bs, bh = bg[2] * bs, yOff = H - bh, gy = yOff + (GROUND[bg[0]] || 0.82) * bh;
-    const goal = fadeT >= 0 ? 0 : speed[mode];
-    cur += (goal - cur) * Math.min(1, dt * 6);
-    hx += cur * H * dt;                                   // the hero really walks over the picture; the camera follows
-    if (fadeT < 0 && hx > bw - W * 0.08) fadeT = 0;       // end of this stretch: fade to the next one
-    if (fadeT >= 0) { fadeT += dt; if (fadeT > 0.35 && fadeT - dt <= 0.35) { seg++; start(); } if (fadeT > 0.7) fadeT = -1; }
-    const heroStart = W * 0.1, wx = heroStart + hx, cam = Math.max(0, Math.min(bw - W, wx - W * 0.38));
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    if (ok(B)) ctx.drawImage(B, -cam, yOff, bw, bh);
-    const drawProps = front => {
-      for (const o of props) {
-        if (o.front !== front) continue;
-        const I = im('tower/explore/' + o.p[0] + '.webp'); if (!ok(I)) continue;
-        let ph = bh * (front ? 0.2 : 0.3) * o.s * Math.pow(o.p[2] / 560, 0.8);
-        let base = front ? H + bh * 0.03 : gy - bh * 0.05;
-        if (front) ph = Math.min(ph, base - gy - bh * 0.015);  // a front prop never rises above the hero's feet
-        if (ph < bh * 0.05) continue;
-        const pw = ph * o.p[1] / o.p[2], sx = o.u * bw - cam;
-        if (sx + pw < 0 || sx - pw > W) continue;
-        ctx.save(); ctx.translate(sx, base); ctx.scale(o.flip ? -1 : 1, 1);
-        if (front) ctx.filter = 'brightness(0.72)';
-        ctx.drawImage(I, -pw / 2, -ph, pw, ph); ctx.restore();
+
+  // scene geometry shared by walking and fighting: picture covers the screen, bottom aligned
+  function geo() {
+    const bg = bgOf(), bs = Math.max(H / bg[2], W / bg[1]), bw = bg[1] * bs, bh = bg[2] * bs, yOff = H - bh;
+    return { bg, bw, bh, yOff, gy: yOff + (GROUND[bg[0]] || 0.82) * bh };
+  }
+  let camX = 0;
+  function drawBg(g2, w, h) {
+    const G = geo(), B = im('tower/explore/' + G.bg[0] + '.webp');
+    g2.fillStyle = '#000'; g2.fillRect(0, 0, w, h);
+    if (ok(B)) g2.drawImage(B, -camX, G.yOff, G.bw, G.bh);
+  }
+
+  // ---------- icons from the game's item sheets ----------
+  function iconStyle(id) {
+    const at = BAG.ICONS[id], src = at && BAG.ICON_SHEETS[at[0]];
+    if (!src) return null;
+    const c = at[1] % 4, r = Math.floor(at[1] / 4);
+    return `background-image:url(${src}?v=100);background-size:400% 400%;background-position:${c * 100 / 3}% ${r * 100 / 3}%`;
+  }
+  const icon = (id, px) => { const st = iconStyle(id), it = BAG.ITEMS[id] || {};
+    return st ? `<i class="ic" style="width:${px}px;height:${px}px;${st}"></i>` : `<i class="ic" style="width:${px}px;height:${px}px;display:inline-flex;align-items:center;justify-content:center;font-size:${px * .62}px;font-style:normal">${it.icon || '❔'}</i>`; };
+
+  // ---------- the encounter card ----------
+  const enc = document.getElementById('enc'), bang = document.getElementById('bang');
+  let picAnim = null;
+  const chrome = on => { document.getElementById('bar').style.display = on ? '' : 'none'; document.getElementById('tag').style.display = on ? '' : 'none'; };
+  function showCard(ev) {
+    state = 'card'; chrome(false); bang.classList.remove('on');
+    const isMon = ev.kind === 'mon', it = !isMon && (BAG.ITEMS[ev.item] || { name: ev.item });
+    const title = isMon ? ev.mon.name + (ev.pack > 1 ? ` × ${ev.pack}` : '') : it.name;
+    const chip = isMon ? '<span class="chip mon">⚔ พบมอนสเตอร์</span>' : ev.kind === 'herb' ? '<span class="chip herb">🌿 พบสมุนไพร</span>' : '<span class="chip ore">⛏ พบสายแร่</span>';
+    const sub = isMon ? ev.mon.region.name : ev.kind === 'herb' ? 'ขึ้นอยู่ริมทาง' : 'เส้นแร่โผล่จากผนังหิน';
+    let info;
+    if (isMon) {
+      const D = (TR.DROPS[ev.mon.name] || {}), drops = (D.common || []).slice(0, 2).concat((D.rare || []).slice(0, 1)).map(d => d[0]);
+      info = know ? `
+        <div class="row"><b>พลังชีวิต</b><span class="pips">${'<i></i>'.repeat(3)}</span><small style="opacity:.7">ทั่วไป</small></div>
+        <div class="row"><b>พลังโจมตี</b><span class="meter"><i style="width:${30 + floor * 7}%"></i></span></div>
+        <div class="row"><b>ความเร็ว</b><span class="meter"><i style="width:${ev.mon.id === 'wolf' ? 72 : 45}%"></i></span></div>
+        <div class="row"><b>ของที่ได้</b><span class="drops">${drops.map(d => icon(d, 28)).join('')}</span></div>
+        <div class="note">${ev.pack > 1 ? 'มากันเป็นฝูง ระวังโดนรุม' : 'ออกล่าตัวเดียว'}</div>`
+        : `<div class="lock"><span style="font-size:26px">🔒</span><div class="q"><span style="width:90%"></span><span style="width:70%"></span><span style="width:80%"></span>
+           <small>ไม่รู้จักมอนตัวนี้ ต้องมีความรู้ด้านสัตว์ประหลาดจึงจะเห็นข้อมูล</small></div></div>`;
+    } else {
+      const herb = ev.kind === 'herb';
+      info = know ? `
+        <div class="row">${icon(ev.item, 34)}<div><div style="font-weight:600">${it.name} × ${ev.n}</div><small style="opacity:.75">${herb ? 'ใช้ปรุงยาและอาหาร' : 'ใช้ตีอาวุธและเครื่องมือ'}</small></div></div>
+        <div class="note">${herb ? 'เก็บได้ทันที ใช้เวลาเล็กน้อย' : 'ต้องใช้เวลาขุด อาจมีเสียงดังเรียกมอน'}</div>`
+        : `<div class="lock"><span style="font-size:26px">🔒</span><div class="q"><span style="width:80%"></span><span style="width:60%"></span>
+           <small>${herb ? 'ไม่รู้ว่าเป็นพืชอะไร ต้องมีความรู้ด้านสมุนไพร' : 'ไม่รู้ว่าเป็นแร่อะไร ต้องมีความรู้ด้านแร่'}</small></div></div>`;
+    }
+    const acts = isMon ? `<button class="main" data-a="fight">สู้<small>เข้าต่อสู้</small></button><button data-a="avoid">หลบเลี่ยง<small>โอกาส 50%</small></button>`
+      : ev.kind === 'herb' ? `<button class="main" data-a="take">เก็บ</button><button data-a="skip">ข้าม</button>`
+      : `<button class="main" data-a="take">ขุด</button><button data-a="skip">ข้าม</button>`;
+    const rank = isMon ? '<div class="rank">ทั่วไป · ชั้น ' + floor + '</div>' : '';
+    enc.innerHTML = `<div class="dim"></div><div class="card"><div class="pic"><canvas></canvas>${rank}</div>
+      <div class="body">${chip}<div class="name">${title}</div><div class="sub">${sub}</div><div class="info">${info}</div><div class="acts">${acts}</div></div></div>`;
+    requestAnimationFrame(() => enc.classList.add('show'));
+    startPic(enc.querySelector('.pic canvas'), ev);
+    enc.querySelectorAll('.acts button').forEach(b => b.onclick = () => choose(ev, b.dataset.a));
+  }
+  function hideCard(then) { enc.classList.remove('show'); cancelAnimationFrame(picAnim); setTimeout(() => { enc.innerHTML = ''; then && then(); }, 220); }
+  // the card's picture: this spot of the scene, softly blurred, with the monster (animated) or the find on top
+  function startPic(c, ev) {
+    const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); c.width = r.width * d; c.height = r.height * d;
+    const g = c.getContext('2d'), G = geo(), B = im('tower/explore/' + G.bg[0] + '.webp'), t0 = performance.now();
+    const sx = ev.u * G.bw;                          // where on the picture the event sits
+    const draw = now => {
+      const t = (now - t0) / 1000, w = c.width, h = c.height;
+      g.clearRect(0, 0, w, h);
+      if (ok(B)) { const z = 1.6, bw = G.bw * z / G.bh * h * 1.0, bh = h * z, gy = (GROUND[G.bg[0]] || .82) * bh;
+        g.save(); g.filter = 'blur(2px) brightness(0.8)'; g.drawImage(B, w / 2 - sx / G.bw * bw, h * 0.86 - gy, bw, bh); g.restore(); }
+      const grd = g.createLinearGradient(0, 0, 0, h); grd.addColorStop(0, 'rgba(0,0,0,.25)'); grd.addColorStop(.6, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(0,0,0,.55)'); g.fillStyle = grd; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, w * 0.3, h * 0.035, 0, 0, 7); g.fill();
+      if (ev.kind === 'mon') {
+        const CL = HeroClips[ev.mon.id];
+        if (CL) { const M = CL.acts.idle, I = im(CL.dir + 'idle.webp?v=' + CL.ver), f = Math.floor(t * M.fps) % M.n, k = w * 0.78 / M.cw * (M.cw / (CL.h * 1.9));
+          if (ok(I)) g.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, w / 2 - M.ax * k, h * 0.86 - M.ay * k, M.cw * k, M.ch * k); }
+        else { const D = TowerView.MON[ev.mon.id], I = im('monsters/' + ev.mon.id + '.webp?v=127'), col = Math.floor(t * 4) % 4, k = Math.min(w * 0.85 / D[0], h * 0.62 / D[3]) * (1 + Math.sin(t * 2.4) * 0.012);
+          if (ok(I)) g.drawImage(I, col * D[0], 0, D[0], D[1], w / 2 - D[2] * k, h * 0.86 - D[3] * k, D[0] * k, D[1] * k); }
+      } else {
+        const at = BAG.ICONS[ev.item], I = at && im(BAG.ICON_SHEETS[at[0]] + '?v=100');
+        const s = w * 0.62, bob = Math.sin(t * 2) * h * 0.015;
+        const glow = g.createRadialGradient(w / 2, h * 0.58, 0, w / 2, h * 0.58, s * 0.7);
+        glow.addColorStop(0, ev.kind === 'herb' ? 'rgba(160,255,150,.35)' : 'rgba(170,200,255,.35)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = glow; g.fillRect(0, 0, w, h);
+        if (I && ok(I)) { const cw = I.naturalWidth / 4; g.drawImage(I, (at[1] % 4) * cw, Math.floor(at[1] / 4) * cw, cw, cw, w / 2 - s / 2, h * 0.58 - s / 2 + bob, s, s); }
+        else { g.font = `${s * 0.7}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText((BAG.ITEMS[ev.item] || {}).icon || '❔', w / 2, h * 0.58 + bob); }
       }
+      picAnim = requestAnimationFrame(draw);
     };
-    // v159 props off: the cut-out props don't sit naturally in these painted scenes (user call); the pictures carry the scene on their own
-    if (q.get('props') === '1') drawProps(false);
+    picAnim = requestAnimationFrame(draw);
+  }
+  function toast(html) { const d = document.createElement('div'); d.innerHTML = html; document.getElementById('toast').appendChild(d); setTimeout(() => d.remove(), 2300); }
+  function resume() { state = 'walk'; chrome(true); }
+  function choose(ev, a) {
+    ev.done = true;
+    if (a === 'take') hideCard(() => { toast(icon(ev.item, 26) + ` ได้ ${(BAG.ITEMS[ev.item] || {}).name} × ${ev.n}`); resume(); });
+    else if (a === 'skip') hideCard(resume);
+    else if (a === 'avoid') hideCard(() => { if (Math.random() < 0.5) { toast('🌫 หลบผ่านไปได้'); resume(); } else { toast('⚠ ถูกพบตัว!'); fight(ev); } });
+    else hideCard(() => fight(ev));
+  }
+
+  // ---------- battle right here on the path ----------
+  const HERO = () => ({ kind: 'hero', name: 'ฮีโร่', pow: 31, spd: 12, max: 3, pips: heroPips, skills: ['stormLance', 'earthBulwark', 'ironSkin', 'quickStep'], def: 8, row: 0, art: { type: 'clip', id: 'hero_sword' } });
+  const ALLY = [
+    { kind: 'ally', name: 'โล่หญิง', pow: 30, spd: 9, max: 4, def: 20, row: 0, skills: ['taunt'], art: { type: 'ally', src: 'npc_combat/shieldmaiden.webp?v=131' } },
+    { kind: 'ally', name: 'นักบวช', pow: 18, spd: 11, max: 3, row: 1, ranged: true, skills: ['mend'], art: { type: 'ally', src: 'npc_combat/priest.webp?v=131' } }];
+  function fight(ev) {
+    state = 'fight'; chrome(false); bang.classList.remove('on');
+    const pow = 18 + floor * 6, foes = [];
+    for (let i = 0; i < ev.pack; i++) foes.push({ kind: 'mon', name: ev.mon.name, pow: pow - i * 2, spd: (ev.mon.id === 'wolf' ? 14 : 11) - i, rank: 'Normal', max: 3, row: i ? 1 : 0, art: { type: 'mon', id: ev.mon.id } });
+    const b = Battle.create({ allies: [HERO(), ...ALLY.map(a => Object.assign({}, a))], foes, seed: (Math.random() * 1e9) | 0, potions });
+    camX = Math.max(0, Math.min(geo().bw - W, ev.u * geo().bw - W * 0.5));   // frame the spot where the monster stood
+    ctl = BattleView.start(cv, ui, b, { drawBg, ground: geo().gy / H, onEnd: (res, bb) => {
+      const h = bb.units.find(x => x.kind === 'hero'); heroPips = Math.max(1, h.pips); potions = bb.potions; ctl.stop(); ctl = null;
+      if (res === 'win') {
+        const D = TR.DROPS[ev.mon.name] || {}, got = (D.common || []).slice(0, 2).filter(() => Math.random() < 0.7);
+        toast('🏆 ชนะ!'); got.forEach((d, i) => setTimeout(() => toast(icon(d[0], 26) + ' ' + ((BAG.ITEMS[d[0]] || {}).name || d[0]) + ' × 1'), 300 + i * 350));
+      } else { toast('💀 พ่ายแพ้... ถอยกลับมาพัก'); heroPips = 3; potions = 2; }
+      resume(); requestAnimationFrame(frame);
+    } });
+  }
+
+  // ---------- walking ----------
+  let last = performance.now(), pending = null, stopT = 0;
+  function frame(now) {
+    if (state === 'fight') return;                       // the battle view owns the canvas now
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const G = geo(), B = im('tower/explore/' + G.bg[0] + '.webp');
+    const heroStart = W * 0.1;
+    // the next event this stretch: stop a little before it
+    const next = events.find(e => !e.done && !e.seen);
+    if (state === 'walk' && next && heroStart + hx >= next.u * G.bw - W * 0.2) { next.seen = true; pending = next; state = 'stopping'; stopT = 0; }
+    const goal = state !== 'walk' || fadeT >= 0 ? 0 : speed[mode];
+    cur += (goal - cur) * Math.min(1, dt * (state === 'stopping' ? 9 : 6));
+    hx += cur * H * dt;
+    if (state === 'stopping') { stopT += dt; if (stopT > 0.25) bang.classList.add('on'); if (stopT > 0.9) { bang.classList.remove('on'); state = 'card'; showCard(pending); } }
+    if (fadeT < 0 && state === 'walk' && heroStart + hx > G.bw - W * 0.08) fadeT = 0;
+    if (fadeT >= 0) { fadeT += dt; if (fadeT > 0.35 && fadeT - dt <= 0.35) { seg++; start(); } if (fadeT > 0.7) fadeT = -1; }
+    const wx = heroStart + hx; camX = Math.max(0, Math.min(G.bw - W, wx - W * 0.38));
+    drawBg(ctx, W, H);
     const act = cur < 0.04 ? 'idle' : mode === 'run' || cur > 0.5 ? 'run' : 'walk', M = C.acts[act];
     anT += dt * (act === 'idle' ? 1 : cur / speed[act]);
-    const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h, px = wx - cam;
-    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, gy, H * 0.065, H * 0.013, 0, 0, 7); ctx.fill();
-    if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
-    if (q.get('props') === '1') drawProps(true);
+    const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h, px = wx - camX;
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, G.gy, H * 0.065, H * 0.013, 0, 0, 7); ctx.fill();
+    if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, G.gy - M.ay * k, M.cw * k, M.ch * k);
+    bang.style.left = px / dpr + 'px'; bang.style.top = (G.gy - H * 0.36) / dpr + 'px';
     if (fadeT >= 0) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, 1 - Math.abs(fadeT - 0.35) / 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
-    document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + bg[0];
+    document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + G.bg[0] + ' · ' + '●'.repeat(Math.ceil(heroPips)) + ' 🧪' + potions;
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  window.EX = { get state() { return state; }, events: () => events, fight: () => fight(Object.assign({ u: 0.5, kind: 'mon', pack: 2 }, { mon: floorPool().mons[0] })), card: k => showCard(Object.assign({ u: 0.5 }, k === 'mon' ? { kind: 'mon', mon: floorPool().mons[0], pack: 2 } : { kind: k, item: k === 'herb' ? 'bind_grass' : 'iron_ore', n: 2 })) };
 })();
 </script>
 </body></html>
