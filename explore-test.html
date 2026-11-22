@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>ทดสอบเดินสำรวจ</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,sans-serif}
+canvas{display:block;width:100vw;height:100vh;touch-action:none}
+.bar{position:fixed;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
+.bar button{background:rgba(20,16,10,.78);color:#f3e6c4;border:1px solid #8a6d3b;border-radius:8px;padding:7px 11px;font-size:13px}
+.bar button.on{background:#7a5a22}
+.tag{position:fixed;left:10px;top:10px;color:#fff;font-size:13px;text-shadow:0 1px 3px #000}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div class="tag" id="tag"></div>
+<div class="bar">
+  <button id="bStop">หยุด</button><button id="bWalk" class="on">เดิน</button><button id="bRun">วิ่ง</button>
+  <button id="bPrev">◀ ชั้น</button><button id="bNext">ชั้น ▶</button><button id="bVar">ฉากอื่น</button>
+</div>
+<script src="hero-clips.js?v=157"></script>
+<script src="explore-art.js?v=157"></script>
+<script>
+(function () {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const C = HeroClips.hero_sword, EA = ExploreArt, cache = {};
+  const im = s => cache[s] || (cache[s] = Object.assign(new Image(), { src: s }));
+  const ok = i => i.complete && i.naturalWidth > 0;
+  const q = new URLSearchParams(location.search);
+  let floor = +q.get('f') || 1, vi = 0, mode = 'walk', x = 0, W = 0, H = 0, dpr = 1, props = [];
+  // seeded random so a floor's layout is the same each time (the pack README asks for this)
+  // where the walkable path sits in each background (fraction of its height)
+  const GROUND = { F1_A: .66, F1_B: .66, F1_C: .7, F2_B: .84, F2_C: .86, F3_B: .86, F3_C: .82, F4_B: .74, F4_C: .73, F5_B: .8, F5_C: .8,
+    F6_B: .82, F6_C: .8, F7_B: .8, F7_C: .82, F8_B: .83, F8_C: .82, F9_B: .86, F9_C: .83 };
+  // the background repeats with an 18% overlap; the repeat's left edge fades in so the seam blends instead of mirroring
+  const OV = 0.18, faded = {};
+  function fadedOf(B, key) {
+    if (faded[key]) return faded[key];
+    const c = document.createElement('canvas'); c.width = B.naturalWidth; c.height = B.naturalHeight;
+    const g = c.getContext('2d'); g.drawImage(B, 0, 0);
+    const gr = g.createLinearGradient(0, 0, c.width * OV, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = gr; g.fillRect(0, 0, c.width * OV, c.height);
+    return (faded[key] = c);
+  }
+  const rng = s => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  function layout() {
+    const P = EA[floor].props, r = rng(floor * 977 + vi * 31); props = [];
+    let wx = 0.6;
+    for (let i = 0; i < 400; i++) {                      // world units = screen heights
+      wx += 0.45 + r() * 0.9;
+      const p = P[Math.floor(r() * P.length)], front = r() < 0.3;
+      props.push({ p, wx, front, flip: r() < 0.5, s: front ? 1.15 + r() * 0.2 : 0.62 + r() * 0.25, dy: front ? 0.07 + r() * 0.05 : -0.035 - r() * 0.03 });
+    }
+  }
+  function resize() { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; }
+  addEventListener('resize', resize); resize();
+  const speed = { stop: 0, walk: 0.30, run: 0.72 };    // screen heights per second, matched to the clip's stride
+  function setMode(m) { mode = m; ['Stop', 'Walk', 'Run'].forEach(k => document.getElementById('b' + k).classList.toggle('on', k.toLowerCase() === m)); }
+  document.getElementById('bStop').onclick = () => setMode('stop');
+  document.getElementById('bWalk').onclick = () => setMode('walk');
+  document.getElementById('bRun').onclick = () => setMode('run');
+  const setFloor = f => { floor = (f + 8) % 9 + 1; vi = 0; layout(); };
+  document.getElementById('bPrev').onclick = () => setFloor(floor - 1);
+  document.getElementById('bNext').onclick = () => setFloor(floor + 1);
+  document.getElementById('bVar').onclick = () => { vi = (vi + 1) % EA[floor].bg.length; layout(); };
+  layout();
+  let last = performance.now(), cur = speed.walk, anT = 0;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    cur += (speed[mode] - cur) * Math.min(1, dt * 6);  // ease in and out of walking
+    x += cur * dt;
+    const bg = EA[floor].bg[vi], B = im('tower/explore/' + bg[0] + '.webp');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    // background fills the height; tiles alternate mirrored so the seams match; scrolls a bit slower than the ground (depth)
+    if (ok(B)) {
+      const bw = B.naturalWidth * H / B.naturalHeight, step = bw * (1 - OV), F = fadedOf(B, bg[0]), off = x * H * 0.85;
+      const k0 = Math.floor(off / step) - 1;
+      for (let k = k0; k < k0 + Math.ceil(W / step) + 3; k++) ctx.drawImage(k === k0 ? B : F, k * step - off, 0, bw, H);
+    }
+    const gy = H * (GROUND[bg[0]] || 0.85), hx = W * 0.36;
+    const drawProps = front => {
+      for (const o of props) {
+        if (o.front !== front) continue;
+        const sx = hx + (o.wx - x) * H * (front ? 1.15 : 0.92);
+        const I = im('tower/explore/' + o.p[0] + '.webp'); if (!ok(I)) continue;
+        const ph = H * 0.3 * o.s * Math.pow(o.p[2] / 560, 0.7), pw = ph * o.p[1] / o.p[2];
+        if (sx + pw < 0 || sx - pw > W) continue;
+        ctx.save(); ctx.translate(sx, gy + o.dy * H); ctx.scale(o.flip ? -1 : 1, 1);
+        if (front) ctx.filter = 'brightness(0.8)';
+        ctx.drawImage(I, -pw / 2, -ph, pw, ph); ctx.restore();
+      }
+    };
+    drawProps(false);
+    // hero: walk / run / idle clip, feet on the ground line
+    const act = cur < 0.04 ? 'idle' : mode === 'run' || cur > 0.5 ? 'run' : 'walk', M = C.acts[act];
+    anT += dt * (act === 'idle' ? 1 : cur / speed[act === 'run' ? 'run' : 'walk']);
+    const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h;
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(hx, gy, H * 0.07, H * 0.014, 0, 0, 7); ctx.fill();
+    if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, hx - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
+    drawProps(true);
+    document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + bg[0];
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
