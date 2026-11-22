@@ -16,8 +16,8 @@ canvas{display:block;width:100vw;height:100vh;touch-action:none}
   <button id="bStop">หยุด</button><button id="bWalk" class="on">เดิน</button><button id="bRun">วิ่ง</button>
   <button id="bPrev">◀ ชั้น</button><button id="bNext">ชั้น ▶</button><button id="bVar">ฉากอื่น</button>
 </div>
-<script src="hero-clips.js?v=157"></script>
-<script src="explore-art.js?v=157"></script>
+<script src="hero-clips.js?v=158"></script>
+<script src="explore-art.js?v=158"></script>
 <script>
 (function () {
   const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
@@ -25,77 +25,76 @@ canvas{display:block;width:100vw;height:100vh;touch-action:none}
   const im = s => cache[s] || (cache[s] = Object.assign(new Image(), { src: s }));
   const ok = i => i.complete && i.naturalWidth > 0;
   const q = new URLSearchParams(location.search);
-  let floor = +q.get('f') || 1, vi = 0, mode = 'walk', x = 0, W = 0, H = 0, dpr = 1, props = [];
-  // seeded random so a floor's layout is the same each time (the pack README asks for this)
-  // where the walkable path sits in each background (fraction of its height)
-  const GROUND = { F1_A: .66, F1_B: .66, F1_C: .7, F2_B: .84, F2_C: .86, F3_B: .86, F3_C: .82, F4_B: .74, F4_C: .73, F5_B: .8, F5_C: .8,
-    F6_B: .82, F6_C: .8, F7_B: .8, F7_C: .82, F8_B: .83, F8_C: .82, F9_B: .86, F9_C: .83 };
-  // the background repeats with an 18% overlap; the repeat's left edge fades in so the seam blends instead of mirroring
-  const OV = 0.18, faded = {};
-  function fadedOf(B, key) {
-    if (faded[key]) return faded[key];
-    const c = document.createElement('canvas'); c.width = B.naturalWidth; c.height = B.naturalHeight;
-    const g = c.getContext('2d'); g.drawImage(B, 0, 0);
-    const gr = g.createLinearGradient(0, 0, c.width * OV, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.globalCompositeOperation = 'destination-out'; g.fillStyle = gr; g.fillRect(0, 0, c.width * OV, c.height);
-    return (faded[key] = c);
-  }
+  // feet line of the walkable path in each background (fraction of its height), checked by eye on every image
+  const GROUND = { F1_A: .67, F1_B: .75, F1_C: .76, F2_B: .83, F2_C: .86, F3_B: .82, F3_C: .83, F4_B: .72, F4_C: .71,
+    F5_B: .80, F5_C: .82, F6_B: .80, F6_C: .82, F7_B: .82, F7_C: .84, F8_B: .82, F8_C: .84, F9_B: .85, F9_C: .83 };
+  // props: 'front' = low things that may pass in front of the hero's feet; 'back' = stands behind the path; 'no' = not used while walking
+  const KIND = { F1_prop_fern: 'front', F1_prop_rocklog: 'front', F2_prop_glowingrock: 'front', F2_prop_root: 'front', F2_prop_mushrooms: 'back',
+    F3_prop_ore: 'front', F4_prop_aquaticplants: 'front', F4_prop_reeds: 'front', F4_prop_spiritlamp: 'no', F8_prop_overgrowngrass: 'front',
+    F7_prop_stonepile: 'front',
+    F1_prop_tree_01: 'no', F1_prop_tree_02: 'no', F3_prop_support: 'no', F4_prop_stump: 'no' };  // trees and beams look like toys at prop size; a stump behind the boardwalk would float on the water
+  const kindOf = n => KIND[n] || 'back';
+  let floor = +q.get('f') || 1, seg = 0, mode = 'walk', hx = 0, W = 0, H = 0, dpr = 1, props = [], fadeT = -1, cur = 0, anT = 0;
   const rng = s => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const bgOf = () => EA[floor].bg[seg % EA[floor].bg.length];
+  // a segment is one background walked from left to right; its props are fixed by floor + segment (save-seed friendly)
   function layout() {
-    const P = EA[floor].props, r = rng(floor * 977 + vi * 31); props = [];
-    let wx = 0.6;
-    for (let i = 0; i < 400; i++) {                      // world units = screen heights
-      wx += 0.45 + r() * 0.9;
-      const p = P[Math.floor(r() * P.length)], front = r() < 0.3;
-      props.push({ p, wx, front, flip: r() < 0.5, s: front ? 1.15 + r() * 0.2 : 0.62 + r() * 0.25, dy: front ? 0.07 + r() * 0.05 : -0.035 - r() * 0.03 });
-    }
+    const r = rng(floor * 977 + seg * 131 + 7), P = EA[floor].props.filter(p => kindOf(p[0]) !== 'no');
+    const back = P.filter(p => kindOf(p[0]) === 'back'), front = P.filter(p => kindOf(p[0]) === 'front');
+    props = [];
+    for (let u = 0.08 + r() * 0.1; u < 0.95; u += 0.22 + r() * 0.2) if (back.length) props.push({ p: back[Math.floor(r() * back.length)], u, front: false, flip: r() < 0.5, s: 0.8 + r() * 0.25 });
+    for (let u = 0.2 + r() * 0.2; u < 0.95; u += 0.35 + r() * 0.3) if (front.length) props.push({ p: front[Math.floor(r() * front.length)], u, front: true, flip: r() < 0.5, s: 0.85 + r() * 0.2 });
   }
   function resize() { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; }
   addEventListener('resize', resize); resize();
-  const speed = { stop: 0, walk: 0.30, run: 0.72 };    // screen heights per second, matched to the clip's stride
+  const speed = { stop: 0, walk: 0.30, run: 0.72 };  // hero speed in screen heights per second, matched to the clip's stride
   function setMode(m) { mode = m; ['Stop', 'Walk', 'Run'].forEach(k => document.getElementById('b' + k).classList.toggle('on', k.toLowerCase() === m)); }
   document.getElementById('bStop').onclick = () => setMode('stop');
   document.getElementById('bWalk').onclick = () => setMode('walk');
   document.getElementById('bRun').onclick = () => setMode('run');
-  const setFloor = f => { floor = (f + 8) % 9 + 1; vi = 0; layout(); };
+  const start = () => { hx = 0; layout(); };
+  const setFloor = f => { floor = (f + 8) % 9 + 1; seg = 0; start(); };
   document.getElementById('bPrev').onclick = () => setFloor(floor - 1);
   document.getElementById('bNext').onclick = () => setFloor(floor + 1);
-  document.getElementById('bVar').onclick = () => { vi = (vi + 1) % EA[floor].bg.length; layout(); };
-  layout();
-  let last = performance.now(), cur = speed.walk, anT = 0;
+  document.getElementById('bVar').onclick = () => { seg++; start(); };
+  start();
+  let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    cur += (speed[mode] - cur) * Math.min(1, dt * 6);  // ease in and out of walking
-    x += cur * dt;
-    const bg = EA[floor].bg[vi], B = im('tower/explore/' + bg[0] + '.webp');
+    const bg = bgOf(), B = im('tower/explore/' + bg[0] + '.webp');
+    // background covers the screen (cropped from the top if it is narrow), bottom aligned
+    const bs = Math.max(H / bg[2], W / bg[1]), bw = bg[1] * bs, bh = bg[2] * bs, yOff = H - bh, gy = yOff + (GROUND[bg[0]] || 0.82) * bh;
+    const goal = fadeT >= 0 ? 0 : speed[mode];
+    cur += (goal - cur) * Math.min(1, dt * 6);
+    hx += cur * H * dt;                                   // the hero really walks over the picture; the camera follows
+    if (fadeT < 0 && hx > bw - W * 0.08) fadeT = 0;       // end of this stretch: fade to the next one
+    if (fadeT >= 0) { fadeT += dt; if (fadeT > 0.35 && fadeT - dt <= 0.35) { seg++; start(); } if (fadeT > 0.7) fadeT = -1; }
+    const heroStart = W * 0.1, wx = heroStart + hx, cam = Math.max(0, Math.min(bw - W, wx - W * 0.38));
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    // background fills the height; tiles alternate mirrored so the seams match; scrolls a bit slower than the ground (depth)
-    if (ok(B)) {
-      const bw = B.naturalWidth * H / B.naturalHeight, step = bw * (1 - OV), F = fadedOf(B, bg[0]), off = x * H * 0.85;
-      const k0 = Math.floor(off / step) - 1;
-      for (let k = k0; k < k0 + Math.ceil(W / step) + 3; k++) ctx.drawImage(k === k0 ? B : F, k * step - off, 0, bw, H);
-    }
-    const gy = H * (GROUND[bg[0]] || 0.85), hx = W * 0.36;
+    if (ok(B)) ctx.drawImage(B, -cam, yOff, bw, bh);
     const drawProps = front => {
       for (const o of props) {
         if (o.front !== front) continue;
-        const sx = hx + (o.wx - x) * H * (front ? 1.15 : 0.92);
         const I = im('tower/explore/' + o.p[0] + '.webp'); if (!ok(I)) continue;
-        const ph = H * 0.3 * o.s * Math.pow(o.p[2] / 560, 0.7), pw = ph * o.p[1] / o.p[2];
+        let ph = bh * (front ? 0.2 : 0.3) * o.s * Math.pow(o.p[2] / 560, 0.8);
+        let base = front ? H + bh * 0.03 : gy - bh * 0.05;
+        if (front) ph = Math.min(ph, base - gy - bh * 0.015);  // a front prop never rises above the hero's feet
+        if (ph < bh * 0.05) continue;
+        const pw = ph * o.p[1] / o.p[2], sx = o.u * bw - cam;
         if (sx + pw < 0 || sx - pw > W) continue;
-        ctx.save(); ctx.translate(sx, gy + o.dy * H); ctx.scale(o.flip ? -1 : 1, 1);
-        if (front) ctx.filter = 'brightness(0.8)';
+        ctx.save(); ctx.translate(sx, base); ctx.scale(o.flip ? -1 : 1, 1);
+        if (front) ctx.filter = 'brightness(0.72)';
         ctx.drawImage(I, -pw / 2, -ph, pw, ph); ctx.restore();
       }
     };
     drawProps(false);
-    // hero: walk / run / idle clip, feet on the ground line
     const act = cur < 0.04 ? 'idle' : mode === 'run' || cur > 0.5 ? 'run' : 'walk', M = C.acts[act];
-    anT += dt * (act === 'idle' ? 1 : cur / speed[act === 'run' ? 'run' : 'walk']);
-    const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h;
-    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(hx, gy, H * 0.07, H * 0.014, 0, 0, 7); ctx.fill();
-    if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, hx - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
+    anT += dt * (act === 'idle' ? 1 : cur / speed[act]);
+    const f = Math.floor(anT * M.fps) % M.n, I = im(C.dir + act + '.webp?v=' + C.ver), k = H * 0.34 / C.h, px = wx - cam;
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, gy, H * 0.065, H * 0.013, 0, 0, 7); ctx.fill();
+    if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
     drawProps(true);
+    if (fadeT >= 0) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, 1 - Math.abs(fadeT - 0.35) / 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
     document.getElementById('tag').textContent = 'ชั้น ' + floor + ' · ' + bg[0];
     requestAnimationFrame(frame);
   }
