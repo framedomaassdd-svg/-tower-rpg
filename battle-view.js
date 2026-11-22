@@ -20,7 +20,8 @@
   // ally: npc_combat 4×4 cells 620×420, rows attack · special · (hit dodge down up) · (sit sleep stand victory)
   // monster: 4×3 rows idle · attack · (hit hit defeat defeat)
   function art(u) {
-    if (u.art.type === 'clip') { const C = root.HeroClips[u.art.id]; return { clip: C, id: u.art.id, base: 440, ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 }; }
+    const CL = root.HeroClips && root.HeroClips[u.art.id];
+    if (u.art.type === 'clip' || (u.art.type === 'mon' && CL)) return { clip: CL, id: u.art.id, base: (CL.disp || 340) * 1.3 * (u.art.scale || 1), ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 };
     if (u.art.type === 'rig') return { rig: u.art.id, base: 470, ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 };
     if (u.art.type === 'hero') return { img: im(u.art.src), cw: 512, ch: 400, ax: 250, base: 390, scale: 1,
       idle: [u.art.row, 0], wind: [u.art.row, 1], strike: [u.art.row, 2], follow: [u.art.row, 3], cast: [u.art.row, 1],
@@ -84,7 +85,7 @@
       if (anim && anim.actor === x && anim.clipAct) return { act: anim.clipAct, lt: t - anim.t0 };
       if (v.pose === 'down') return { act: 'down', lt: t - (v.dieAt !== undefined ? v.dieAt : v.hitAt || t) };
       if ((v.pose === 'hit' || v.pose === 'dodge') && t < v.poseUntil) return { act: 'hit', lt: (t - (v.hitAt || t)) * (v.pose === 'dodge' ? 1.6 : 1) };
-      if (phase === 'end' && b.over === 'win' && x.side === 'L') return { act: 'win', lt: t - phaseT };
+      if (phase === 'end' && x.alive && (b.over === 'win') === (x.side === 'L')) return { act: 'win', lt: t - phaseT };
       return { act: 'idle', lt: t + v.seed };
     }
     function clipFrame(C, act, lt) {
@@ -100,7 +101,7 @@
     }
     function drawClip(x, A, px, gy, sc, alpha, flash, t) {
       const C = A.clip, st = clipState(x, t), fr = clipFrame(C, st.act, st.lt), I = clipImg(A, fr.act);
-      const dir = x.side === 'L' ? 1 : -1, k = 340 * u * sc / C.h, F = C.acts[fr.act];
+      const dir = (x.side === 'L' ? 1 : -1) * (C.faceLeft ? -1 : 1), k = (C.disp || 340) * (x.art.scale || 1) * u * sc / C.h, F = C.acts[fr.act];
       ctx.save(); ctx.globalAlpha = alpha;
       if (fr.act !== 'down') { ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill(); }
       if (!ok(I)) { ctx.restore(); return; }
@@ -206,15 +207,15 @@
       if (C) {                                                  // v152 timings follow the clip: the blow lands on the clip's hit frame
         const M = n => C.acts[n], nh = ev.hits.length;
         if (nh && ev.type === 'attack' && !a.ranged) {
-          const act = ['atkA', 'atkB', 'atkC'][((vis.get(a).acts || 1) - 1) % 3], m = M(act);
+          const AT = C.attacks || ['atkA', 'atkB', 'atkC'], act = AT[((vis.get(a).acts || 1) - 1) % AT.length], m = M(act);
           anim.clipAct = act; anim.hitT = Math.max(0.3, m.hit / m.fps); anim.backAt = Math.max(anim.hitT + 0.15 + (nh - 1) * 0.28, m.n / m.fps - 0.25);
           anim.dur = anim.backAt + 0.25;
-        } else if (nh) {                                         // a skill that hits: charged slash from where he stands
+        } else if (nh && M('skill')) {                           // a skill that hits: charged slash from where he stands
           const m = M('skill'); anim.clipAct = 'skill'; anim.melee = false; anim.ranged = false; anim.inPlace = true;
           anim.hitT = m.hit / m.fps; anim.dur = m.n / m.fps;
         } else {
           const act = ev.type === 'item' ? 'potion' : 'guard', m = M(act);
-          anim.clipAct = act; anim.landT = m.hit / m.fps; anim.dur = m.n / m.fps;
+          if (m) { anim.clipAct = act; anim.landT = m.hit / m.fps; anim.dur = m.n / m.fps; }
         }
       }
       if (ev.type === 'skill' || ev.type === 'item') pops.push({ text: ev.type === 'item' ? 'ยาฟื้นฟู' : B().SKILLS[ev.id].name, x: s.x, y: s.gy - 330 * u * s.sc, t0, color: '#ffe7a8' });
@@ -223,7 +224,7 @@
       const v = vis.get(h.target), s = spot(h.target);
       if (h.miss) { v.hitAt = at; v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
       const HC = art(h.target).clip;
-      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + (HC ? HC.acts.hit.n / HC.acts.hit.fps : 0.38);
+      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + (HC && HC.acts.hit ? HC.acts.hit.n / HC.acts.hit.fps : 0.38);
       v.dp = Math.max(0, v.dp - h.took); v.ds = Math.max(0, v.ds - h.broke);       // the pips go now, as the blow lands
       shake = { t: at, a: (h.took + h.broke) * 7 + (h.killed ? 6 : 0) };
       stopUntil = performance.now() + 75;                                     // hit-stop
@@ -347,7 +348,7 @@
       const order = b.units.slice().sort((p, q) => spot(p).gy - spot(q).gy || (anim && anim.actor === p ? 1 : anim && anim.actor === q ? -1 : 0));
       for (const x of order) {
         const s = spot(x), v = vis.get(x);
-        if (!x.alive && v.dieAt !== undefined) v.alpha = x.side === 'R' ? Math.max(0, 1 - seg(t, v.dieAt + 0.5, v.dieAt + 1.1)) : 1;
+        if (!x.alive && v.dieAt !== undefined) { const DC = art(x).clip, dd = DC && DC.acts.down ? DC.acts.down.n / DC.acts.down.fps + 0.3 : 0.5; v.alpha = x.side === 'R' ? Math.max(0, 1 - seg(t, v.dieAt + dd, v.dieAt + dd + 0.6)) : 1; }
         if (v.alpha <= 0) continue;
         const st = actorState(x, s, t);
         drawUnit(x, st.pose, st.px, s.gy, s.sc, v.alpha, v.flash, t);
