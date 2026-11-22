@@ -20,6 +20,7 @@
   // ally: npc_combat 4×4 cells 620×420, rows attack · special · (hit dodge down up) · (sit sleep stand victory)
   // monster: 4×3 rows idle · attack · (hit hit defeat defeat)
   function art(u) {
+    if (u.art.type === 'clip') { const C = root.HeroClips[u.art.id]; return { clip: C, id: u.art.id, base: 440, ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 }; }
     if (u.art.type === 'rig') return { rig: u.art.id, base: 470, ax: 0, cw: 0, ch: 0, scale: 1, lift: 0 };
     if (u.art.type === 'hero') return { img: im(u.art.src), cw: 512, ch: 400, ax: 250, base: 390, scale: 1,
       idle: [u.art.row, 0], wind: [u.art.row, 1], strike: [u.art.row, 2], follow: [u.art.row, 3], cast: [u.art.row, 1],
@@ -76,9 +77,43 @@
       if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.7; root.Rig.draw(ctx, A.rig, anim, Math.max(0, at), px, gy, h, dir, o); }
       ctx.restore();
     }
+    // v152 a character from AI-video clips: which action plays, and how far into it, comes from the battle state
+    const clipImg = (A, name) => im(A.clip.dir + name + '.webp?v=' + A.clip.ver);
+    function clipState(x, t) {
+      const v = vis.get(x), A = art(x);
+      if (anim && anim.actor === x && anim.clipAct) return { act: anim.clipAct, lt: t - anim.t0 };
+      if (v.pose === 'down') return { act: 'down', lt: t - (v.dieAt !== undefined ? v.dieAt : v.hitAt || t) };
+      if ((v.pose === 'hit' || v.pose === 'dodge') && t < v.poseUntil) return { act: 'hit', lt: (t - (v.hitAt || t)) * (v.pose === 'dodge' ? 1.6 : 1) };
+      if (phase === 'end' && b.over === 'win' && x.side === 'L') return { act: 'win', lt: t - phaseT };
+      return { act: 'idle', lt: t + v.seed };
+    }
+    function clipFrame(C, act, lt) {
+      let M = C.acts[act]; if (!M) { act = 'idle'; M = C.acts.idle; }
+      let f = Math.floor(Math.max(0, lt) * M.fps);
+      if (M.loop) f %= M.n;
+      else if (f >= M.n) {
+        if (M.loopFrom != null) f = M.loopFrom + (f - M.loopFrom) % (M.n - M.loopFrom);
+        else if (act === 'down') f = M.n - 1;
+        else { act = 'idle'; M = C.acts.idle; f = Math.floor(lt * M.fps) % M.n; }
+      }
+      return { act, f };
+    }
+    function drawClip(x, A, px, gy, sc, alpha, flash, t) {
+      const C = A.clip, st = clipState(x, t), fr = clipFrame(C, st.act, st.lt), I = clipImg(A, fr.act);
+      const dir = x.side === 'L' ? 1 : -1, k = 340 * u * sc / C.h;
+      ctx.save(); ctx.globalAlpha = alpha;
+      if (fr.act !== 'down') { ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(px, gy + 2, 70 * u * sc, 14 * u * sc, 0, 0, Math.PI * 2); ctx.fill(); }
+      if (!ok(I)) { ctx.restore(); return; }
+      const sx = (fr.f % C.cols) * C.cw, sy = Math.floor(fr.f / C.cols) * C.ch;
+      ctx.translate(px, gy); ctx.scale(dir, 1);
+      ctx.drawImage(I, sx, sy, C.cw, C.ch, -C.ax * k, -C.ay * k, C.cw * k, C.ch * k);
+      if (flash > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * flash * 0.6; ctx.drawImage(I, sx, sy, C.cw, C.ch, -C.ax * k, -C.ay * k, C.cw * k, C.ch * k); }
+      ctx.restore();
+    }
     const actingT = x => anim && anim.actor === x ? simT - anim.t0 : null;
     function drawUnit(x, pose, px, gy, sc, alpha, flash, t) {
-      const A = art(x); if (A.rig) return drawRig(x, A, pose, px, gy, sc, alpha, flash, t);
+      const A = art(x); if (A.clip) return drawClip(x, A, px, gy, sc, alpha, flash, t);
+      if (A.rig) return drawRig(x, A, pose, px, gy, sc, alpha, flash, t);
       if (!ok(A.img)) return;
       const k = u * sc * A.scale, dir = x.side === 'L' ? 1 : -1;
       let [row, col] = A[pose] || A.idle;
@@ -116,6 +151,13 @@
     // ---- timeline: ours above the line, theirs below, nearest to act on the left ----
     function portrait(x, cx, cy, r, big) {
       const A = art(x);
+      if (A.clip) {                                                 // the clip's first idle frame, head and shoulders
+        const C = A.clip, I = clipImg(A, 'idle');
+        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#2c4a7a'; ctx.fill(); ctx.clip();
+        if (ok(I)) { const k = r * 2.4 / (C.h * 0.62); ctx.drawImage(I, 0, 0, C.cw, C.ch, cx - C.ax * k, cy + r * 1.05 - (C.ay - C.h * 0.38) * k, C.cw * k, C.ch * k); }
+        ctx.restore(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.lineWidth = big ? 4 : 2.5; ctx.strokeStyle = big ? '#fff3c4' : '#9cc3ff'; ctx.stroke();
+        return;
+      }
       if (A.rig) {                                                  // the rig's own head
         const SK = root.Rig.SKEL[root.Rig.RIGS[A.rig] || A.rig] || {}, I = im(SK.dir + 'head.webp?v=' + SK.ver);
         ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#2c4a7a'; ctx.fill(); ctx.clip();
@@ -159,12 +201,28 @@
       const target = ev.hits[0] && ev.hits[0].target;
       anim = { ev, actor: a, t0, melee: ev.hits.length > 0 && !a.ranged, ranged: ev.hits.length > 0 && a.ranged, from: s, to: target ? spot(target) : null,
         dur: ev.hits.length ? (a.ranged ? 0.85 : 0.78) + (ev.hits.length - 1) * 0.28 : 0.8, applied: 0 };
+      const C = art(a).clip;
+      if (C) {                                                  // v152 timings follow the clip: the blow lands on the clip's hit frame
+        const M = n => C.acts[n], nh = ev.hits.length;
+        if (nh && ev.type === 'attack' && !a.ranged) {
+          const act = ['atkA', 'atkB', 'atkC'][((vis.get(a).acts || 1) - 1) % 3], m = M(act);
+          anim.clipAct = act; anim.hitT = Math.max(0.3, m.hit / m.fps); anim.backAt = Math.max(anim.hitT + 0.15 + (nh - 1) * 0.28, m.n / m.fps - 0.25);
+          anim.dur = anim.backAt + 0.25;
+        } else if (nh) {                                         // a skill that hits: charged slash from where he stands
+          const m = M('skill'); anim.clipAct = 'skill'; anim.melee = false; anim.ranged = false; anim.inPlace = true;
+          anim.hitT = m.hit / m.fps; anim.dur = m.n / m.fps;
+        } else {
+          const act = ev.type === 'item' ? 'potion' : 'guard', m = M(act);
+          anim.clipAct = act; anim.landT = m.hit / m.fps; anim.dur = m.n / m.fps;
+        }
+      }
       if (ev.type === 'skill' || ev.type === 'item') pops.push({ text: ev.type === 'item' ? 'ยาฟื้นฟู' : B().SKILLS[ev.id].name, x: s.x, y: s.gy - 330 * u * s.sc, t0, color: '#ffe7a8' });
     }
     function applyHit(h, at) {
       const v = vis.get(h.target), s = spot(h.target);
       if (h.miss) { v.hitAt = at; v.pose = 'dodge'; v.poseUntil = at + 0.35; v.knock = 1; pops.push({ text: 'หลบ!', x: s.x, y: s.gy - 260 * u * s.sc, t0: at, color: '#dfe8ff' }); return; }
-      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + 0.38;
+      const HC = art(h.target).clip;
+      v.hitAt = at; v.flash = 1; v.knock = 1; v.pose = h.killed ? 'down' : 'hit'; v.poseUntil = h.killed ? 1e9 : at + (HC ? HC.acts.hit.n / HC.acts.hit.fps : 0.38);
       v.dp = Math.max(0, v.dp - h.took); v.ds = Math.max(0, v.ds - h.broke);       // the pips go now, as the blow lands
       shake = { t: at, a: (h.took + h.broke) * 7 + (h.killed ? 6 : 0) };
       stopUntil = performance.now() + 75;                                     // hit-stop
@@ -176,9 +234,9 @@
     function updateAnim(t) {
       if (!anim) return;
       const k = t - anim.t0, ev = anim.ev, a = anim.actor, v = vis.get(a);
-      const n = ev.hits.length, hitTimes = ev.hits.map((_, i) => (anim.ranged ? 0.42 : 0.34) + i * 0.28);
+      const n = ev.hits.length, hitTimes = ev.hits.map((_, i) => (anim.hitT != null ? anim.hitT : anim.ranged ? 0.42 : 0.34) + i * 0.28);
       while (anim.applied < n && k >= hitTimes[anim.applied]) { applyHit(ev.hits[anim.applied], t); anim.applied++; }
-      if (!n && !anim.done && k > 0.35) {                                       // shield, heal, potion land
+      if (!n && !anim.done && k > (anim.landT != null ? anim.landT : 0.35)) {                                       // shield, heal, potion land
         anim.done = true; const tgt = ev.target, s = tgt && spot(tgt);
         if (s) {
           sync(tgt);
@@ -199,7 +257,8 @@
         if (anim.melee && anim.to) {
           // wind-up · dash · strike · snap back (no walking)
           const stand = anim.to.x - s.dir * 150 * u * anim.to.sc;
-          const go = easeIn(seg(k, 0.1, 0.24)), back = easeOut(seg(k, 0.5 + (anim.ev.hits.length - 1) * 0.28, 0.7 + (anim.ev.hits.length - 1) * 0.28));
+          const go = anim.clipAct ? easeIn(seg(k, Math.max(0.05, anim.hitT - 0.28), anim.hitT - 0.06)) : easeIn(seg(k, 0.1, 0.24));
+          const back = anim.clipAct ? easeOut(seg(k, anim.backAt, anim.backAt + 0.2)) : easeOut(seg(k, 0.5 + (anim.ev.hits.length - 1) * 0.28, 0.7 + (anim.ev.hits.length - 1) * 0.28));
           px = s.x + (stand - s.x) * go * (1 - back);
           const hk = k - (anim.ev.hits.length - 1) * 0.28 * (k > 0.6 ? 1 : 0);
           pose = k < 0.1 ? 'wind' : k < 0.3 ? 'wind' : k < 0.44 ? 'strike' : k < 0.62 + (anim.ev.hits.length - 1) * 0.28 ? 'follow' : 'idle';
@@ -291,7 +350,7 @@
         if (v.alpha <= 0) continue;
         const st = actorState(x, s, t);
         drawUnit(x, st.pose, st.px, s.gy, s.sc, v.alpha, v.flash, t);
-        if (anim && anim.actor === x && anim.melee) {                         // a white arc where the weapon swings
+        if (anim && anim.actor === x && anim.melee && !anim.clipAct) {        // a white arc where the weapon swings
           const k = t - anim.t0, q = seg(k, 0.27, 0.42);
           if (q > 0 && q < 1) {
             const cx = st.px + s.dir * 60 * u * s.sc, cy = s.gy - 190 * u * s.sc, R = 150 * u * s.sc;

@@ -1,0 +1,6 @@
+/* v152 hero animation clips cut from AI video (Kling), keyed from green, all scaled to one height and feet anchor.
+   Each action is a sprite sheet: cols × rows cells of cw×ch, feet at (ax, ay), character standing height h px.
+   hit = frame where the blow lands (or the buff / potion takes effect); loopFrom = frame the end loops back to. */
+(function (root) {
+  root.HeroClips = { hero_sword: {"cw": 560, "ch": 330, "ax": 240, "ay": 305, "cols": 8, "h": 220, "acts": {"idle": {"n": 36, "fps": 24, "hit": null, "loop": true, "loopFrom": null}, "atkA": {"n": 36, "fps": 24, "hit": 16, "loop": false, "loopFrom": null}, "atkB": {"n": 38, "fps": 24, "hit": 20, "loop": false, "loopFrom": null}, "atkC": {"n": 24, "fps": 24, "hit": 8, "loop": false, "loopFrom": null}, "guard": {"n": 33, "fps": 24, "hit": 6, "loop": false, "loopFrom": null}, "skill": {"n": 73, "fps": 30, "hit": 48, "loop": false, "loopFrom": null}, "hit": {"n": 24, "fps": 24, "hit": null, "loop": false, "loopFrom": null}, "potion": {"n": 67, "fps": 30, "hit": 48, "loop": false, "loopFrom": null}, "down": {"n": 64, "fps": 24, "hit": null, "loop": false, "loopFrom": null}, "win": {"n": 49, "fps": 24, "hit": null, "loop": false, "loopFrom": 24}}, "dir": "anim/hero_sword/hero_sword_", "ver": 152} };
+})(typeof window !== 'undefined' ? window : globalThis);

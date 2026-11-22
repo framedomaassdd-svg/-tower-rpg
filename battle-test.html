@@ -35,13 +35,14 @@
 <script src="tower-view.js?v=127&motion=140"></script>
 <script src="rig.js?v=146"></script>
 <script src="battle.js?v=141"></script>
-<script src="battle-view.js?v=143"></script>
+<script src="hero-clips.js?v=152"></script>
+<script src="battle-view.js?v=143&clip=152"></script>
 <script>
 (function () {
   const cv = document.getElementById('cv'), ui = document.getElementById('ui');
-  let useRig = new URLSearchParams(location.search).get('rig') !== '0', ctl = null, auto = false, speed = 1, heroPips = 3, potions = 2, last = null;
+  const ART = new URLSearchParams(location.search).get('art') || 'clip'; let ctl = null, auto = false, speed = 1, heroPips = 3, potions = 2, last = null;
   const HERO = () => ({ kind: 'hero', name: 'ฮีโร่', pow: 31, spd: 12, max: 3, pips: heroPips, skills: ['stormLance', 'earthBulwark', 'ironSkin', 'quickStep'], def: 8, row: 0,
-    art: useRig ? { type: 'rig', id: 'hero_craft_m' } : { type: 'hero', src: 'npc5_heroCombat.webp?v=127', row: 0 } });
+    art: ART === 'clip' ? { type: 'clip', id: 'hero_sword' } : ART === 'rig' ? { type: 'rig', id: 'hero_craft_m' } : { type: 'hero', src: 'npc5_heroCombat.webp?v=127', row: 0 } });
   const ALLY = {
     tank:   { kind: 'ally', name: 'โล่หญิง', pow: 30, spd: 9, max: 4, def: 20, row: 0, skills: ['taunt'], art: { type: 'ally', src: 'npc_combat/shieldmaiden.webp?v=131' } },
     priest: { kind: 'ally', name: 'นักบวช', pow: 18, spd: 11, max: 3, row: 1, ranged: true, skills: ['mend'], art: { type: 'ally', src: 'npc_combat/priest.webp?v=131' } },
