@@ -84,7 +84,7 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
 <script src="bag.js?v=136"></script>
 <script src="tower-regions.js?v=136"></script>
 <script src="battle.js?v=141"></script>
-<script src="hero-clips.js?v=161"></script>
+<script src="hero-clips.js?v=162"></script>
 <script src="battle-view.js?v=143&clip=161"></script>
 <script src="explore-art.js?v=158"></script>
 <script>
@@ -307,7 +307,7 @@ canvas#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-ac
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  window.EX = { get state() { return state; }, events: () => events, fight: () => fight(Object.assign({ u: 0.5, kind: 'mon', pack: 2 }, { mon: floorPool().mons[0] })), card: k => showCard(Object.assign({ u: 0.5 }, k === 'mon' ? { kind: 'mon', mon: floorPool().mons[0], pack: 2 } : { kind: k, item: k === 'herb' ? 'bind_grass' : 'iron_ore', n: 2 })) };
+  window.EX = { get state() { return state; }, fightEv: ev => fight(ev), events: () => events, fight: () => fight(Object.assign({ u: 0.5, kind: 'mon', pack: 2 }, { mon: floorPool().mons[0] })), card: k => showCard(Object.assign({ u: 0.5 }, k === 'mon' ? { kind: 'mon', mon: floorPool().mons[0], pack: 2 } : { kind: k, item: k === 'herb' ? 'bind_grass' : 'iron_ore', n: 2 })) };
 })();
 </script>
 </body></html>

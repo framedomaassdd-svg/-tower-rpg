@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>ดูท่ามอน</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,sans-serif}canvas{display:block;width:100vw;height:100vh}
+.bar{position:fixed;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap}.bar button{background:rgba(20,16,10,.8);color:#f3e6c4;border:1px solid #8a6d3b;border-radius:8px;padding:6px 10px;font-size:13px}.bar button.on{background:#7a5a22}</style></head>
+<body><canvas id="cv"></canvas><div class="bar" id="bar"></div>
+<script src="hero-clips.js?v=162"></script>
+<script>
+/* v162 look at each monster's four actions side by side on its floor's battle stage */
+(function () {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d'), cache = {};
+  const im = s => cache[s] || (cache[s] = Object.assign(new Image(), { src: s })), ok = i => i.complete && i.naturalWidth > 0;
+  const MONS = [['rabbit', 'กระต่าย', 1], ['goblin', 'ก๊อบลิน', 1], ['boar', 'หมูป่า', 1], ['slug', 'ทาก', 2], ['spider', 'แมงมุม', 2], ['wolf', 'หมาป่า (Kling)', 1]];
+  const ACTS = [['idle', 'ยืน'], ['atkA', 'โจมตี'], ['hit', 'โดนตี'], ['down', 'ตาย']];
+  let cur = +(new URLSearchParams(location.search).get('m') || 0), W, H, t0 = performance.now();
+  const bar = document.getElementById('bar');
+  MONS.forEach((m, i) => { const b = document.createElement('button'); b.textContent = m[1]; b.onclick = () => { cur = i; t0 = performance.now(); paint(); }; bar.appendChild(b); });
+  const paint = () => [...bar.children].forEach((b, i) => b.classList.toggle('on', i === cur)); paint();
+  const rs = () => { const d = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * d; H = cv.height = innerHeight * d; }; addEventListener('resize', rs); rs();
+  function frame(now) {
+    const [id, , fl] = MONS[cur], C = HeroClips[id], t = (now - t0) / 1000, B = im('tower/battle/f' + fl + '.webp?v=161');
+    if (ok(B)) { const s = Math.max(W / B.naturalWidth, H / B.naturalHeight); ctx.drawImage(B, (W - B.naturalWidth * s) / 2, (H - B.naturalHeight * s) / 2, B.naturalWidth * s, B.naturalHeight * s); }
+    const k = H * 0.36 / C.h;
+    ACTS.forEach(([act, label], i) => {
+      const M = C.acts[act]; if (!M) return;
+      const dur = M.n / M.fps, hold = act === 'idle' ? 0 : 0.6, cyc = dur + hold, lt = act === 'idle' ? t : t % cyc;
+      let f = Math.floor(lt * M.fps); f = act === 'idle' ? f % M.n : Math.min(M.n - 1, f);
+      const px = W * (0.16 + i * 0.23), gy = H * 0.8, I = im(C.dir + act + '.webp?v=' + C.ver);
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(px, gy, H * 0.08, H * 0.015, 0, 0, 7); ctx.fill();
+      if (ok(I)) ctx.drawImage(I, (f % M.cols) * M.cw, Math.floor(f / M.cols) * M.ch, M.cw, M.ch, px - M.ax * k, gy - M.ay * k, M.cw * k, M.ch * k);
+      ctx.font = `600 ${H * 0.045}px -apple-system,sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+      ctx.fillText(label + ' · ' + (f + 1) + '/' + M.n, px, H * 0.92); ctx.shadowBlur = 0;
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script></body></html>
