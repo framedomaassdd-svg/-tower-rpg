@@ -6,7 +6,7 @@
    up the alley lane (life-sim LANE), the camera zooms in, the scene cuts, and he walks out of the alley on the other side. World: 11120 × 1080, buildings stand on y = 794, people walk at y ≈ 792–860. */
 (function (root) {
   'use strict';
-  const V = '?v=104';
+  const V = '?v=163';
   const WORLD_W = 24700, BASE = 794;
   // Two scenes on one strip: the town ends at the alley; ตรอกล่าง begins at the same alley seen from the other side.
   // v87: ลานเกวียน (outside the west gate) is a third scene further along the strip, reached through the city gate.

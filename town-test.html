@@ -1,0 +1,18 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ดูเมือง</title><style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block;width:100vw;height:100vh}</style></head><body>
+<canvas id="c"></canvas>
+<script src="ambient.js?v=90"></script><script src="town-pano.js?v=104&art=163"></script>
+<script>
+/* v163 look at the town art at any x: ?x=5000&zone=town&night=0.8 */
+const q=new URLSearchParams(location.search), c=document.getElementById('c'), ctx=c.getContext('2d');
+function frame(t){
+  c.width=innerWidth; c.height=innerHeight;
+  const H=1040, s=c.height/H, w=c.width/s, zone=q.get('zone')||TownPano.zoneAt(+q.get('x')||0), cam=(+q.get('x')||0);
+  ctx.setTransform(s,0,0,s,-cam*s,0);
+  if(TownPano.ready()) TownPano.draw(ctx,cam,w,H,t,zone);
+  const n=+(q.get('night')||0);
+  if(n){ctx.save();ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgba(40,50,110,'+(0.75*n)+')';ctx.fillRect(cam,0,w,H);ctx.restore();TownPano.drawNight(ctx,cam,w,n,t,zone);}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script></body></html>
